@@ -16,36 +16,38 @@ enum AudioImportError: LocalizedError {
         switch self {
         case .unsupportedFormat: "Unsupported audio format."
         case .unreadableFile: "Could not read audio file."
-        case .emptySelection: "No audio files were selected."
+        case .emptySelection: "No audio files were found to import."
         case .storageUnavailable: "Could not access app storage."
         }
     }
 }
 
+struct ImportedStemsResult: Sendable {
+    let stems: [TrackOrganizationService.ImportedStem]
+    let notice: String?
+}
+
 /// Reads audio file metadata and prepares stems for track organization.
 struct AudioImportService: Sendable {
+    static let maximumImportCount = 20
+
     private let storage = AudioFileStorageService()
 
-    func loadStems(from urls: [URL], projectID: UUID) throws -> [TrackOrganizationService.ImportedStem] {
-        guard !urls.isEmpty else { throw AudioImportError.emptySelection }
-
-        var stems: [TrackOrganizationService.ImportedStem] = []
-
-        for url in urls {
-            guard SupportedAudioFormats.isSupported(url: url) else {
-                throw AudioImportError.unsupportedFormat
+    func loadStems(from urls: [URL], projectID: UUID) throws -> ImportedStemsResult {
+        let audioURLs = urls
+            .filter { SupportedAudioFormats.isSupported(url: $0) }
+            .sorted {
+                $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending
             }
 
-            let storedURL = try storage.importFile(from: url, projectID: projectID)
-            let duration = try readDuration(url: storedURL)
-            let name = TrackNameStandardizer.extractName(from: url)
-            stems.append(.init(url: storedURL, name: name, duration: duration))
-        }
+        guard !audioURLs.isEmpty else { throw AudioImportError.emptySelection }
 
-        return stems.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        let (selectedURLs, notice) = limitedURLs(from: audioURLs)
+        let stems = try importStemFiles(selectedURLs, projectID: projectID)
+        return ImportedStemsResult(stems: stems, notice: notice)
     }
 
-    func loadStemsFromFolder(_ folderURL: URL, projectID: UUID) throws -> [TrackOrganizationService.ImportedStem] {
+    func loadStemsFromFolder(_ folderURL: URL, projectID: UUID) throws -> ImportedStemsResult {
         let accessed = folderURL.startAccessingSecurityScopedResource()
         defer {
             if accessed {
@@ -53,13 +55,37 @@ struct AudioImportService: Sendable {
             }
         }
 
-        let fileManager = FileManager.default
-        let contents = try fileManager.contentsOfDirectory(
+        let contents = try FileManager.default.contentsOfDirectory(
             at: folderURL,
             includingPropertiesForKeys: nil
         )
         let audioURLs = contents.filter { SupportedAudioFormats.isSupported(url: $0) }
         return try loadStems(from: audioURLs, projectID: projectID)
+    }
+
+    private func limitedURLs(from audioURLs: [URL]) -> ([URL], String?) {
+        guard audioURLs.count > Self.maximumImportCount else {
+            return (audioURLs, nil)
+        }
+
+        let notice = "Only the first \(Self.maximumImportCount) audio files were imported. Maximum is \(Self.maximumImportCount) per folder or selection."
+        return (Array(audioURLs.prefix(Self.maximumImportCount)), notice)
+    }
+
+    private func importStemFiles(
+        _ urls: [URL],
+        projectID: UUID
+    ) throws -> [TrackOrganizationService.ImportedStem] {
+        var stems: [TrackOrganizationService.ImportedStem] = []
+
+        for url in urls {
+            let storedURL = try storage.importFile(from: url, projectID: projectID)
+            let duration = try readDuration(url: storedURL)
+            let name = TrackNameStandardizer.extractName(from: url)
+            stems.append(.init(url: storedURL, name: name, duration: duration))
+        }
+
+        return stems.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     private func readDuration(url: URL) throws -> TimeInterval {

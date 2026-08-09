@@ -12,6 +12,10 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
     var tracks: [AudioTrack]
     var groups: [TrackGroup]
     var sections: [ArrangementSection]
+    var sectionRepeatMIDINote: UInt8
+    var sectionRepeatMIDIChannel: UInt8
+    var preferredMIDISourceName: String?
+    var preferredMIDISourceUniqueID: Int32?
     var snapInterval: TimeInterval
     var isSnapEnabled: Bool
     var masterVolume: Double
@@ -24,6 +28,10 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
         tracks: [AudioTrack] = [],
         groups: [TrackGroup] = [],
         sections: [ArrangementSection] = [],
+        sectionRepeatMIDINote: UInt8 = 36,
+        sectionRepeatMIDIChannel: UInt8 = 0,
+        preferredMIDISourceName: String? = nil,
+        preferredMIDISourceUniqueID: Int32? = nil,
         snapInterval: TimeInterval = 0.25,
         isSnapEnabled: Bool = true,
         masterVolume: Double = 1.0,
@@ -35,6 +43,10 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
         self.tracks = tracks
         self.groups = groups
         self.sections = sections
+        self.sectionRepeatMIDINote = sectionRepeatMIDINote
+        self.sectionRepeatMIDIChannel = sectionRepeatMIDIChannel
+        self.preferredMIDISourceName = preferredMIDISourceName
+        self.preferredMIDISourceUniqueID = preferredMIDISourceUniqueID
         self.snapInterval = snapInterval
         self.isSnapEnabled = isSnapEnabled
         self.masterVolume = masterVolume

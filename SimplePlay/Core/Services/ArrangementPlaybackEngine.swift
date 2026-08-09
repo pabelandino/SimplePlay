@@ -23,17 +23,37 @@ final class ArrangementPlaybackEngine {
 
     var currentTime: TimeInterval = 0
     var isPlaying = false
+    var isRepeatEnabled = false
 
     private var sections: [ArrangementSection] = []
 
     func configure(sections: [ArrangementSection]) {
         self.sections = sections.sorted { $0.startTime < $1.startTime }
+
+        if let activeSection,
+           let refreshed = self.sections.first(where: { $0.id == activeSection.id }) {
+            self.activeSection = refreshed
+            if case .playingSection = state {
+                state = .playingSection(refreshed)
+            }
+        }
+
+        if let pendingSection,
+           let refreshed = self.sections.first(where: { $0.id == pendingSection.id }) {
+            self.pendingSection = refreshed
+        }
     }
 
-    func triggerSection(midiNote: UInt8, channel: UInt8 = 0) {
-        guard let section = sections.first(where: {
-            $0.midiNote == midiNote && $0.midiChannel == channel
-        }) else { return }
+    func triggerSection(_ section: ArrangementSection) {
+        if isRepeatEnabled {
+            switch state {
+            case .playingSection(let current) where current.id != section.id:
+                pendingSection = section
+                return
+            default:
+                break
+            }
+        }
 
         switch state {
         case .playingSection(let current) where current.id != section.id:
@@ -45,6 +65,25 @@ final class ArrangementPlaybackEngine {
             }
         default:
             activate(section)
+        }
+    }
+
+    func triggerSection(midiNote: UInt8, channel: UInt8 = 0) {
+        guard let section = sections.first(where: {
+            $0.midiNote == midiNote && $0.midiChannel == channel
+        }) else { return }
+
+        triggerSection(section)
+    }
+
+    func setRepeatEnabled(_ enabled: Bool) {
+        isRepeatEnabled = enabled
+
+        if !enabled,
+           pendingSection != nil,
+           case .playingSection = state,
+           let pending = pendingSection {
+            state = .waitingToJump(to: pending)
         }
     }
 
@@ -102,6 +141,17 @@ final class ArrangementPlaybackEngine {
 
     private func handleSectionPlayback(_ section: ArrangementSection, projectDuration: TimeInterval) {
         guard currentTime >= section.endTime else { return }
+
+        if case .waitingToJump = state, let pending = pendingSection {
+            activate(pending)
+            pendingSection = nil
+            return
+        }
+
+        if isRepeatEnabled {
+            currentTime = section.startTime
+            return
+        }
 
         switch section.playbackMode {
         case .repeatSection:

@@ -1,0 +1,386 @@
+//
+//  SectionMarkerLaneView.swift
+//  SimplePlay
+//
+
+import SwiftUI
+
+private struct SectionDragSession {
+    let sectionID: UUID
+    let kind: WorkspaceViewModel.SectionDragKind
+    let anchorStart: TimeInterval
+    let anchorEnd: TimeInterval
+    var translation: CGFloat
+}
+
+struct SectionMarkerLaneView: View {
+    @Bindable var viewModel: WorkspaceViewModel
+    let contentWidth: CGFloat
+
+    @State private var dragSession: SectionDragSession?
+
+    private var creationDragMinimumDistance: CGFloat {
+        2
+    }
+
+    private var minimumSectionDuration: TimeInterval {
+        max(viewModel.project.snapInterval, 0.25)
+    }
+
+    private var creationHint: String {
+#if os(iOS)
+        "Tap and drag here to create a section marker"
+#else
+        "Drag here to create a section marker"
+#endif
+    }
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(DAWTheme.surfaceElevated.opacity(0.65))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(DAWTheme.border, lineWidth: 1)
+                }
+                .contentShape(Rectangle())
+                .highPriorityGesture(sectionCreationGesture)
+
+            if let preview = viewModel.sectionCreationPreview {
+                SectionCreationPreviewView(
+                    range: preview,
+                    pixelsPerSecond: viewModel.pixelsPerSecond,
+                    name: viewModel.preferredMarkerPreset,
+                    color: Color(
+                        hex: SectionMarkerPalette.nextDistinctHex(
+                            sections: viewModel.project.sections,
+                            name: viewModel.preferredMarkerPreset
+                        )
+                    ) ?? SectionMarkerPalette.color(
+                        forName: viewModel.preferredMarkerPreset,
+                        index: viewModel.project.sections.count
+                    )
+                )
+            }
+
+            ForEach(viewModel.project.sections) { section in
+                SectionMarkerChipView(
+                    section: section,
+                    viewModel: viewModel,
+                    isSelected: viewModel.selectedSectionID == section.id,
+                    isDimmed: dragSession?.sectionID == section.id,
+                    dragSession: $dragSession
+                )
+                .offset(x: CGFloat(section.startTime) * viewModel.pixelsPerSecond)
+                .zIndex(dragSession?.sectionID == section.id ? 1 : 0)
+            }
+
+            if let session = dragSession,
+               let section = viewModel.project.sections.first(where: { $0.id == session.sectionID }) {
+                let ghostStart = ghostStartTime(for: session)
+                let ghostEnd = ghostEndTime(for: session)
+
+                SectionMarkerGhostChipView(
+                    section: section,
+                    startTime: ghostStart,
+                    endTime: ghostEnd,
+                    pixelsPerSecond: viewModel.pixelsPerSecond
+                )
+                .offset(x: CGFloat(ghostStart) * viewModel.pixelsPerSecond)
+                .transaction { $0.disablesAnimations = true }
+                .zIndex(20)
+                .allowsHitTesting(false)
+            }
+
+            if viewModel.project.sections.isEmpty, viewModel.sectionCreationPreview == nil {
+                Text(creationHint)
+                    .font(.caption2)
+                    .foregroundStyle(DAWTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .allowsHitTesting(false)
+            }
+        }
+        .frame(width: contentWidth, height: DAWTheme.markerLaneHeight - 8)
+        .padding(.vertical, 4)
+    }
+
+    private func ghostStartTime(for session: SectionDragSession) -> TimeInterval {
+        let delta = TimeInterval(session.translation / viewModel.pixelsPerSecond)
+
+        switch session.kind {
+        case .move:
+            return max(0, session.anchorStart + delta)
+        case .resizeStart:
+            return max(0, min(session.anchorEnd - minimumSectionDuration, session.anchorStart + delta))
+        case .resizeEnd:
+            return session.anchorStart
+        }
+    }
+
+    private func ghostEndTime(for session: SectionDragSession) -> TimeInterval {
+        let delta = TimeInterval(session.translation / viewModel.pixelsPerSecond)
+
+        switch session.kind {
+        case .move:
+            return ghostStartTime(for: session) + (session.anchorEnd - session.anchorStart)
+        case .resizeStart:
+            return session.anchorEnd
+        case .resizeEnd:
+            return max(session.anchorStart + minimumSectionDuration, session.anchorEnd + delta)
+        }
+    }
+
+    private var sectionCreationGesture: some Gesture {
+        DragGesture(minimumDistance: creationDragMinimumDistance)
+            .onChanged { value in
+                guard dragSession == nil, !viewModel.isSectionInteractionActive else { return }
+
+                if viewModel.sectionCreationPreview == nil {
+                    viewModel.beginSectionCreation(atX: value.startLocation.x)
+                }
+                viewModel.updateSectionCreation(toX: value.location.x)
+            }
+            .onEnded { _ in
+                viewModel.commitSectionCreation()
+            }
+    }
+}
+
+private struct SectionCreationPreviewView: View {
+    let range: ClosedRange<TimeInterval>
+    let pixelsPerSecond: CGFloat
+    let name: String
+    let color: Color
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(color.opacity(0.35))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(color.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+            }
+            .overlay(alignment: .leading) {
+                Text(name)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+            }
+            .frame(
+                width: max(48, CGFloat(range.upperBound - range.lowerBound) * pixelsPerSecond),
+                height: DAWTheme.markerLaneHeight - 14
+            )
+            .offset(x: CGFloat(range.lowerBound) * pixelsPerSecond)
+            .allowsHitTesting(false)
+    }
+}
+
+private struct SectionMarkerGhostChipView: View {
+    let section: ArrangementSection
+    let startTime: TimeInterval
+    let endTime: TimeInterval
+    let pixelsPerSecond: CGFloat
+
+    private var chipWidth: CGFloat {
+        max(56, CGFloat(max(0, endTime - startTime)) * pixelsPerSecond)
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(section.name)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
+
+                HStack(spacing: 6) {
+                    Text(TimeFormatting.format(startTime))
+                    Text("→")
+                    Text(TimeFormatting.format(endTime))
+                }
+                .font(.caption2.monospaced())
+                .foregroundStyle(.white.opacity(0.78))
+            }
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        }
+        .frame(width: chipWidth, height: DAWTheme.markerLaneHeight - 14)
+        .background {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            section.color.opacity(0.52),
+                            section.color.opacity(0.34),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(section.color.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
+        }
+        .shadow(color: section.color.opacity(0.35), radius: 12, y: 6)
+    }
+}
+
+fileprivate struct SectionMarkerChipView: View {
+    let section: ArrangementSection
+    @Bindable var viewModel: WorkspaceViewModel
+    let isSelected: Bool
+    let isDimmed: Bool
+    @Binding var dragSession: SectionDragSession?
+
+    @State private var showDeleteConfirmation = false
+
+    private var liveSection: ArrangementSection {
+        viewModel.project.sections.first(where: { $0.id == section.id }) ?? section
+    }
+
+    private var chipWidth: CGFloat {
+        max(56, CGFloat(liveSection.duration) * viewModel.pixelsPerSecond)
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            resizeHandle(edge: .start)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(liveSection.name)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+
+                HStack(spacing: 6) {
+                    Text(TimeFormatting.format(liveSection.startTime))
+                    Text("→")
+                    Text(TimeFormatting.format(liveSection.endTime))
+                }
+                .font(.caption2.monospaced())
+                .foregroundStyle(.white.opacity(0.85))
+            }
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .gesture(sectionDragGesture(kind: .move))
+
+            resizeHandle(edge: .end)
+        }
+        .frame(width: chipWidth, height: DAWTheme.markerLaneHeight - 14)
+        .opacity(isDimmed ? 0.28 : 1)
+        .background {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            liveSection.color.opacity(0.82),
+                            liveSection.color.opacity(0.58),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(
+                    isSelected ? Color.white.opacity(0.95) : liveSection.color.opacity(0.9),
+                    lineWidth: isSelected ? 2 : 1
+                )
+        }
+        .shadow(color: liveSection.color.opacity(0.25), radius: 5, y: 2)
+        .onTapGesture {
+            guard dragSession == nil else { return }
+            viewModel.selectSection(section.id)
+            showDeleteConfirmation = true
+        }
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                viewModel.triggerSection(liveSection)
+            }
+        )
+        .confirmationDialog(
+            "Delete \"\(liveSection.name)\"?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                viewModel.deleteSection(section.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This section marker will be removed from the timeline.")
+        }
+#if os(macOS)
+        .help("Drag to move · Double-click to trigger · Tap to delete")
+#endif
+    }
+
+    private enum ResizeEdge {
+        case start
+        case end
+    }
+
+    private func resizeHandle(edge: ResizeEdge) -> some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(Color.white.opacity(isDimmed ? 0.2 : 0.35))
+            .frame(width: 6)
+            .padding(.vertical, 10)
+            .padding(edge == .start ? .leading : .trailing, 4)
+            .contentShape(Rectangle().size(width: 14, height: DAWTheme.markerLaneHeight - 14))
+            .gesture(sectionDragGesture(kind: edge == .start ? .resizeStart : .resizeEnd))
+#if os(macOS)
+            .cursor(.resizeLeftRight)
+#endif
+    }
+
+    private func sectionDragGesture(kind: WorkspaceViewModel.SectionDragKind) -> some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { value in
+                if dragSession == nil {
+                    dragSession = SectionDragSession(
+                        sectionID: section.id,
+                        kind: kind,
+                        anchorStart: liveSection.startTime,
+                        anchorEnd: liveSection.endTime,
+                        translation: value.translation.width
+                    )
+                    viewModel.beginSectionDrag(sectionID: section.id, kind: kind)
+                } else if var session = dragSession,
+                          session.sectionID == section.id,
+                          session.kind == kind {
+                    session.translation = value.translation.width
+                    dragSession = session
+                }
+            }
+            .onEnded { value in
+                guard dragSession?.sectionID == section.id, dragSession?.kind == kind else { return }
+
+                viewModel.commitSectionDrag(
+                    sectionID: section.id,
+                    kind: kind,
+                    translation: value.translation.width
+                )
+                dragSession = nil
+            }
+    }
+}
+
+#if os(macOS)
+import AppKit
+
+private extension View {
+    func cursor(_ cursor: NSCursor) -> some View {
+        onContinuousHover { phase in
+            switch phase {
+            case .active:
+                cursor.push()
+            case .ended:
+                NSCursor.pop()
+            }
+        }
+    }
+}
+#endif

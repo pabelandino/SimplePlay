@@ -194,6 +194,8 @@ struct ProjectPersistenceService: Sendable {
                     isSolo: track.isSolo,
                     isLocked: track.isLocked,
                     pan: track.pan,
+                    volume: track.volume,
+                    pitchSemitones: track.pitchSemitones,
                     clips: persistedClips
                 )
             )
@@ -205,6 +207,10 @@ struct ProjectPersistenceService: Sendable {
             tracks: persistedTracks,
             groups: project.groups,
             sections: project.sections,
+            sectionRepeatMIDINote: project.sectionRepeatMIDINote,
+            sectionRepeatMIDIChannel: project.sectionRepeatMIDIChannel,
+            preferredMIDISourceName: project.preferredMIDISourceName,
+            preferredMIDISourceUniqueID: project.preferredMIDISourceUniqueID,
             snapInterval: project.snapInterval,
             isSnapEnabled: project.isSnapEnabled,
             masterVolume: project.masterVolume,
@@ -216,7 +222,7 @@ struct ProjectPersistenceService: Sendable {
     private func restoreRuntimeProject(from persisted: PersistedProject, packageURL: URL) -> DAWProject {
         let audioDirectory = packageURL.appendingPathComponent(audioFolderName, isDirectory: true)
 
-        let tracks = persisted.tracks.map { track in
+        var tracks = persisted.tracks.map { track in
             AudioTrack(
                 id: track.id,
                 originalName: track.originalName,
@@ -227,6 +233,8 @@ struct ProjectPersistenceService: Sendable {
                 isSolo: track.isSolo,
                 isLocked: track.isLocked,
                 pan: track.pan,
+                volume: track.volume,
+                pitchSemitones: track.pitchSemitones,
                 clips: track.clips.map { clip in
                     AudioClip(
                         id: clip.id,
@@ -241,18 +249,42 @@ struct ProjectPersistenceService: Sendable {
             )
         }
 
+        migrateLegacyGroupPitch(into: &tracks, groups: persisted.groups)
+        TrackColorPalette.ensureDistinctColors(on: &tracks)
+
         return DAWProject(
             id: persisted.id,
             name: persisted.name,
             tracks: tracks,
             groups: persisted.groups,
             sections: persisted.sections,
+            sectionRepeatMIDINote: persisted.sectionRepeatMIDINote,
+            sectionRepeatMIDIChannel: persisted.sectionRepeatMIDIChannel,
+            preferredMIDISourceName: persisted.preferredMIDISourceName,
+            preferredMIDISourceUniqueID: persisted.preferredMIDISourceUniqueID,
             snapInterval: persisted.snapInterval,
             isSnapEnabled: persisted.isSnapEnabled,
             masterVolume: persisted.masterVolume,
             tempo: persisted.tempo,
             audioSettings: persisted.audioSettings
         )
+    }
+
+    private func migrateLegacyGroupPitch(into tracks: inout [AudioTrack], groups: [TrackGroup]) {
+        for index in tracks.indices {
+            guard abs(tracks[index].pitchSemitones) < 0.001 else { continue }
+
+            let groupIndices = Set(tracks[index].clips.map(\.groupIndex))
+            guard groupIndices.count == 1,
+                  let groupIndex = groupIndices.first,
+                  groups.indices.contains(groupIndex)
+            else { continue }
+
+            let legacyPitch = groups[groupIndex].pitchSemitones
+            guard abs(legacyPitch) > 0.001 else { continue }
+
+            tracks[index].pitchSemitones = PitchShiftSettings.clampSemitones(legacyPitch)
+        }
     }
 }
 

@@ -8,14 +8,26 @@ import UniformTypeIdentifiers
 
 /// Loads file and folder URLs from drag-and-drop item providers.
 enum DropURLLoader {
-    private static let supportedTypeIdentifiers = [
-        UTType.fileURL.identifier,
-        UTType.folder.identifier,
-        UTType.audio.identifier,
-        UTType.wav.identifier,
-        UTType.aiff.identifier,
-        UTType.mp3.identifier
-    ]
+    private static let supportedTypeIdentifiers: [String] = {
+        var identifiers = Set<String>([
+            UTType.fileURL.identifier,
+            UTType.folder.identifier,
+            UTType.item.identifier,
+            UTType.audio.identifier,
+            UTType.wav.identifier,
+            UTType.aiff.identifier,
+            UTType.mp3.identifier,
+            UTType.mpeg4Audio.identifier
+        ])
+
+        for ext in SupportedAudioFormats.fileExtensions {
+            if let type = UTType(filenameExtension: ext) {
+                identifiers.insert(type.identifier)
+            }
+        }
+
+        return Array(identifiers)
+    }()
 
     static func loadURLs(from providers: [NSItemProvider]) async -> [URL] {
         var urls: [URL] = []

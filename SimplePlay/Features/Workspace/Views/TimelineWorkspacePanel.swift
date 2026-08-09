@@ -4,43 +4,120 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Combined track headers + timeline with synchronized vertical scrolling.
 struct TimelineWorkspacePanel: View {
     @Bindable var viewModel: WorkspaceViewModel
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isDropTargeted = false
     @State private var magnificationAnchor: Double?
+    @State private var horizontalScrollOffset: CGFloat = 0
+    @State private var timelineScrollPosition = ScrollPosition(x: 0)
+
+    private var isCompact: Bool {
+        horizontalSizeClass == .compact
+    }
+
+    private var trackHeaderWidth: CGFloat {
+        isCompact ? DAWTheme.compactTrackHeaderWidth : DAWTheme.trackHeaderWidth
+    }
+
+    private var trackRowHeight: CGFloat {
+        isCompact ? DAWTheme.compactTrackRowHeight : DAWTheme.trackRowHeight
+    }
+
+    private var timelineTopInset: CGFloat {
+        DAWTheme.rulerHeight + DAWTheme.markerLaneHeight
+    }
+
+    private var laneAreaHeight: CGFloat {
+        CGFloat(max(viewModel.project.tracks.count, 1)) * trackRowHeight
+    }
+
+    private var timelineDropOverlayMessage: String {
+#if os(iOS)
+        "Drop audio at the playhead position"
+#else
+        "Drop stems at this timeline position"
+#endif
+    }
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollView(.vertical, showsIndicators: true) {
-                HStack(alignment: .top, spacing: 0) {
-                    trackHeaderColumn
-                    timelineScrollArea
+            VStack(spacing: 0) {
+                pinnedTimelineHeaders
+
+                ScrollView(.vertical, showsIndicators: true) {
+                    HStack(alignment: .top, spacing: 0) {
+                        trackHeaderColumnTracksOnly
+                        masterTimelineHorizontalScroll
+                    }
                 }
             }
             .onAppear {
-                viewModel.updateTimelineViewportWidth(geometry.size.width - DAWTheme.trackHeaderWidth)
+                viewModel.updateTimelineViewportWidth(geometry.size.width - trackHeaderWidth)
             }
             .onChange(of: geometry.size.width) { _, newWidth in
-                viewModel.updateTimelineViewportWidth(newWidth - DAWTheme.trackHeaderWidth)
+                viewModel.updateTimelineViewportWidth(newWidth - trackHeaderWidth)
+            }
+            .onChange(of: horizontalSizeClass) { _, _ in
+                viewModel.updateTimelineViewportWidth(geometry.size.width - trackHeaderWidth)
             }
         }
         .background(DAWTheme.background)
     }
 
-    private var trackHeaderColumn: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(DAWTheme.surfaceElevated)
-                .frame(height: 28)
-                .overlay(alignment: .leading) {
-                    Text("Tracks")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(DAWTheme.textSecondary)
-                        .padding(.leading, 12)
-                }
+    // MARK: - Pinned headers (Time + Sections stay visible while tracks scroll)
 
+    private var pinnedTimelineHeaders: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                timeHeaderCell
+                mirroredHorizontalTimeline(height: DAWTheme.rulerHeight) {
+                    TimelineRulerView(
+                        duration: viewModel.project.duration,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        playheadTime: viewModel.playheadTime,
+                        onSeek: { time in
+                            viewModel.seek(to: time)
+                        }
+                    )
+                    .frame(width: viewModel.timelineContentWidth, height: DAWTheme.rulerHeight)
+                }
+            }
+
+            HStack(spacing: 0) {
+                markerHeaderRow
+                masterSectionLaneScroll
+            }
+        }
+        .background(DAWTheme.surface)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(DAWTheme.border).frame(height: 1)
+        }
+    }
+
+    private var timeHeaderCell: some View {
+        Rectangle()
+            .fill(DAWTheme.surfaceElevated)
+            .frame(width: trackHeaderWidth, height: DAWTheme.rulerHeight)
+            .overlay(alignment: .topLeading) {
+                Text("Time")
+                    .font(.caption2)
+                    .foregroundStyle(DAWTheme.textSecondary)
+                    .padding(.leading, isCompact ? 8 : 12)
+                    .padding(.top, 8)
+            }
+            .overlay(alignment: .trailing) {
+                Rectangle().fill(DAWTheme.border).frame(width: 1)
+            }
+    }
+
+    // MARK: - Track headers (scroll vertically with lanes)
+
+    private var trackHeaderColumnTracksOnly: some View {
+        VStack(spacing: 0) {
             ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
                 TrackHeaderRowView(track: track, viewModel: viewModel)
                     .offset(y: viewModel.trackDragVisualOffset(for: track.id))
@@ -52,66 +129,159 @@ struct TimelineWorkspacePanel: View {
                         }
                     }
                     .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
-                    .frame(height: DAWTheme.trackRowHeight)
+                    .frame(height: trackRowHeight)
             }
 
             Button {
-                viewModel.showImportPanel = true
+                viewModel.presentAddTrackImport()
             } label: {
-                Label("Add Track", systemImage: "plus")
-                    .font(.subheadline)
+                Label(isCompact ? "Add" : "Add Track", systemImage: "plus")
+                    .font(isCompact ? .caption : .subheadline)
                     .foregroundStyle(DAWTheme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .frame(height: 44)
+                    .padding(.horizontal, isCompact ? 8 : 12)
+                    .frame(height: isCompact ? 36 : 44)
             }
             .buttonStyle(.plain)
         }
-        .frame(width: DAWTheme.trackHeaderWidth)
+        .frame(width: trackHeaderWidth)
         .background(DAWTheme.surface)
         .overlay(alignment: .trailing) {
-            Rectangle()
-                .fill(DAWTheme.border)
-                .frame(width: 1)
+            Rectangle().fill(DAWTheme.border).frame(width: 1)
         }
     }
 
-    private var timelineScrollArea: some View {
+    private var markerHeaderRow: some View {
+        HStack(spacing: isCompact ? 4 : 8) {
+            Image(systemName: "flag.fill")
+                .font(.caption2)
+                .foregroundStyle(viewModel.isSectionRepeatEnabled ? DAWTheme.accent : DAWTheme.textSecondary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sections")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(DAWTheme.textPrimary)
+
+                if viewModel.isSectionRepeatEnabled {
+                    Text(viewModel.queuedSectionName.map { "Repeat · \($0)" } ?? "Repeat On")
+                        .font(.caption2)
+                        .foregroundStyle(DAWTheme.accent)
+                        .lineLimit(1)
+                } else if !isCompact {
+                    Text("Drag in the Sections lane to create markers")
+                        .font(.caption2)
+                        .foregroundStyle(DAWTheme.textSecondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, isCompact ? 8 : 12)
+        .frame(width: trackHeaderWidth, height: DAWTheme.markerLaneHeight)
+        .background(DAWTheme.surface.opacity(0.95))
+        .overlay(alignment: .trailing) {
+            Rectangle().fill(DAWTheme.border).frame(width: 1)
+        }
+    }
+
+    private var masterSectionLaneScroll: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            SectionMarkerLaneView(
+                viewModel: viewModel,
+                contentWidth: viewModel.timelineContentWidth
+            )
+            .frame(width: viewModel.timelineContentWidth, height: DAWTheme.markerLaneHeight)
+        }
+        .scrollPosition($timelineScrollPosition)
+        .scrollDisabled(true)
+        .frame(maxWidth: .infinity)
+        .frame(height: DAWTheme.markerLaneHeight)
+    }
+
+    // MARK: - Master horizontal scroll (tracks + playhead)
+
+    private var masterTimelineHorizontalScroll: some View {
         ScrollView(.horizontal, showsIndicators: true) {
             ZStack(alignment: .topLeading) {
-                timelineBackground
+                trackLaneBackground
                 trackLanes
-                sectionOverlays
-                selectionOverlay
                 playhead
 
                 if viewModel.project.tracks.isEmpty {
                     TimelineEmptyDropHint()
                 }
             }
-            .frame(
-                width: viewModel.timelineContentWidth,
-                height: max(400, CGFloat(max(viewModel.project.tracks.count, 1)) * DAWTheme.trackRowHeight + 40)
-            )
+            .scrollTargetLayout()
+            .frame(width: viewModel.timelineContentWidth, height: laneAreaHeight)
             .overlay {
                 if isDropTargeted {
-                    AudioDropOverlay(message: "Drop stems at this timeline position")
+                    AudioDropOverlay(message: timelineDropOverlayMessage)
                 }
             }
-            .dropDestination(for: URL.self) { urls, location in
-                let dropTime = SnapGrid.snap(
-                    TimeInterval(max(0, location.x) / viewModel.pixelsPerSecond),
-                    interval: viewModel.project.snapInterval,
-                    enabled: viewModel.project.isSnapEnabled
-                )
-                viewModel.importDroppedItems(urls: urls, startTime: dropTime)
-                return true
-            } isTargeted: { targeted in
-                isDropTargeted = targeted
+            .modifier(TimelineAudioDropModifier(viewModel: viewModel, isDropTargeted: $isDropTargeted))
+        }
+        .scrollPosition($timelineScrollPosition)
+        .scrollDisabled(viewModel.isSectionInteractionActive)
+        .simultaneousGesture(magnificationGesture)
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.x + geometry.contentInsets.leading
+        } action: { _, newValue in
+            horizontalScrollOffset = max(0, newValue)
+            viewModel.updateTimelineVisibleOffset(horizontalScrollOffset)
+        }
+        .onChange(of: viewModel.timelineScrollRequest) { _, request in
+            guard let request else { return }
+            applyTimelineScroll(offsetX: request.offsetX)
+        }
+        .onChange(of: viewModel.playheadTime) { _, _ in
+            followPlayheadIfNeeded()
+        }
+        .onChange(of: viewModel.isPlaying) { _, isPlaying in
+            if isPlaying {
+                followPlayheadIfNeeded()
             }
         }
-        .simultaneousGesture(marqueeSelectionGesture)
-        .simultaneousGesture(magnificationGesture)
+    }
+
+    @ViewBuilder
+    private func mirroredHorizontalTimeline<Content: View>(
+        height: CGFloat,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let mirroredContent = content()
+
+        GeometryReader { geometry in
+            mirroredContent
+                .frame(width: viewModel.timelineContentWidth, alignment: .leading)
+                .offset(x: -horizontalScrollOffset)
+                .frame(width: geometry.size.width, alignment: .leading)
+                .clipped()
+        }
+        .frame(height: height)
+    }
+
+    private func followPlayheadIfNeeded() {
+        guard viewModel.isPlaying else { return }
+
+        let playheadX = CGFloat(viewModel.playheadTime) * viewModel.pixelsPerSecond
+        let viewport = max(1, viewModel.timelineViewportWidth)
+        let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
+        let blockWidth = viewport * 0.85
+        let visibleEnd = horizontalScrollOffset + viewport * 0.88
+
+        guard playheadX > visibleEnd else { return }
+
+        let blockIndex = floor(playheadX / blockWidth)
+        let targetX = min(maxOffset, blockIndex * blockWidth)
+        guard abs(targetX - horizontalScrollOffset) > 1 else { return }
+
+        applyTimelineScroll(offsetX: targetX)
+    }
+
+    private func applyTimelineScroll(offsetX: CGFloat) {
+        horizontalScrollOffset = offsetX
+        timelineScrollPosition = ScrollPosition(x: offsetX)
+        viewModel.updateTimelineVisibleOffset(offsetX)
     }
 
     private var magnificationGesture: some Gesture {
@@ -127,108 +297,59 @@ struct TimelineWorkspacePanel: View {
             }
     }
 
-    private var marqueeSelectionGesture: some Gesture {
-        DragGesture(minimumDistance: 10)
-            .onChanged { value in
-                guard viewModel.draggingTrackID == nil else { return }
-
-                let horizontal = abs(value.translation.width)
-                let vertical = abs(value.translation.height)
-                guard horizontal > vertical * 1.5, horizontal >= 12 else {
-                    if vertical > horizontal {
-                        viewModel.clearTimelineSelection()
-                    }
-                    return
-                }
-
-                let start = TimeInterval(max(0, value.startLocation.x) / viewModel.pixelsPerSecond)
-                let end = TimeInterval(max(0, value.location.x) / viewModel.pixelsPerSecond)
-                viewModel.selectionRange = min(start, end)...max(start, end)
-            }
-            .onEnded { value in
-                guard viewModel.draggingTrackID == nil else { return }
-
-                let horizontal = abs(value.translation.width)
-                let vertical = abs(value.translation.height)
-                guard horizontal > vertical * 1.5, horizontal >= 12 else {
-                    viewModel.clearTimelineSelection()
-                    return
-                }
-
-                let start = TimeInterval(max(0, value.startLocation.x) / viewModel.pixelsPerSecond)
-                let end = TimeInterval(max(0, value.location.x) / viewModel.pixelsPerSecond)
-                let range = min(start, end)...max(start, end)
-                viewModel.selectionRange = range
-                viewModel.selectClipsIntersecting(range: range)
-            }
-    }
-
-    @ViewBuilder
-    private var selectionOverlay: some View {
-        if let range = viewModel.selectionRange {
-            Rectangle()
-                .fill(DAWTheme.selection)
-                .frame(width: max(2, CGFloat(range.upperBound - range.lowerBound) * viewModel.pixelsPerSecond))
-                .offset(x: CGFloat(range.lowerBound) * viewModel.pixelsPerSecond)
-                .allowsHitTesting(false)
-        }
-    }
-
-    private var timelineBackground: some View {
+    private var trackLaneBackground: some View {
         VStack(spacing: 0) {
-            TimelineRulerView(
-                duration: viewModel.project.duration,
-                pixelsPerSecond: viewModel.pixelsPerSecond,
-                playheadTime: viewModel.playheadTime
-            ) { time in
-                viewModel.seek(to: time)
-            }
-            .frame(height: 28)
-
             ForEach(viewModel.project.tracks) { _ in
                 Rectangle()
                     .fill(DAWTheme.background)
-                    .frame(height: DAWTheme.trackRowHeight)
+                    .frame(height: trackRowHeight)
                     .overlay(alignment: .bottom) {
                         Rectangle().fill(DAWTheme.border).frame(height: 1)
                     }
             }
         }
+        .contentShape(Rectangle())
+        .gesture(timelineSeekGesture)
+    }
+
+    private var timelineSeekGesture: some Gesture {
+        SpatialTapGesture()
+            .onEnded { value in
+                seekToTimelinePosition(value.location.x)
+            }
+    }
+
+    private func seekToTimelinePosition(_ x: CGFloat) {
+        let rawTime = TimeInterval(max(0, x) / viewModel.pixelsPerSecond)
+        let snapped = SnapGrid.snap(
+            rawTime,
+            interval: viewModel.project.snapInterval,
+            enabled: viewModel.project.isSnapEnabled
+        )
+        viewModel.seek(to: snapped)
     }
 
     private var trackLanes: some View {
-        VStack(spacing: 0) {
-            Color.clear.frame(height: 28)
-
-            ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
-                TrackLaneView(
-                    track: track,
-                    viewModel: viewModel,
-                    contentWidth: viewModel.timelineContentWidth
-                )
-                .offset(y: viewModel.trackDragVisualOffset(for: track.id))
-                .overlay(alignment: .top) {
-                    if viewModel.showsTrackDropIndicator(at: index) {
-                        Rectangle()
-                            .fill(track.color)
-                            .frame(height: 2)
-                    }
-                }
-                .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
-                .frame(width: viewModel.timelineContentWidth, height: DAWTheme.trackRowHeight, alignment: .leading)
-            }
-        }
-        .frame(width: viewModel.timelineContentWidth, alignment: .leading)
-    }
-
-    private var sectionOverlays: some View {
-        ForEach(viewModel.project.sections) { section in
-            SectionOverlayView(
-                section: section,
-                pixelsPerSecond: viewModel.pixelsPerSecond,
-                isSelected: viewModel.selectedSectionID == section.id
+        ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
+            TrackLaneView(
+                track: track,
+                viewModel: viewModel,
+                contentWidth: viewModel.timelineContentWidth,
+                rowHeight: trackRowHeight
             )
-            .offset(x: CGFloat(section.startTime) * viewModel.pixelsPerSecond)
+            .offset(
+                y: CGFloat(index) * trackRowHeight
+                    + viewModel.trackDragVisualOffset(for: track.id)
+            )
+            .overlay(alignment: .top) {
+                if viewModel.showsTrackDropIndicator(at: index) {
+                    Rectangle()
+                        .fill(track.color)
+                        .frame(height: 2)
+                }
+            }
+            .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
+            .frame(width: viewModel.timelineContentWidth, height: trackRowHeight, alignment: .leading)
         }
     }
 
@@ -236,10 +357,11 @@ struct TimelineWorkspacePanel: View {
         PlayheadView(
             playheadTime: viewModel.playheadTime,
             pixelsPerSecond: viewModel.pixelsPerSecond,
-            height: CGFloat(max(viewModel.project.tracks.count, 1)) * DAWTheme.trackRowHeight + 28
+            height: laneAreaHeight
         ) { time in
             viewModel.seek(to: time)
         }
+        .zIndex(100)
     }
 }
 
@@ -256,31 +378,90 @@ struct PlayheadView: View {
 
         ZStack(alignment: .top) {
             Rectangle()
-                .fill(DAWTheme.playhead)
+                .fill(
+                    LinearGradient(
+                        colors: [DAWTheme.playhead.opacity(0.15), DAWTheme.playhead, DAWTheme.playhead.opacity(0.15)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 .frame(width: 2, height: height)
+                .shadow(color: DAWTheme.playheadGlow, radius: 3, x: 0, y: 0)
 
             Circle()
-                .fill(DAWTheme.playhead)
-                .frame(width: 10, height: 10)
-                .offset(y: -4)
+                .fill(
+                    RadialGradient(
+                        colors: [.white, DAWTheme.playhead],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 8
+                    )
+                )
+                .overlay {
+                    Circle()
+                        .stroke(Color.white.opacity(0.85), lineWidth: 1.5)
+                }
+                .frame(width: 14, height: 14)
+                .shadow(color: DAWTheme.playheadGlow, radius: 4, x: 0, y: 0)
+                .offset(y: -6)
         }
-        .frame(width: 16, height: height, alignment: .top)
-        .contentShape(Rectangle().size(width: 16, height: height))
-        .offset(x: x - 8)
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    if dragStartTime == nil {
-                        dragStartTime = playheadTime
-                    }
-                    let delta = TimeInterval(value.translation.width / pixelsPerSecond)
-                    onSeek(max(0, (dragStartTime ?? playheadTime) + delta))
-                }
-                .onEnded { _ in
-                    dragStartTime = nil
-                }
-        )
+        .frame(width: 44, height: height, alignment: .top)
+        .contentShape(Rectangle().size(width: 44, height: height))
+        .offset(x: x - 22)
+        .highPriorityGesture(playheadDragGesture)
         .animation(nil, value: playheadTime)
         .animation(nil, value: pixelsPerSecond)
+    }
+
+    private var playheadDragGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if dragStartTime == nil {
+                    dragStartTime = playheadTime
+                }
+                let delta = TimeInterval(value.translation.width / pixelsPerSecond)
+                onSeek(max(0, (dragStartTime ?? playheadTime) + delta))
+            }
+            .onEnded { _ in
+                dragStartTime = nil
+            }
+    }
+}
+
+private struct TimelineAudioDropModifier: ViewModifier {
+    @Bindable var viewModel: WorkspaceViewModel
+    @Binding var isDropTargeted: Bool
+
+    func body(content: Content) -> some View {
+#if os(iOS)
+        content
+            .onDrop(of: SupportedAudioFormats.dropTypes, isTargeted: $isDropTargeted) { providers in
+                Task { @MainActor in
+                    let urls = await DropURLLoader.loadURLs(from: providers)
+                    guard !urls.isEmpty else { return }
+
+                    let dropTime = SnapGrid.snap(
+                        viewModel.playheadTime,
+                        interval: viewModel.project.snapInterval,
+                        enabled: viewModel.project.isSnapEnabled
+                    )
+                    viewModel.importDroppedItems(urls: urls, startTime: dropTime)
+                }
+                return true
+            }
+#else
+        content
+            .dropDestination(for: URL.self) { urls, location in
+                let dropTime = SnapGrid.snap(
+                    TimeInterval(max(0, location.x) / viewModel.pixelsPerSecond),
+                    interval: viewModel.project.snapInterval,
+                    enabled: viewModel.project.isSnapEnabled
+                )
+                viewModel.importDroppedItems(urls: urls, startTime: dropTime)
+                return true
+            } isTargeted: { targeted in
+                isDropTargeted = targeted
+            }
+#endif
     }
 }

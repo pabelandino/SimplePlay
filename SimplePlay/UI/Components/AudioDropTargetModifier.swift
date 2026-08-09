@@ -15,6 +15,7 @@ struct AudioDropTargetModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .contentShape(Rectangle())
             .overlay {
                 if isTargeted {
                     AudioDropOverlay(message: overlayMessage)
@@ -40,7 +41,7 @@ extension View {
     func audioDropTarget(
         viewModel: WorkspaceViewModel,
         startTime: TimeInterval? = nil,
-        overlayMessage: String = "Drop audio files or folders to import"
+        overlayMessage: String = "Drop audio files or a folder to import"
     ) -> some View {
         modifier(
             AudioDropTargetModifier(

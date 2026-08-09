@@ -7,6 +7,11 @@ import Foundation
 
 /// Imports multitrack folders/files and organizes tracks with smart grouping and ordering.
 struct TrackOrganizationService: Sendable {
+    enum ImportPlacement: Sendable, Equatable {
+        case appendNewGroup(startTime: TimeInterval?)
+        case insertIntoGroup(groupIndex: Int, startTime: TimeInterval?)
+    }
+
     struct ImportedStem: Sendable {
         let url: URL
         let name: String
@@ -40,6 +45,46 @@ struct TrackOrganizationService: Sendable {
         groupName: String,
         startTime: TimeInterval? = nil
     ) -> DAWProject {
+        importStems(
+            project: project,
+            newStems: newStems,
+            groupName: groupName,
+            placement: .appendNewGroup(startTime: startTime)
+        )
+    }
+
+    func importStems(
+        project: DAWProject,
+        newStems: [ImportedStem],
+        groupName: String,
+        placement: ImportPlacement
+    ) -> DAWProject {
+        guard !newStems.isEmpty else { return project }
+
+        switch placement {
+        case .appendNewGroup(let startTime):
+            return appendNewGroup(
+                project: project,
+                newStems: newStems,
+                groupName: groupName,
+                startTime: startTime
+            )
+        case .insertIntoGroup(let groupIndex, let startTime):
+            return insertIntoGroup(
+                project: project,
+                newStems: newStems,
+                groupIndex: groupIndex,
+                startTime: startTime
+            )
+        }
+    }
+
+    private func appendNewGroup(
+        project: DAWProject,
+        newStems: [ImportedStem],
+        groupName: String,
+        startTime: TimeInterval?
+    ) -> DAWProject {
         var updated = project
         let groupIndex = updated.groups.count
         let maxEndTime = updated.duration
@@ -49,7 +94,110 @@ struct TrackOrganizationService: Sendable {
 
         let newTracks = buildTracks(from: newStems, group: newGroup, groupIndex: groupIndex)
         updated.tracks = mergeTracks(existing: updated.tracks, incoming: newTracks)
+        TrackColorPalette.ensureDistinctColors(on: &updated.tracks)
         return updated
+    }
+
+    private func insertIntoGroup(
+        project: DAWProject,
+        newStems: [ImportedStem],
+        groupIndex: Int,
+        startTime: TimeInterval?
+    ) -> DAWProject {
+        var updated = project
+
+        if updated.groups.isEmpty {
+            return importInitial(
+                project: updated,
+                stems: newStems,
+                groupName: "Multitrack 1",
+                startTime: startTime ?? 0
+            )
+        }
+
+        let resolvedGroupIndex = min(max(0, groupIndex), updated.groups.count - 1)
+        let group = updated.groups[resolvedGroupIndex]
+        let clipStart = startTime ?? group.horizontalOffset
+
+        let newTracks = buildTracks(
+            from: newStems,
+            group: TrackGroup(
+                id: group.id,
+                name: group.name,
+                importedAt: group.importedAt,
+                horizontalOffset: clipStart,
+                pitchSemitones: group.pitchSemitones,
+                volume: group.volume
+            ),
+            groupIndex: resolvedGroupIndex
+        )
+
+        let insertIndex = insertionIndexAfterGroup(resolvedGroupIndex, in: updated.tracks)
+        updated.tracks = insertTracksIntoGroup(
+            existing: updated.tracks,
+            incoming: newTracks,
+            groupIndex: resolvedGroupIndex,
+            startingAt: insertIndex
+        )
+        TrackColorPalette.ensureDistinctColors(on: &updated.tracks)
+        return updated
+    }
+
+    func insertionIndexAfterGroup(_ groupIndex: Int, in tracks: [AudioTrack]) -> Int {
+        var lastIndex = -1
+        for (index, track) in tracks.enumerated() {
+            if track.clips.contains(where: { $0.groupIndex == groupIndex }) {
+                lastIndex = index
+            }
+        }
+        return lastIndex + 1
+    }
+
+    private func insertTracksIntoGroup(
+        existing: [AudioTrack],
+        incoming: [AudioTrack],
+        groupIndex: Int,
+        startingAt insertIndex: Int
+    ) -> [AudioTrack] {
+        var merged = existing
+        var nextInsert = min(max(0, insertIndex), merged.count)
+
+        for track in incoming {
+            if let index = merged.firstIndex(where: { existingTrack in
+                existingTrack.standardCode == track.standardCode
+                    && existingTrack.role == track.role
+                    && existingTrack.clips.contains { $0.groupIndex == groupIndex }
+            }) {
+                merged[index].clips.append(contentsOf: track.clips)
+                merged[index].clips.sort { $0.startTime < $1.startTime }
+            } else {
+                merged.insert(track, at: min(nextInsert, merged.count))
+                nextInsert += 1
+            }
+        }
+
+        return sortTracksPreservingGroupBlocks(merged)
+    }
+
+    /// Keeps group blocks intact while sorting lanes inside each block.
+    private func sortTracksPreservingGroupBlocks(_ tracks: [AudioTrack]) -> [AudioTrack] {
+        var grouped: [Int: [AudioTrack]] = [:]
+        var orphanTracks: [AudioTrack] = []
+
+        for track in tracks {
+            if let groupIndex = track.clips.first?.groupIndex {
+                grouped[groupIndex, default: []].append(track)
+            } else {
+                orphanTracks.append(track)
+            }
+        }
+
+        var ordered: [AudioTrack] = []
+        for groupIndex in grouped.keys.sorted() {
+            ordered.append(contentsOf: sortTracks(grouped[groupIndex] ?? []))
+        }
+        ordered.append(contentsOf: sortTracks(orphanTracks))
+        return ordered
     }
 
     func importInitial(
@@ -63,6 +211,7 @@ struct TrackOrganizationService: Sendable {
         updated.groups = [group]
         updated.tracks = buildTracks(from: stems, group: group, groupIndex: 0)
         updated.tracks = sortTracks(updated.tracks)
+        TrackColorPalette.assignDistinctColors(to: &updated.tracks)
         return updated
     }
 

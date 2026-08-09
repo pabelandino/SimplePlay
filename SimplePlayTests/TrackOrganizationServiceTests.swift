@@ -61,6 +61,53 @@ struct TrackOrganizationServiceTests {
         #expect(project.tracks.last?.role == .unknown)
     }
 
+    @Test func insertsIntoActiveGroupBelowExistingTracks() {
+        var project = DAWProject()
+        project = service.importInitial(
+            project: project,
+            stems: [
+                stem(name: "Click", duration: 10),
+                stem(name: "Electric Guitar", duration: 10)
+            ],
+            groupName: "Multitrack 1"
+        )
+        project = service.merge(
+            project: project,
+            newStems: [
+                stem(name: "Click", duration: 12),
+                stem(name: "Electric Guitar", duration: 12)
+            ],
+            groupName: "Multitrack 2"
+        )
+
+        let initialCount = project.tracks.count
+        project = service.importStems(
+            project: project,
+            newStems: [stem(name: "Custom Layer", duration: 8)],
+            groupName: "Multitrack 1",
+            placement: .insertIntoGroup(groupIndex: 0, startTime: 0)
+        )
+
+        #expect(project.tracks.count == initialCount + 1)
+        #expect(project.groups.count == 2)
+        #expect(project.tracks[2].role == .unknown)
+        #expect(project.tracks[2].clips.first?.groupIndex == 0)
+    }
+
+    @Test func assignsDistinctColorsForDuplicateRoles() {
+        let stems = [
+            stem(name: "Custom Layer A", duration: 10),
+            stem(name: "Custom Layer B", duration: 10),
+            stem(name: "Custom Layer C", duration: 10),
+        ]
+        var project = DAWProject()
+        project = service.importInitial(project: project, stems: stems, groupName: "Take 1")
+
+        let colors = Set(project.tracks.map(\.colorHex))
+        #expect(project.tracks.count == 3)
+        #expect(colors.count == 3)
+    }
+
     private func stem(name: String, duration: TimeInterval) -> TrackOrganizationService.ImportedStem {
         .init(url: URL(fileURLWithPath: "/tmp/\(name).wav"), name: name, duration: duration)
     }

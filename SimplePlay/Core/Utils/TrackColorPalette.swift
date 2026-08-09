@@ -6,46 +6,105 @@
 import SwiftUI
 
 enum TrackColorPalette {
-    static func color(for role: StandardTrackRole) -> Color {
-        switch role {
-        case .click: Color(hex: "#FF9500")!
-        case .cue, .guide, .countIn: Color(hex: "#FFD60A")!
-        case .leadVocal: Color(hex: "#FF375F")!
-        case .backingVocal: Color(hex: "#FF6482")!
-        case .electricGuitar: Color(hex: "#BF5AF2")!
-        case .acousticGuitar: Color(hex: "#AF52DE")!
-        case .bass: Color(hex: "#30D158")!
-        case .drums: Color(hex: "#FF453A")!
-        case .keys, .piano: Color(hex: "#64D2FF")!
-        case .synth: Color(hex: "#5E5CE6")!
-        case .strings: Color(hex: "#AC8E68")!
-        case .brass: Color(hex: "#FFB340")!
-        case .percussion: Color(hex: "#FF9F0A")!
-        case .loop: Color(hex: "#32ADE6")!
-        case .fx: Color(hex: "#8E8E93")!
-        case .unknown: Color(hex: "#636366")!
+    /// Distinct track colors. Gray is reserved for muted / non-solo lanes only.
+    static let distinctHexColors: [String] = [
+        "#FF9500", "#FFD60A", "#FF375F", "#FF6482",
+        "#BF5AF2", "#AF52DE", "#30D158", "#FF453A",
+        "#64D2FF", "#5E5CE6", "#AC8E68", "#FFB340",
+        "#FF9F0A", "#32ADE6", "#00C7BE", "#5856D6",
+        "#FF2D55", "#34C759", "#007AFF", "#FF6961",
+        "#FFD426", "#7AC6FF", "#DA8FFF", "#63E6E2",
+        "#F782BE", "#94D82D", "#FFA94D", "#748FFC",
+        "#E599F7", "#38D9A9", "#FF8787", "#20C997",
+        "#845EF7", "#339AF0", "#F06595", "#82C91E",
+    ]
+
+    static func color(for role: StandardTrackRole, variant: Int = 0) -> Color {
+        Color(hex: hex(for: role, variant: variant)) ?? role.fallbackColor
+    }
+
+    static func hex(for role: StandardTrackRole, variant: Int = 0) -> String {
+        let base = paletteIndex(for: role)
+        let index = (base + variant) % distinctHexColors.count
+        return distinctHexColors[index]
+    }
+
+    /// Assigns a unique color to every track based on role and occurrence order.
+    static func assignDistinctColors(to tracks: inout [AudioTrack]) {
+        var usedHexes = Set<String>()
+        var roleVariants: [StandardTrackRole: Int] = [:]
+
+        for index in tracks.indices {
+            let role = tracks[index].role
+            var variant = roleVariants[role, default: 0]
+            var candidate = hex(for: role, variant: variant)
+
+            while usedHexes.contains(candidate) {
+                variant += 1
+                candidate = hex(for: role, variant: variant)
+            }
+
+            tracks[index].colorHex = candidate
+            usedHexes.insert(candidate)
+            roleVariants[role] = variant + 1
         }
     }
 
-    static func hex(for role: StandardTrackRole) -> String {
-        switch role {
-        case .click: "#FF9500"
-        case .cue, .guide, .countIn: "#FFD60A"
-        case .leadVocal: "#FF375F"
-        case .backingVocal: "#FF6482"
-        case .electricGuitar: "#BF5AF2"
-        case .acousticGuitar: "#AF52DE"
-        case .bass: "#30D158"
-        case .drums: "#FF453A"
-        case .keys, .piano: "#64D2FF"
-        case .synth: "#5E5CE6"
-        case .strings: "#AC8E68"
-        case .brass: "#FFB340"
-        case .percussion: "#FF9F0A"
-        case .loop: "#32ADE6"
-        case .fx: "#8E8E93"
-        case .unknown: "#636366"
+    /// Keeps saved colors when unique; reassigns only colliding lanes.
+    static func ensureDistinctColors(on tracks: inout [AudioTrack]) {
+        var usedHexes = Set<String>()
+        var roleVariants: [StandardTrackRole: Int] = [:]
+
+        for index in tracks.indices {
+            let currentHex = tracks[index].colorHex
+            if !usedHexes.contains(currentHex) {
+                usedHexes.insert(currentHex)
+                continue
+            }
+
+            let role = tracks[index].role
+            var variant = roleVariants[role, default: 0]
+            var candidate = hex(for: role, variant: variant)
+
+            while usedHexes.contains(candidate) {
+                variant += 1
+                candidate = hex(for: role, variant: variant)
+            }
+
+            tracks[index].colorHex = candidate
+            usedHexes.insert(candidate)
+            roleVariants[role] = variant + 1
         }
+    }
+
+    private static func paletteIndex(for role: StandardTrackRole) -> Int {
+        switch role {
+        case .click: 0
+        case .cue: 1
+        case .guide: 2
+        case .countIn: 3
+        case .leadVocal: 4
+        case .backingVocal: 5
+        case .electricGuitar: 6
+        case .acousticGuitar: 7
+        case .bass: 8
+        case .drums: 9
+        case .keys: 10
+        case .piano: 11
+        case .synth: 12
+        case .strings: 13
+        case .brass: 14
+        case .percussion: 15
+        case .loop: 16
+        case .fx: 17
+        case .unknown: 18
+        }
+    }
+}
+
+extension StandardTrackRole {
+    fileprivate var fallbackColor: Color {
+        .blue
     }
 }
 

@@ -17,6 +17,9 @@ struct AudioTrack: Identifiable, Codable, Sendable, Equatable {
     var isSolo: Bool
     var isLocked: Bool
     var pan: Double
+    var volume: Double
+    /// Pitch offset in semitones (-5…+5). 0 = original audio.
+    var pitchSemitones: Double
     var clips: [AudioClip]
 
     init(
@@ -29,6 +32,8 @@ struct AudioTrack: Identifiable, Codable, Sendable, Equatable {
         isSolo: Bool = false,
         isLocked: Bool = false,
         pan: Double = 0,
+        volume: Double = 1,
+        pitchSemitones: Double = 0,
         clips: [AudioClip] = []
     ) {
         self.id = id
@@ -40,6 +45,8 @@ struct AudioTrack: Identifiable, Codable, Sendable, Equatable {
         self.isSolo = isSolo
         self.isLocked = isLocked
         self.pan = pan
+        self.volume = volume
+        self.pitchSemitones = pitchSemitones
         self.clips = clips
     }
 

@@ -1,0 +1,437 @@
+{
+  "SimplePlay/ContentView.swift": {
+    "mtime": 1786311331.713316,
+    "ast_hash": "4c80943a47cb7f74364e2640b1645e52",
+    "semantic_hash": ""
+  },
+  "SimplePlay/SimplePlayApp.swift": {
+    "mtime": 1786316841.423014,
+    "ast_hash": "c678a59dc5f3e8923a183639ad1e5c28",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/SimplePlayTests.swift": {
+    "mtime": 1786248325.1835837,
+    "ast_hash": "e4053d4dcda7cebeef6cb6c0a67c7127",
+    "semantic_hash": "e4053d4dcda7cebeef6cb6c0a67c7127"
+  },
+  "SimplePlayUITests/SimplePlayUITests.swift": {
+    "mtime": 1786248325.199903,
+    "ast_hash": "000933b77d6803fff3f6b90152d1e43a",
+    "semantic_hash": "000933b77d6803fff3f6b90152d1e43a"
+  },
+  "SimplePlayUITests/SimplePlayUITestsLaunchTests.swift": {
+    "mtime": 1786248325.201279,
+    "ast_hash": "ecf0f96d35bab5e1b154ded59959f09c",
+    "semantic_hash": "ecf0f96d35bab5e1b154ded59959f09c"
+  },
+  ".agents/skills/graphify/SKILL.md": {
+    "mtime": 1786248986.114708,
+    "ast_hash": "4388891114e3af2d60510a23f3dd8069",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/add-watch.md": {
+    "mtime": 1785962653.3037167,
+    "ast_hash": "d59d027fe449f06aa03905a01184e779",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/exports.md": {
+    "mtime": 1785962653.3039722,
+    "ast_hash": "9da2a2152e60a22f07f05fed5158f287",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1785962653.3044894,
+    "ast_hash": "42fef56a01698118f7fd722acdadea34",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1785962653.3046691,
+    "ast_hash": "cde13df085e4c492aeb7ba298a996d0d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/hooks.md": {
+    "mtime": 1785962653.3048658,
+    "ast_hash": "aea24fe86e18fe8aeb304403032cfce7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/query.md": {
+    "mtime": 1785962653.3053079,
+    "ast_hash": "3c46f8ad006874260614ed8657d02307",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/transcribe.md": {
+    "mtime": 1785962653.305469,
+    "ast_hash": "67b6a5fa6c0974e18f60db9f8932fbd8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/graphify/references/update.md": {
+    "mtime": 1785962653.3178313,
+    "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/ArrangementSection.swift": {
+    "mtime": 1786316841.1511698,
+    "ast_hash": "d67c95c8f22fb724271bc06719613e36",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/AudioClip.swift": {
+    "mtime": 1786249059.9288757,
+    "ast_hash": "f0a2a0a5d20a476e588dc9094f12596b",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/AudioTrack.swift": {
+    "mtime": 1786316841.1173131,
+    "ast_hash": "fd07b7b3311a1d689be0fdb3b573a798",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/DAWProject.swift": {
+    "mtime": 1786316841.165372,
+    "ast_hash": "80fff283c21347cb8f55c34d37edb247",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/SectionPlaybackMode.swift": {
+    "mtime": 1786249061.928403,
+    "ast_hash": "dac3b4462aab3f6efaf765a45214b39b",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/StandardTrackRole.swift": {
+    "mtime": 1786249059.4169087,
+    "ast_hash": "8008dfdad7d7baf3b181fea7aca6dcc9",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/TrackGroup.swift": {
+    "mtime": 1786316841.1406207,
+    "ast_hash": "395548548a9e1dfb68469981549e8602",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/ArrangementPlaybackEngine.swift": {
+    "mtime": 1786316841.231839,
+    "ast_hash": "549c6c22a359621a32ceed62d99ff0fb",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/AudioEngineService.swift": {
+    "mtime": 1786316876.2597508,
+    "ast_hash": "57ee40fbcab8a220ab824e190743c20f",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/AudioImportService.swift": {
+    "mtime": 1786316841.2170682,
+    "ast_hash": "37a255b5ca979b9868b1fc3c724f4a4b",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/MIDIOutputService.swift": {
+    "mtime": 1786249082.305972,
+    "ast_hash": "d5d18e2945fd0c5fc621482dabaff031",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/TrackOrganizationService.swift": {
+    "mtime": 1786316841.2051542,
+    "ast_hash": "d14f7988bdd9c37da342a9ecc6e9817d",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/WaveformCache.swift": {
+    "mtime": 1786252836.8602583,
+    "ast_hash": "e63db4702d90868ada2d81d46e83da7b",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/SnapGrid.swift": {
+    "mtime": 1786249070.410114,
+    "ast_hash": "dc7b807c1f089b9ed26f09438cf62a83",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/SupportedAudioFormats.swift": {
+    "mtime": 1786316841.1918712,
+    "ast_hash": "9ec52b1697069b11a7f720a63aec7767",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/TimeFormatting.swift": {
+    "mtime": 1786249071.0947373,
+    "ast_hash": "a672b78e7412e389d1d130b95b4dbfc3",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/TrackColorPalette.swift": {
+    "mtime": 1786316841.1784997,
+    "ast_hash": "8e3f2899507dc59517f6524e36e3f001",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/TrackNameStandardizer.swift": {
+    "mtime": 1786249246.5065324,
+    "ast_hash": "c3bcede39df8817cf9c71fc18843d9f0",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
+    "mtime": 1786317222.381061,
+    "ast_hash": "49d5c3b8da02de4f2f5822d9a329e838",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
+    "mtime": 1786316841.3909953,
+    "ast_hash": "8fc4f2403609a87e5ff69fae4836d492",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
+    "mtime": 1786317848.8432808,
+    "ast_hash": "3d5ff7e75bb789e7c1a17e000fc9e0ce",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/TopToolbarView.swift": {
+    "mtime": 1786316841.3193753,
+    "ast_hash": "619623c667907ae3c077f38d8c53364f",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/TrackHeaderColumnView.swift": {
+    "mtime": 1786316841.3530028,
+    "ast_hash": "d3c15848560cf2ff9803a74598c91b7d",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/TransportBarView.swift": {
+    "mtime": 1786316841.4066215,
+    "ast_hash": "246e0a50a671fe4eb54f376169d5bf9d",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/WaveformClipView.swift": {
+    "mtime": 1786253444.5748296,
+    "ast_hash": "553bb4b8b28cf4ed5c9b704e69f85e79",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/WorkspaceView.swift": {
+    "mtime": 1786316841.2973337,
+    "ast_hash": "dd84d6a5a7e8105076792fe2ef844027",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Theme/DAWTheme.swift": {
+    "mtime": 1786317221.055366,
+    "ast_hash": "f25ffb7381addefa2261662d7e7edbc5",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/ArrangementPlaybackEngineTests.swift": {
+    "mtime": 1786316841.4459555,
+    "ast_hash": "0b5452ba8e99eee1c5a07f619607eedb",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/TrackNameStandardizerTests.swift": {
+    "mtime": 1786249109.2003534,
+    "ast_hash": "13595dc98031f793f866c2a61381ce15",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/TrackOrganizationServiceTests.swift": {
+    "mtime": 1786316841.433637,
+    "ast_hash": "edefbf2130465b876f90f8cd9f8a51df",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/DropURLLoader.swift": {
+    "mtime": 1786316841.4590542,
+    "ast_hash": "618763fd68d32d9f9e7711b59bf38f13",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/AudioDropOverlay.swift": {
+    "mtime": 1786249628.4062588,
+    "ast_hash": "fc6f3592150acc3707ba1606dac130e8",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/AudioDropTargetModifier.swift": {
+    "mtime": 1786316841.4711022,
+    "ast_hash": "4fa23cdfc6eeb7eda6f2f8ea71c8921b",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/AudioFileStorageService.swift": {
+    "mtime": 1786249786.9254823,
+    "ast_hash": "502f02845d87ac35813af9ce3af72bf3",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/SidebarPanel.swift": {
+    "mtime": 1786249801.8490148,
+    "ast_hash": "f13196cb41fe2a2d1261e25222334990",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/ResizablePropertiesSidebar.swift": {
+    "mtime": 1786316841.4838219,
+    "ast_hash": "35c4d2a0c9f817f150f4faea5977aa35",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/TransportCommands.swift": {
+    "mtime": 1786250388.8668323,
+    "ast_hash": "1c1704dd60ddbde93963a40921130538",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/AudioSettings.swift": {
+    "mtime": 1786250934.9233189,
+    "ast_hash": "273002e4ad27afc390562a1975430200",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/AudioDeviceService.swift": {
+    "mtime": 1786251758.5931094,
+    "ast_hash": "93bafc2204ec0893792e8b26d5b5af0c",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/TimelineOverviewBar.swift": {
+    "mtime": 1786317231.7838552,
+    "ast_hash": "473387558a918eea3d5fcc5b951dc55c",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
+    "mtime": 1786317229.001887,
+    "ast_hash": "b7fdd0e90120070397ca93e680499e7f",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/PanKnobView.swift": {
+    "mtime": 1786250950.135598,
+    "ast_hash": "bee17e61358d609cf8fd48cd84c2b258",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/SavedProjectDocument.swift": {
+    "mtime": 1786316841.527139,
+    "ast_hash": "ed21fb86ce097fabe2084bc291c84ad3",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/ProjectPersistenceService.swift": {
+    "mtime": 1786316841.53856,
+    "ast_hash": "0f24404682feaee753a6686c8af0be97",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/WaveformLoadMonitor.swift": {
+    "mtime": 1786253432.8715937,
+    "ast_hash": "cd6d78a0c1e34928333893b0821a5bf1",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/ProjectFilePanel.swift": {
+    "mtime": 1786252606.8443756,
+    "ast_hash": "48d6ea1e4a58b1ad3a47ceb63f621344",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/FileCommands.swift": {
+    "mtime": 1786252607.246205,
+    "ast_hash": "4bd0a96996b16b8c17a723df0a2631fd",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/TrackWaveformProgressBar.swift": {
+    "mtime": 1786252838.5618825,
+    "ast_hash": "38160e1f3239d2811c80ea6373dc7040",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/SimplePlayProjectFileDocument.swift": {
+    "mtime": 1786252584.9656396,
+    "ast_hash": "015ea2be138b124ef060a8d07d281e16",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/SimplePlayProjectArchive.swift": {
+    "mtime": 1786252600.0226214,
+    "ast_hash": "658acaab32d20f824391a9aaf912ea92",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/SimplePlayProjectType.swift": {
+    "mtime": 1786252581.2221003,
+    "ast_hash": "f8a03d4498fd7d51bae6f78356fd1199",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/ProjectArchiveTests.swift": {
+    "mtime": 1786252610.27788,
+    "ast_hash": "3c301bb9fdc42bcc92a81aea38bcf302",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/WaveformLOD.swift": {
+    "mtime": 1786253022.9756207,
+    "ast_hash": "a9500100414657c3ca67e94e9f49736f",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/PitchShiftSettings.swift": {
+    "mtime": 1786316841.5731847,
+    "ast_hash": "70a9a9f21df917532abcc327eed33325",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/PitchShiftSettingsTests.swift": {
+    "mtime": 1786316841.5842247,
+    "ast_hash": "0dab96607c9b081ebaed1ae76282f7b7",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/TimelineEditTool.swift": {
+    "mtime": 1786316841.5945446,
+    "ast_hash": "28faab7b27037d4173725a3dffac8539",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Services/MIDIInputService.swift": {
+    "mtime": 1786316841.6149182,
+    "ast_hash": "59001cae13be0e8b15040cccaff00417",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/SectionMarkerPalette.swift": {
+    "mtime": 1786316841.6260624,
+    "ast_hash": "b14f141d339fca38540c109664224caa",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift": {
+    "mtime": 1786316841.6366398,
+    "ast_hash": "25d94bcc823bc3b757db42adc7128a0a",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/WorkspaceSettingsView.swift": {
+    "mtime": 1786316841.6487615,
+    "ast_hash": "adaf6e639ad5f250e95f6a84439f8f05",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/SectionMarkerPaletteTests.swift": {
+    "mtime": 1786316841.6604998,
+    "ast_hash": "a344650dc150fdbb1f182fbcb20757a7",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Models/MIDILearnTarget.swift": {
+    "mtime": 1786316841.68358,
+    "ast_hash": "153a5d6a0ee8c7e454d01cfdfd668d13",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
+    "mtime": 1786316841.6936383,
+    "ast_hash": "ab4844891dfa4d1618d24ba482733d7a",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {
+    "mtime": 1786316841.6725523,
+    "ast_hash": "7ee038d5af24d8fffe8ddfaee98118b2",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/TrackPitchControlView.swift": {
+    "mtime": 1786316841.7038052,
+    "ast_hash": "7cd8e625f8c7f6d433923569ba1a9535",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/AudioImportDocumentPicker.swift": {
+    "mtime": 1786316841.7151344,
+    "ast_hash": "2e9588b6fd27ad891af3424578de1ea4",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Features/Workspace/Views/MixerPanelView.swift": {
+    "mtime": 1786316841.7376747,
+    "ast_hash": "bcef2571c828a6a8f893ef02bc53ac49",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/DAWVerticalFaderView.swift": {
+    "mtime": 1786316841.72573,
+    "ast_hash": "e553afa3211cda695008196f00ed4715",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/TrackMeterIndicatorView.swift": {
+    "mtime": 1786316841.7485135,
+    "ast_hash": "31abd23ff824c8d2b02983feab2a6fa7",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/TrackVolumeSettings.swift": {
+    "mtime": 1786316841.7703633,
+    "ast_hash": "eb37abf707dad98de5f098744560d788",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/FaderMeterStripView.swift": {
+    "mtime": 1786316841.7590787,
+    "ast_hash": "271140b21009b398ffad992691b89277",
+    "semantic_hash": ""
+  },
+  "SimplePlay/Core/Utils/TimelineRulerScale.swift": {
+    "mtime": 1786317846.309487,
+    "ast_hash": "e3c803a2a94f46ed5499ae46276e089b",
+    "semantic_hash": ""
+  },
+  "SimplePlayTests/TimelineRulerScaleTests.swift": {
+    "mtime": 1786317850.5607972,
+    "ast_hash": "0487abdd4a4110f84bf660730ec66a17",
+    "semantic_hash": ""
+  }
+}

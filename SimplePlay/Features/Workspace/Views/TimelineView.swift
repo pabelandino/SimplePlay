@@ -9,6 +9,7 @@ struct TrackLaneView: View {
     let track: AudioTrack
     @Bindable var viewModel: WorkspaceViewModel
     let contentWidth: CGFloat
+    var rowHeight: CGFloat = DAWTheme.trackRowHeight
     @State private var dragAnchorTimes: [UUID: TimeInterval] = [:]
 
     private var liveTrack: AudioTrack {
@@ -19,7 +20,7 @@ struct TrackLaneView: View {
         let displayColor = viewModel.project.displayColor(for: liveTrack)
 
         ZStack(alignment: .leading) {
-            ForEach(track.clips) { clip in
+            ForEach(liveTrack.clips) { clip in
                 WaveformClipView(
                     clip: clip,
                     trackID: track.id,
@@ -36,13 +37,15 @@ struct TrackLaneView: View {
                 )
             }
         }
-        .frame(width: contentWidth, height: DAWTheme.trackRowHeight - 8, alignment: .leading)
+        .frame(width: contentWidth, height: rowHeight - 8, alignment: .leading)
         .padding(.vertical, 4)
     }
 
     private func clipDragGesture(clip: AudioClip) -> some Gesture {
         DragGesture(minimumDistance: 2)
             .onChanged { value in
+                guard viewModel.timelineTool == .hand else { return }
+
                 if dragAnchorTimes.isEmpty {
                     viewModel.clearTimelineSelection()
                     prepareDragAnchors(primaryClip: clip)
@@ -51,6 +54,7 @@ struct TrackLaneView: View {
                 viewModel.moveClips(anchorTimes: dragAnchorTimes, delta: delta)
             }
             .onEnded { _ in
+                guard viewModel.timelineTool == .hand else { return }
                 dragAnchorTimes.removeAll()
             }
     }
@@ -95,28 +99,15 @@ struct TimelineRulerView: View {
     let playheadTime: TimeInterval
     let onSeek: (TimeInterval) -> Void
 
+    @State private var dragStartTime: TimeInterval?
+
     var body: some View {
         ZStack(alignment: .leading) {
-            Canvas { context, size in
-                let interval: TimeInterval = zoomAdjustedInterval
-                var time: TimeInterval = 0
-
-                while time <= max(duration, 60) {
-                    let x = CGFloat(time) * pixelsPerSecond
-                    var path = Path()
-                    path.move(to: CGPoint(x: x, y: size.height - 8))
-                    path.addLine(to: CGPoint(x: x, y: size.height))
-                    context.stroke(path, with: .color(DAWTheme.timelineRuler), lineWidth: 1)
-
-                    let label = Text(TimeFormatting.format(time))
-                        .font(.caption2)
-                        .foregroundStyle(DAWTheme.textSecondary)
-                    context.draw(label, at: CGPoint(x: x + 4, y: 8), anchor: .topLeading)
-
-                    time += interval
-                }
-            }
-            .background(DAWTheme.surfaceElevated)
+            TimelineRulerTicksView(
+                duration: duration,
+                pixelsPerSecond: pixelsPerSecond
+            )
+            .equatable()
 
             Rectangle()
                 .fill(DAWTheme.playhead.opacity(0.9))
@@ -128,41 +119,88 @@ struct TimelineRulerView: View {
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { value in
-                    onSeek(time(at: value.location.x))
+                    if dragStartTime == nil {
+                        dragStartTime = playheadTime
+                    }
+                    let delta = TimeInterval(value.translation.width / pixelsPerSecond)
+                    onSeek(max(0, (dragStartTime ?? playheadTime) + delta))
+                }
+                .onEnded { _ in
+                    dragStartTime = nil
+                }
+        )
+        .simultaneousGesture(
+            SpatialTapGesture()
+                .onEnded { value in
+                    onSeek(max(0, TimeInterval(value.location.x / pixelsPerSecond)))
                 }
         )
     }
-
-    private var zoomAdjustedInterval: TimeInterval {
-        if pixelsPerSecond > 200 { return 1 }
-        if pixelsPerSecond > 100 { return 2 }
-        if pixelsPerSecond > 50 { return 5 }
-        return 10
-    }
-
-    private func time(at x: CGFloat) -> TimeInterval {
-        max(0, TimeInterval(x / pixelsPerSecond))
-    }
 }
 
-struct SectionOverlayView: View {
-    let section: ArrangementSection
+private struct TimelineRulerTicksView: View, Equatable {
+    let duration: TimeInterval
     let pixelsPerSecond: CGFloat
-    let isSelected: Bool
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(Color.white.opacity(isSelected ? 0.2 : 0.08))
-            .overlay {
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.white.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+        Canvas { context, size in
+            let majorInterval = TimelineRulerScale.majorTickInterval(pixelsPerSecond: pixelsPerSecond)
+            let minorInterval = TimelineRulerScale.minorTickInterval(for: majorInterval)
+            let endTime = max(duration, majorInterval)
+
+            if let minorInterval {
+                var minorTime: TimeInterval = 0
+                while minorTime <= endTime {
+                    if minorTime.truncatingRemainder(dividingBy: majorInterval) > 0.001 {
+                        drawTick(
+                            in: &context,
+                            size: size,
+                            time: minorTime,
+                            height: 4,
+                            color: DAWTheme.timelineRuler.opacity(0.45)
+                        )
+                    }
+                    minorTime += minorInterval
+                }
             }
-            .overlay(alignment: .topLeading) {
-                Text(section.name)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(4)
+
+            var time: TimeInterval = 0
+            while time <= endTime {
+                drawTick(
+                    in: &context,
+                    size: size,
+                    time: time,
+                    height: 8,
+                    color: DAWTheme.timelineRuler
+                )
+
+                let label = Text(TimelineRulerScale.formatRulerLabel(time, tickInterval: majorInterval))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(DAWTheme.textSecondary)
+
+                context.draw(
+                    label,
+                    at: CGPoint(x: CGFloat(time) * pixelsPerSecond, y: 9),
+                    anchor: .top
+                )
+
+                time += majorInterval
             }
-            .frame(width: CGFloat(section.duration) * pixelsPerSecond, height: 200)
+        }
+        .background(DAWTheme.surfaceElevated)
+    }
+
+    private func drawTick(
+        in context: inout GraphicsContext,
+        size: CGSize,
+        time: TimeInterval,
+        height: CGFloat,
+        color: Color
+    ) {
+        let x = CGFloat(time) * pixelsPerSecond
+        var path = Path()
+        path.move(to: CGPoint(x: x, y: size.height - height))
+        path.addLine(to: CGPoint(x: x, y: size.height))
+        context.stroke(path, with: .color(color), lineWidth: 1)
     }
 }
