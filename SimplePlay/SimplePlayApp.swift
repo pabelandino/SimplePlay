@@ -2,31 +2,23 @@
 //  SimplePlayApp.swift
 //  SimplePlay
 //
-//  Created by Pabel Andino on 8/8/26.
-//
 
 import SwiftUI
-import SwiftData
 
 @main
 struct SimplePlayApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @State private var viewModel = WorkspaceViewModel()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(viewModel: viewModel)
         }
-        .modelContainer(sharedModelContainer)
+#if os(macOS)
+        .defaultSize(width: 1280, height: 800)
+        .commands {
+            FileCommands(viewModel: viewModel)
+            TransportCommands(viewModel: viewModel)
+        }
+#endif
     }
 }

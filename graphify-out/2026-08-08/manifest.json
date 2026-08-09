@@ -190,8 +190,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WaveformClipView.swift": {
-    "mtime": 1786253444.5748296,
-    "ast_hash": "553bb4b8b28cf4ed5c9b704e69f85e79",
+    "mtime": 1786253041.5390956,
+    "ast_hash": "da87ca6de8ea6ca2d2d7b7562d197776",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceView.swift": {
@@ -290,8 +290,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/WaveformLoadMonitor.swift": {
-    "mtime": 1786253432.8715937,
-    "ast_hash": "cd6d78a0c1e34928333893b0821a5bf1",
+    "mtime": 1786252837.5591438,
+    "ast_hash": "3fcb0bfedda0ebab285a759d7b6a51e6",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Utils/ProjectFilePanel.swift": {
