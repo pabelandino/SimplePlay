@@ -1,0 +1,20 @@
+# Xcode / iOS build artifacts
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Asset catalog metadata (no code entities)
+**/Assets.xcassets/**/Contents.json
+**/Assets.xcassets/Contents.json
+
+# graphify internal (regenerated locally)
+graphify-out/.graphify_*
+graphify-out/.needs_update
+graphify-out/cost.json

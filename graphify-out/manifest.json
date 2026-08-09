@@ -1,0 +1,47 @@
+{
+  "SimplePlay/Assets.xcassets/AccentColor.colorset/Contents.json": {
+    "mtime": 1786248323.4338136,
+    "ast_hash": "55019f7265dde0a78318b0807f98e847",
+    "semantic_hash": "55019f7265dde0a78318b0807f98e847"
+  },
+  "SimplePlay/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1786248324.935932,
+    "ast_hash": "1be20321a31ab908ee42f8b207220802",
+    "semantic_hash": "1be20321a31ab908ee42f8b207220802"
+  },
+  "SimplePlay/Assets.xcassets/Contents.json": {
+    "mtime": 1786248323.4346259,
+    "ast_hash": "9deb2ada1cc834bbebf8bbad9c8978a1",
+    "semantic_hash": "9deb2ada1cc834bbebf8bbad9c8978a1"
+  },
+  "SimplePlay/ContentView.swift": {
+    "mtime": 1786248323.4292312,
+    "ast_hash": "a954489e23c7d4f8aa398cf93551c4a5",
+    "semantic_hash": "a954489e23c7d4f8aa398cf93551c4a5"
+  },
+  "SimplePlay/Item.swift": {
+    "mtime": 1786248323.4305701,
+    "ast_hash": "78fe44d9f4fb47ab968563026a2ddbcd",
+    "semantic_hash": "78fe44d9f4fb47ab968563026a2ddbcd"
+  },
+  "SimplePlay/SimplePlayApp.swift": {
+    "mtime": 1786248323.4269805,
+    "ast_hash": "05c0f1c29ca4ab84722d8e98743b40a4",
+    "semantic_hash": "05c0f1c29ca4ab84722d8e98743b40a4"
+  },
+  "SimplePlayTests/SimplePlayTests.swift": {
+    "mtime": 1786248325.1835837,
+    "ast_hash": "e4053d4dcda7cebeef6cb6c0a67c7127",
+    "semantic_hash": "e4053d4dcda7cebeef6cb6c0a67c7127"
+  },
+  "SimplePlayUITests/SimplePlayUITests.swift": {
+    "mtime": 1786248325.199903,
+    "ast_hash": "000933b77d6803fff3f6b90152d1e43a",
+    "semantic_hash": "000933b77d6803fff3f6b90152d1e43a"
+  },
+  "SimplePlayUITests/SimplePlayUITestsLaunchTests.swift": {
+    "mtime": 1786248325.201279,
+    "ast_hash": "ecf0f96d35bab5e1b154ded59959f09c",
+    "semantic_hash": "ecf0f96d35bab5e1b154ded59959f09c"
+  }
+}
