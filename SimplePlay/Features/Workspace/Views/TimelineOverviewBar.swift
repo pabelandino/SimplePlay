@@ -42,23 +42,24 @@ struct TimelineOverviewBar: View {
             let overviewViewportW = max(14, (viewportWidth / contentWidth) * width)
 
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                DAWTheme.background.opacity(0.95),
-                                DAWTheme.surfaceElevated.opacity(0.9)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(DAWTheme.border, lineWidth: 1)
-                    }
+                overviewBackground
 
                 overviewSegments(in: CGSize(width: width, height: barHeight))
+
+                if let loopRange = activeLoopRange(in: duration) {
+                    let loopX = CGFloat(loopRange.lowerBound / duration) * width
+                    let loopW = max(6, CGFloat((loopRange.upperBound - loopRange.lowerBound) / duration) * width)
+
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(DAWTheme.accent.opacity(0.22))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .stroke(DAWTheme.accent.opacity(0.55), lineWidth: 1)
+                        }
+                        .frame(width: loopW, height: barHeight - 8)
+                        .offset(x: loopX, y: 4)
+                        .allowsHitTesting(false)
+                }
 
                 if showsViewport {
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -91,6 +92,7 @@ struct TimelineOverviewBar: View {
                     duration: duration
                 )
             }
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .contentShape(Rectangle())
             .gesture(scrubGesture(width: width, duration: duration))
         }
@@ -99,32 +101,66 @@ struct TimelineOverviewBar: View {
         .padding(.vertical, isPhoneDock ? 2 : (isCompact ? 4 : 6))
     }
 
+    private var overviewBackground: some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(hex: "1A1A22") ?? DAWTheme.background,
+                        Color(hex: "121218") ?? DAWTheme.surfaceElevated,
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(DAWTheme.border.opacity(0.9), lineWidth: 1)
+            }
+    }
+
     @ViewBuilder
     private func overviewSegments(in size: CGSize) -> some View {
-        let laneHeight = max(3, size.height * 0.18)
-        let laneSpacing: CGFloat = 2
-        let trackCount = max(viewModel.project.tracks.count, 1)
-        let totalLaneHeight = CGFloat(trackCount) * laneHeight + CGFloat(max(0, trackCount - 1)) * laneSpacing
-        let topInset = (size.height - min(totalLaneHeight, size.height - 8)) / 2
+        let laneHeight = size.height - 10
+        let laneY: CGFloat = 5
+        let clips = viewModel.project.tracks.flatMap(\.clips)
 
-        ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
-            let laneY = topInset + CGFloat(index) * (laneHeight + laneSpacing)
+        ForEach(clips, id: \.id) { clip in
+            let duration = max(viewModel.project.duration, 1)
+            let x = CGFloat(clip.startTime / duration) * size.width
+            let clipWidth = max(2, CGFloat(clip.duration / duration) * size.width)
 
-            ForEach(track.clips) { clip in
-                let duration = max(viewModel.project.duration, 1)
-                let x = CGFloat(clip.startTime / duration) * size.width
-                let clipWidth = max(2, CGFloat(clip.duration / duration) * size.width)
-
-                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(track.color.opacity(0.72))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .stroke(track.color.opacity(0.35), lineWidth: 0.5)
-                    }
-                    .frame(width: clipWidth, height: laneHeight)
-                    .offset(x: x, y: laneY)
-            }
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(DAWTheme.accent.opacity(0.42))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.14),
+                                    Color.white.opacity(0.02),
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                }
+                .frame(width: clipWidth, height: laneHeight)
+                .offset(x: x, y: laneY)
         }
+    }
+
+    private func activeLoopRange(in duration: TimeInterval) -> ClosedRange<TimeInterval>? {
+        if viewModel.isSelectionLoopEnabled, let range = viewModel.selectionRange {
+            return range
+        }
+
+        if viewModel.isSectionRepeatEnabled,
+           let section = viewModel.project.sections.first(where: { $0.contains(time: viewModel.playheadTime) }) {
+            return section.startTime...section.endTime
+        }
+
+        return nil
     }
 
     private func playheadThumb(at playheadX: CGFloat, width: CGFloat, duration: TimeInterval) -> some View {

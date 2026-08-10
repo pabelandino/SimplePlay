@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioEngineService.swift": {
-    "mtime": 1786344705.9761224,
-    "ast_hash": "130c2f6479e46d2ab8f2c8d0fed42228",
+    "mtime": 1786382619.585005,
+    "ast_hash": "b245bf1764b04a916054454ca2260e8d",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioImportService.swift": {
@@ -160,8 +160,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786373405.137796,
-    "ast_hash": "61e969e0c715a72115120b8c8ecd9222",
+    "mtime": 1786382611.6085844,
+    "ast_hash": "e748a1a69a301448386777a08b76657f",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
@@ -265,13 +265,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineOverviewBar.swift": {
-    "mtime": 1786318563.9232252,
-    "ast_hash": "044140b890f1f17c59b121784ea315c4",
+    "mtime": 1786374641.3364992,
+    "ast_hash": "bf9a2ea6dd1ea3b93e36ad1290009a5a",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
-    "mtime": 1786343241.5544133,
-    "ast_hash": "0d218325b995dc71f6b410bebb55c445",
+    "mtime": 1786383290.5785081,
+    "ast_hash": "7d0f0940a2bdaeeba93a3e38ad1cf73a",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/PanKnobView.swift": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
-    "mtime": 1786373414.1609552,
-    "ast_hash": "77aa729661be611d666a3d67a696cf00",
+    "mtime": 1786383289.6918175,
+    "ast_hash": "0e8042b3831f59c65e0c1c3c5319c2b5",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {
@@ -450,13 +450,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/SectionLoopContext.swift": {
-    "mtime": 1786342629.8392994,
-    "ast_hash": "b42a3f012583fd681a0813a5848ebe6e",
+    "mtime": 1786374705.4893346,
+    "ast_hash": "f4a31c627caf51317640f51aac8d4101",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Utils/SectionLoopDiagnostics.swift": {
-    "mtime": 1786342632.6021755,
-    "ast_hash": "0f80e553f5c617dc368705d0c8e60707",
+    "mtime": 1786379791.4455795,
+    "ast_hash": "782df0f66144f2a621a54fdfacfecc6d",
     "semantic_hash": ""
   }
 }

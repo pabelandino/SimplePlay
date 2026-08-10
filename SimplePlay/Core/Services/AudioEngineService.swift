@@ -56,8 +56,21 @@ final class AudioEngineService {
 
     private(set) var isEngineRunning = false
     private(set) var playbackStartTime: TimeInterval = 0
+    private var playbackReferenceHostTime: UInt64?
     private var activeSectionLoop: SectionLoopContext?
     private var scheduledLoopCycleCount = 0
+
+    var isSectionLoopPlaybackActive: Bool {
+        activeSectionLoop != nil
+    }
+
+    /// Timeline position derived from the audio engine render clock (stays in sync under CPU load).
+    func currentTimelineTime() -> TimeInterval? {
+        guard let reference = playbackReferenceHostTime else { return nil }
+        let now = engine.outputNode.lastRenderTime?.hostTime ?? mach_absolute_time()
+        guard now >= reference else { return playbackStartTime }
+        return playbackStartTime + Self.secondsBetweenHostTimes(from: reference, to: now)
+    }
 
     var primaryClipSampleRate: Double? {
         scheduledClips.values.first?.file.processingFormat.sampleRate
@@ -69,6 +82,15 @@ final class AudioEngineService {
     private(set) var lastPlaybackError: String?
     private var metersInstalled = false
     private var configuredProjectClipCount = 0
+    private var meterFlushScheduled = false
+    private var pendingTrackPeaks: [UUID: Float] = [:]
+    private var pendingGroupPeaks: [UUID: Float] = [:]
+    private var pendingMasterPeak: Float = 0
+
+    private static let playbackLeadInSeconds: TimeInterval = 0.02
+    private static let initialLoopCycles = 2
+    private static let appendedLoopCycles = 2
+    private static let meterTapBufferSize: AVAudioFrameCount = 4096
 
     var masterVolume: Double = 1.0 {
         didSet { mainMixer.outputVolume = Float(masterVolume) }
@@ -135,6 +157,17 @@ final class AudioEngineService {
 
         if !clipLoadFailures.isEmpty {
             configurationWarnings = clipLoadFailures
+        }
+
+        let clipRates = Set(
+            scheduledClips.values.map { $0.file.processingFormat.sampleRate.rounded(.toNearestOrAwayFromZero) }
+        )
+        if clipRates.count == 1,
+           let clipRate = clipRates.first,
+           abs(clipRate - project.audioSettings.sampleRate.rawValue) > 1 {
+            configurationWarnings.append(
+                "Clip sample rate (\(Int(clipRate)) Hz) differs from project (\(Int(project.audioSettings.sampleRate.rawValue)) Hz). Match project sample rate to clips for tighter sync."
+            )
         }
 
         guard !scheduledClips.isEmpty || project.tracks.flatMap(\.clips).isEmpty else {
@@ -279,6 +312,7 @@ final class AudioEngineService {
         }
 
         playbackStartTime = max(0, time)
+        playbackReferenceHostTime = nil
         let clipRate = primaryClipSampleRate ?? project.audioSettings.sampleRate.rawValue
         if abs(clipRate - project.audioSettings.sampleRate.rawValue) > 1 {
             SectionLoopDiagnostics.log(String(
@@ -297,6 +331,8 @@ final class AudioEngineService {
             safelyStopPlayer(scheduled.player)
         }
 
+        var playersToStart: [AVAudioPlayerNode] = []
+
         for scheduled in scheduledClips.values {
             safelyResetPlayer(scheduled.player)
 
@@ -305,18 +341,41 @@ final class AudioEngineService {
                     scheduled,
                     from: playbackStartTime,
                     loop: sectionLoop,
-                    initialCycles: 4,
+                    initialCycles: Self.initialLoopCycles,
                     labelPrefix: "initial"
                 )
-                if queued, safelyPlayPlayer(scheduled.player) {
-                    continue
+                if queued {
+                    playersToStart.append(scheduled.player)
                 }
             } else {
                 guard shouldPlayClip(scheduled.clip, at: playbackStartTime) else { continue }
                 guard scheduleClip(scheduled, from: playbackStartTime) else { continue }
-                _ = safelyPlayPlayer(scheduled.player)
+                playersToStart.append(scheduled.player)
             }
         }
+
+        if playersToStart.isEmpty, sectionLoop != nil {
+            for scheduled in scheduledClips.values {
+                safelyResetPlayer(scheduled.player)
+                guard shouldPlayClip(scheduled.clip, at: playbackStartTime) else { continue }
+                guard scheduleClip(scheduled, from: playbackStartTime) else { continue }
+                playersToStart.append(scheduled.player)
+            }
+            activeSectionLoop = nil
+            scheduledLoopCycleCount = 0
+        }
+
+        guard !playersToStart.isEmpty else {
+            lastPlaybackError = AudioEngineError.playbackUnavailable.errorDescription
+            return false
+        }
+
+        let startAnchor = makeSynchronizedPlaybackAnchor()
+        for player in playersToStart {
+            _ = safelyPlayPlayer(player, at: startAnchor)
+        }
+
+        playbackReferenceHostTime = startAnchor.hostTime
 
         if playbackStartTime < project.duration {
             return true
@@ -327,7 +386,8 @@ final class AudioEngineService {
 
     /// Queues additional loop cycles without stopping active players (seamless section repeat).
     @discardableResult
-    func appendSectionLoopCycles(project: DAWProject, loop: SectionLoopContext, cycles: Int = 3) -> Bool {
+    func appendSectionLoopCycles(project: DAWProject, loop: SectionLoopContext, cycles: Int? = nil) -> Bool {
+        let cycleCount = cycles ?? Self.appendedLoopCycles
         if activeSectionLoop == nil {
             activeSectionLoop = loop
         } else if activeSectionLoop != loop {
@@ -340,7 +400,7 @@ final class AudioEngineService {
             if scheduleLoopBody(
                 scheduled,
                 loop: loop,
-                cycles: cycles,
+                cycles: cycleCount,
                 labelPrefix: "append"
             ) {
                 appended = true
@@ -348,9 +408,9 @@ final class AudioEngineService {
         }
 
         if appended {
-            scheduledLoopCycleCount += cycles
+            scheduledLoopCycleCount += cycleCount
             SectionLoopDiagnostics.log(
-                "appended \(cycles) loop cycle(s); total queued batches=\(scheduledLoopCycleCount)"
+                "appended \(cycleCount) loop cycle(s); total queued batches=\(scheduledLoopCycleCount)"
             )
         }
 
@@ -366,6 +426,7 @@ final class AudioEngineService {
         for scheduled in scheduledClips.values {
             safelyPausePlayer(scheduled.player)
         }
+        playbackReferenceHostTime = nil
         clearSectionLoopState()
         resetMeters()
 #if !os(macOS)
@@ -375,6 +436,7 @@ final class AudioEngineService {
 
     func stop() {
         playbackStartTime = 0
+        playbackReferenceHostTime = nil
         clearSectionLoopState()
         for scheduled in scheduledClips.values {
             safelyStopPlayer(scheduled.player)
@@ -448,7 +510,7 @@ final class AudioEngineService {
 
         var scheduledAny = false
 
-        if playheadFrame > loopStartFrame && playheadFrame < loopEndFrame {
+        if playheadFrame < loopEndFrame {
             let segmentStart = max(playheadFrame, clipStartFrame)
             let segmentEnd = min(loopEndFrame, clipEndFrame)
             if segmentEnd > segmentStart,
@@ -564,10 +626,15 @@ final class AudioEngineService {
     }
 
     @discardableResult
-    private func safelyPlayPlayer(_ player: AVAudioPlayerNode) -> Bool {
+    private func safelyPlayPlayer(_ player: AVAudioPlayerNode, at when: AVAudioTime? = nil) -> Bool {
         guard isNodeConnected(player), engine.isRunning else { return false }
-        player.play()
+        player.play(at: when)
         return true
+    }
+
+    @discardableResult
+    private func safelyPlayPlayer(_ player: AVAudioPlayerNode) -> Bool {
+        return safelyPlayPlayer(player, at: nil)
     }
 
     private func safelyPausePlayer(_ player: AVAudioPlayerNode) {
@@ -582,6 +649,50 @@ final class AudioEngineService {
 
     private func isNodeConnected(_ node: AVAudioNode) -> Bool {
         node.engine === engine && engine.attachedNodes.contains(where: { $0 === node })
+    }
+
+    private func markPlaybackReferenceTime() {
+        if let hostTime = engine.outputNode.lastRenderTime?.hostTime {
+            playbackReferenceHostTime = hostTime
+        } else {
+            playbackReferenceHostTime = mach_absolute_time()
+        }
+    }
+
+    private func makeSynchronizedPlaybackAnchor() -> AVAudioTime {
+        let leadHost: UInt64
+        let sampleRate: Double
+        let sampleTime: AVAudioFramePosition?
+
+        if let nodeTime = engine.outputNode.lastRenderTime, nodeTime.isHostTimeValid {
+            leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+            sampleRate = nodeTime.sampleRate > 0
+                ? nodeTime.sampleRate
+                : (primaryClipSampleRate ?? 48_000)
+            if nodeTime.isSampleTimeValid, sampleRate > 0 {
+                let leadSamples = AVAudioFramePosition(Self.playbackLeadInSeconds * sampleRate)
+                sampleTime = nodeTime.sampleTime + leadSamples
+            } else {
+                sampleTime = nil
+            }
+        } else {
+            leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+            sampleRate = primaryClipSampleRate ?? 48_000
+            sampleTime = nil
+        }
+
+        if let sampleTime, sampleRate > 0 {
+            return AVAudioTime(hostTime: leadHost, sampleTime: sampleTime, atRate: sampleRate)
+        }
+        return AVAudioTime(hostTime: leadHost)
+    }
+
+    private static func secondsBetweenHostTimes(from start: UInt64, to end: UInt64) -> TimeInterval {
+        guard end >= start else { return 0 }
+        var timebase = mach_timebase_info_data_t()
+        mach_timebase_info(&timebase)
+        let nanoseconds = Double(end - start) * Double(timebase.numer) / Double(timebase.denom)
+        return nanoseconds / 1_000_000_000
     }
 
     @discardableResult
@@ -614,7 +725,9 @@ final class AudioEngineService {
     }
 
     private var playbackGraphIsHealthy: Bool {
-        scheduledClips.values.contains { isNodeConnected($0.player) && isNodeConnected($0.timePitch) }
+        scheduledClips.values.contains { scheduled in
+            isNodeConnected(scheduled.player) && isNodeConnected(scheduled.timePitch)
+        }
     }
 
     private func stopEngineIfRunning() {
@@ -674,18 +787,18 @@ final class AudioEngineService {
 
         for (trackID, mixer) in trackMixers {
             installMeterTap(on: mixer) { [weak self] peak in
-                self?.updateTrackMeterLevel(trackID: trackID, peak: peak)
+                self?.enqueueTrackMeterPeak(trackID: trackID, peak: peak)
             }
         }
 
         for (groupID, mixer) in groupMixers {
             installMeterTap(on: mixer) { [weak self] peak in
-                self?.updateGroupMeterLevel(groupID: groupID, peak: peak)
+                self?.enqueueGroupMeterPeak(groupID: groupID, peak: peak)
             }
         }
 
         installMeterTap(on: mainMixer) { [weak self] peak in
-            self?.updateMasterMeterLevel(peak: peak)
+            self?.enqueueMasterMeterPeak(peak)
         }
 
         metersInstalled = true
@@ -695,11 +808,54 @@ final class AudioEngineService {
         let format = mixer.outputFormat(forBus: 0)
         guard format.sampleRate > 0 else { return }
 
-        mixer.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+        mixer.installTap(onBus: 0, bufferSize: Self.meterTapBufferSize, format: format) { buffer, _ in
             let peak = Self.peakLevel(from: buffer)
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
+                guard self != nil else { return }
                 handler(peak)
             }
+        }
+    }
+
+    private func enqueueTrackMeterPeak(trackID: UUID, peak: Float) {
+        pendingTrackPeaks[trackID] = max(pendingTrackPeaks[trackID] ?? 0, peak)
+        scheduleMeterFlush()
+    }
+
+    private func enqueueGroupMeterPeak(groupID: UUID, peak: Float) {
+        pendingGroupPeaks[groupID] = max(pendingGroupPeaks[groupID] ?? 0, peak)
+        scheduleMeterFlush()
+    }
+
+    private func enqueueMasterMeterPeak(_ peak: Float) {
+        pendingMasterPeak = max(pendingMasterPeak, peak)
+        scheduleMeterFlush()
+    }
+
+    private func scheduleMeterFlush() {
+        guard !meterFlushScheduled else { return }
+        meterFlushScheduled = true
+        Task { @MainActor in
+            self.flushPendingMeterPeaks()
+        }
+    }
+
+    private func flushPendingMeterPeaks() {
+        meterFlushScheduled = false
+
+        for (trackID, peak) in pendingTrackPeaks {
+            updateTrackMeterLevel(trackID: trackID, peak: peak)
+        }
+        pendingTrackPeaks.removeAll()
+
+        for (groupID, peak) in pendingGroupPeaks {
+            updateGroupMeterLevel(groupID: groupID, peak: peak)
+        }
+        pendingGroupPeaks.removeAll()
+
+        if pendingMasterPeak > 0 {
+            updateMasterMeterLevel(peak: pendingMasterPeak)
+            pendingMasterPeak = 0
         }
     }
 
@@ -755,14 +911,19 @@ final class AudioEngineService {
     }
 
     private static func peakLevel(from buffer: AVAudioPCMBuffer) -> Float {
-        guard let channelData = buffer.floatChannelData else { return 0 }
+        guard buffer.format.commonFormat == .pcmFormatFloat32,
+              buffer.frameLength > 0,
+              let channelData = buffer.floatChannelData else {
+            return 0
+        }
+
         let channelCount = Int(buffer.format.channelCount)
         let frameLength = Int(buffer.frameLength)
-        guard frameLength > 0 else { return 0 }
+        guard channelCount > 0, frameLength > 0 else { return 0 }
 
         var peak: Float = 0
         var sumSquares: Float = 0
-        let sampleCount = Float(frameLength * max(channelCount, 1))
+        let sampleCount = Float(frameLength * channelCount)
 
         for channel in 0..<channelCount {
             let samples = channelData[channel]
@@ -774,7 +935,6 @@ final class AudioEngineService {
         }
 
         let rms = sqrt(sumSquares / sampleCount)
-        // Blend RMS with peak so brief spikes do not instantly hit red.
         let blended = peak * 0.35 + rms * 0.65
         return min(1, blended)
     }

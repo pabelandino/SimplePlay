@@ -1,16 +1,16 @@
 # Graph Report - SimplePlay  (2026-08-10)
 
 ## Corpus Check
-- 92 files · ~44,585 words
+- 92 files · ~46,525 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1495 nodes · 3439 edges · 76 communities (72 shown, 4 thin omitted)
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 349 edges (avg confidence: 0.8)
+- 1542 nodes · 3610 edges · 79 communities (71 shown, 8 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 350 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8ca18b61`
+- Built from commit: `eb654725`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,7 +30,7 @@
 - graphify reference: transcribe video and audio
 - extraction-spec.md
 - ArrangementSection
-- SectionLoopContext
+- .peaks
 - TimelineWorkspacePanel
 - TransportBarView
 - AudioImportService
@@ -39,99 +39,102 @@
 - .applyImportedStems
 - SimplePlayProjectArchive
 - MIDIMappingBarView
-- Equatable
-- TopToolbarView
-- TimeInterval
-- AudioTrack
-- Testing
-- CodingKeys
-- .triggerSection
+- ProjectPersistenceService
+- TrackGroup
+- .stop
+- .frames
 - Sendable
-- TimelineOverviewBar
-- WorkspaceView
+- CodingKeys
+- FileCommands
+- AudioTrack
+- Codable
+- .attachClip
 - MixerPanelView
 - SupportedAudioFormats
-- .sessionManagement
-- .standardize
-- DAWProject
+- TimelineOverviewBar
+- AudioOutputDevice
+- Testing
 - MacWindowTitleBarHidden.swift
-- View
-- .frames
-- MIDIInputEvent
-- FaderMeterStripView
-- .peaks
-- MIDISourceInfo
-- SidebarPanel
-- MIDIInputService
-- TrackWaveformProgressBar
-- SwiftUI
-- PitchShiftSettings
-- .attachClip
-- WorkspaceViewModel
-- .snap
-- DAWVerticalFaderView
-- .hex
-- .loadBucket
-- MIDINoteAssignment
 - .log
-- UIKitToolbarMenuButtonRepresentable
-- MIDIOutputService
-- DAWTheme
-- TrackPitchControlView
-- TrackGroup
-- .format
+- SectionLoopContext
+- Float
+- TimeInterval
+- WaveformClipView
+- SwiftUI
+- .standardize
+- MIDIInputService
+- PitchShiftSettings
+- CoreGraphics
+- .snap
 - AudioEngineError
-- .isNodeConnected
-- AudioClip
-- DAWProject
-- UUID
-- TrackControlButton
-- .stem
-- .setZoom
 - TrackHeaderRowView
-- .selectedMarkerEditor
-- CGFloat
+- .saveProject
+- FaderMeterStripView
+- TrackPitchControlView
+- ProjectPersistenceError
+- ImportDocumentPickerSession
+- SectionPlaybackMode
+- UIKitToolbarMenuButtonRepresentable
+- DAWProject
+- DAWTheme
+- .loopMappingCard
+- WorkspaceView
+- AudioDropTargetModifier
+- SimplePlayProjectFileDocument
+- View
+- MIDILearnTarget
+- .format
+- .setZoom
+- .sectionMappingCard
+- AudioDropOverlay
+- DropURLLoader
+- WorkspaceKeyboardShortcuts
+- SidebarPanel
+- DAWSecondaryButtonStyle
+- WorkspaceViewModel
+- TrackControlButton
+- UniformTypeIdentifiers
 
 ## God Nodes (most connected - your core abstractions)
-1. `WorkspaceViewModel` - 214 edges
-2. `AudioEngineService` - 55 edges
-3. `ArrangementSection` - 48 edges
-4. `AudioTrack` - 42 edges
-5. `DAWTheme` - 37 edges
-6. `ArrangementPlaybackEngine` - 36 edges
-7. `MixerPanelView` - 35 edges
-8. `TimelineWorkspacePanel` - 35 edges
-9. `StandardTrackRole` - 31 edges
-10. `PropertiesSidebarView` - 31 edges
+1. `WorkspaceViewModel` - 231 edges
+2. `AudioEngineService` - 67 edges
+3. `ArrangementSection` - 59 edges
+4. `DAWTheme` - 43 edges
+5. `AudioTrack` - 42 edges
+6. `MIDIMappingBarView` - 41 edges
+7. `ArrangementPlaybackEngine` - 36 edges
+8. `MixerPanelView` - 35 edges
+9. `TimelineWorkspacePanel` - 35 edges
+10. `StandardTrackRole` - 31 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `.duration` --references--> `AudioTrack`  [INFERRED]
   SimplePlay/Core/Models/DAWProject.swift → SimplePlay/Core/Models/AudioTrack.swift
-- `TrackOrganizationServiceTests` --calls--> `TrackOrganizationService`  [EXTRACTED]
-  SimplePlayTests/TrackOrganizationServiceTests.swift → SimplePlay/Core/Services/TrackOrganizationService.swift
 - `.selectedDevice` --references--> `WorkspaceViewModel`  [INFERRED]
   SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift → SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift
-- `.actionButtons` --calls--> `TrackPitchControlView`  [INFERRED]
-  SimplePlay/Features/Workspace/Views/TopToolbarView.swift → SimplePlay/Features/Workspace/Views/TrackPitchControlView.swift
 - `.body` --calls--> `ContentView`  [INFERRED]
   SimplePlay/SimplePlayApp.swift → SimplePlay/ContentView.swift
+- `.body` --references--> `ArrangementSection`  [INFERRED]
+  SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift → SimplePlay/Core/Models/ArrangementSection.swift
+- `.body` --references--> `ArrangementSection`  [INFERRED]
+  SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift → SimplePlay/Core/Models/ArrangementSection.swift
 
 ## Import Cycles
 - None detected.
 
-## Communities (76 total, 4 thin omitted)
+## Communities (79 total, 8 thin omitted)
 
 ### Community 0 - "SimplePlayUITests"
 Cohesion: 0.15
 Nodes (6): SimplePlayUITests, SimplePlayUITestsLaunchTests, .runsForEachTargetApplicationUIConfiguration, Bool, XCTest, XCTestCase
 
 ### Community 1 - "SectionMarkerChipView"
-Cohesion: 0.08
-Nodes (34): NSCursor, SectionDragKind, move, resizeEnd, resizeStart, ResizeEdge, end, start (+26 more)
+Cohesion: 0.10
+Nodes (30): NSCursor, ResizeEdge, end, start, SectionCreationPreviewView, .body, SectionDragSession, SectionEdgeGuideOverlay (+22 more)
 
 ### Community 2 - "PropertiesSidebarView"
-Cohesion: 0.11
-Nodes (19): .masterVolumeBinding, PropertiesSidebarView, .body, .masterVolumeBinding, .pitchIsOriginal, .pitchLabel, .sectionCreationHint, .selectedDevice (+11 more)
+Cohesion: 0.15
+Nodes (12): PropertiesSidebarView, .body, .pitchIsOriginal, .pitchLabel, .sectionCreationHint, .selectedDevice, .selectedSection, Bool (+4 more)
 
 ### Community 3 - "What You Must Do When Invoked"
 Cohesion: 0.08
@@ -139,7 +142,7 @@ Nodes (24): For /graphify add and --watch, For /graphify query, For the commit h
 
 ### Community 4 - "TrackLaneView"
 Cohesion: 0.09
-Nodes (26): G, GraphicsContext, CGFloat, String, TimeInterval, TimelineRulerScale, ClipDragInteractionModifier, ClipSelectionModifiers (+18 more)
+Nodes (26): G, GraphicsContext, Path, CGFloat, String, TimeInterval, TimelineRulerScale, ClipDragInteractionModifier (+18 more)
 
 ### Community 5 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
@@ -147,7 +150,7 @@ Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only
 
 ### Community 6 - "Foundation"
 Cohesion: 0.14
-Nodes (7): AVFoundation, CoreAudio, CoreMIDI, Foundation, Observation, os, SnapGrid
+Nodes (7): AVFoundation, CoreAudio, Foundation, Observation, os, SnapGrid, TimeFormatting
 
 ### Community 7 - "graphify reference: query, path, explain"
 Cohesion: 0.33
@@ -166,268 +169,264 @@ Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ### Community 14 - "ArrangementSection"
-Cohesion: 0.07
-Nodes (40): ArrangementSection, .color, .duration, CodingKeys, colorHex, endTime, id, midiChannel (+32 more)
+Cohesion: 0.08
+Nodes (35): ArrangementSection, .color, .duration, Bool, Decoder, String, TimeInterval, UInt8 (+27 more)
 
-### Community 15 - "SectionLoopContext"
-Cohesion: 0.24
-Nodes (10): AVAudioFrameCount, AVAudioTime, SectionLoopContext, .duration, TimeInterval, UUID, Bool, Int (+2 more)
+### Community 15 - ".peaks"
+Cohesion: 0.25
+Nodes (12): CheckedContinuation, Never, Double, Float, Int, MainActor, Sendable, String (+4 more)
 
 ### Community 16 - "TimelineWorkspacePanel"
-Cohesion: 0.09
-Nodes (33): PlayheadView, .body, .playheadDragGesture, Bool, CGFloat, Content, Double, Gesture (+25 more)
+Cohesion: 0.11
+Nodes (28): PlayheadView, .body, .playheadDragGesture, Bool, CGFloat, Content, Double, Gesture (+20 more)
 
 ### Community 17 - "TransportBarView"
-Cohesion: 0.10
-Nodes (21): Binding, Bool, CGFloat, Double, String, Void, TransportBarStyle, phoneBottomDock (+13 more)
+Cohesion: 0.11
+Nodes (20): Binding, Bool, CGFloat, Double, String, Void, TransportBarStyle, phoneBottomDock (+12 more)
 
 ### Community 18 - "AudioImportService"
-Cohesion: 0.13
-Nodes (17): LocalizedError, AudioFileStorageService, String, URL, UUID, AudioImportError, emptySelection, .errorDescription (+9 more)
+Cohesion: 0.12
+Nodes (19): LocalizedError, AudioFileStorageService, String, URL, UUID, AudioImportError, emptySelection, .errorDescription (+11 more)
 
 ### Community 19 - "AudioEngineService"
-Cohesion: 0.13
-Nodes (11): AVAudioMixerNode, AVAudioPCMBuffer, AVAudioUnitEQ, AudioEngineService, .isPlaybackGraphReady, .masterVolume, .primaryClipSampleRate, Double (+3 more)
+Cohesion: 0.12
+Nodes (11): AVAudioNode, AVAudioPlayerNode, AVAudioUnitEQ, AudioEngineService, .isPlaybackGraphReady, .isSectionLoopPlaybackActive, .masterVolume, .playbackGraphIsHealthy (+3 more)
 
 ### Community 20 - "StandardTrackRole"
-Cohesion: 0.06
-Nodes (36): CaseIterable, SectionPlaybackMode, continueTimeline, continueToNext, .displayName, .id, oneShot, repeatSection (+28 more)
+Cohesion: 0.08
+Nodes (24): StandardTrackRole, acousticGuitar, backingVocal, bass, brass, click, countIn, cue (+16 more)
 
 ### Community 21 - ".applyImportedStems"
-Cohesion: 0.14
-Nodes (8): Error, Result, Bool, URL, DAWProject, String, URL, .body
+Cohesion: 0.16
+Nodes (6): Error, Result, DAWProject, String, URL, .body
 
 ### Community 22 - "SimplePlayProjectArchive"
 Cohesion: 0.16
 Nodes (15): Asset, SimplePlayProjectArchive, SimplePlayProjectArchiveError, corruptAsset, corruptManifest, .errorDescription, invalidArchive, Bool (+7 more)
 
 ### Community 23 - "MIDIMappingBarView"
-Cohesion: 0.13
-Nodes (18): Animation, AnyTransition, MIDIMappingBarView, .body, .collapsedBar, .collapsedBarContent, .devicePickerLabel, .devicePickerTitle (+10 more)
+Cohesion: 0.11
+Nodes (19): Animation, AnyTransition, Color, StandardTrackRole, .fallbackColor, MIDIMappingBarView, .body, .collapsedBar (+11 more)
 
-### Community 24 - "Equatable"
-Cohesion: 0.07
-Nodes (41): Codable, Equatable, PersistedClip, PersistedProject, PersistedTrack, SavedProjectDocument, Bool, DAWProject (+33 more)
+### Community 24 - "ProjectPersistenceService"
+Cohesion: 0.19
+Nodes (10): SavedProjectDocument, DAWProject, Int, unsupportedVersion, ProjectPersistenceService, Bool, Data, DAWProject (+2 more)
 
-### Community 25 - "TopToolbarView"
-Cohesion: 0.25
-Nodes (11): String, Void, TopToolbarView, .actionButtons, .isCompact, .openButton, .projectTitle, .saveButton (+3 more)
-
-### Community 26 - "TimeInterval"
+### Community 25 - "TrackGroup"
 Cohesion: 0.27
-Nodes (5): SectionEdgeGuides, Bool, TimeInterval, UInt8, .activeSectionEdgeGuides
+Nodes (8): Date, Encoder, Decoder, Double, String, TimeInterval, UUID, TrackGroup
 
-### Community 27 - "AudioTrack"
-Cohesion: 0.16
-Nodes (15): AudioTrack, .color, .displayName, Bool, Double, StandardTrackRole, String, UUID (+7 more)
+### Community 27 - ".frames"
+Cohesion: 0.30
+Nodes (6): Bool, Double, Int64, TimeInterval, TimelineSampleGrid, TimelineSampleGridTests
 
-### Community 28 - "Testing"
-Cohesion: 0.22
-Nodes (4): SimplePlay, ProjectArchiveTests, SimplePlayTests, Testing
+### Community 28 - "Sendable"
+Cohesion: 0.25
+Nodes (18): Equatable, Sendable, PersistedClip, PersistedProject, PersistedTrack, Bool, Decoder, Double (+10 more)
 
 ### Community 29 - "CodingKeys"
+Cohesion: 0.05
+Nodes (44): CodingKey, CodingKeys, colorHex, endTime, id, midiChannel, midiNote, midiUsesControlChange (+36 more)
+
+### Community 30 - "FileCommands"
+Cohesion: 0.22
+Nodes (8): App, Commands, Scene, FileCommands, TransportCommands, .body, SimplePlayApp, .body
+
+### Community 31 - "AudioTrack"
 Cohesion: 0.07
-Nodes (31): CodingKeys, audioSettings, colorHex, id, isLocked, isMuted, isSnapEnabled, isSolo (+23 more)
+Nodes (40): AudioClip, .endTime, Int, String, TimeInterval, URL, UUID, AudioTrack (+32 more)
 
-### Community 30 - ".triggerSection"
-Cohesion: 0.13
-Nodes (10): Commands, FileCommands, Content, View, TransportCommands, .body, View, WorkspaceKeyboardShortcuts (+2 more)
+### Community 32 - "Codable"
+Cohesion: 0.24
+Nodes (11): Codable, Double, AudioSampleRate, .displayName, .id, rate44100, rate48000, AudioSettings (+3 more)
 
-### Community 31 - "Sendable"
-Cohesion: 0.26
-Nodes (11): Sendable, ImportedStem, ImportPlacement, appendNewGroup, insertIntoGroup, DAWProject, Int, String (+3 more)
-
-### Community 32 - "TimelineOverviewBar"
-Cohesion: 0.19
-Nodes (13): Bool, CGFloat, CGSize, Gesture, TimeInterval, TimelineOverviewBar, .barHeight, .body (+5 more)
-
-### Community 33 - "WorkspaceView"
-Cohesion: 0.11
-Nodes (16): ContentView, .body, Binding, Bool, String, WorkspaceSettingsView, .body, .deleteSectionDialogTitle (+8 more)
+### Community 33 - ".attachClip"
+Cohesion: 0.24
+Nodes (5): AVAudioFile, ScheduledClip, AVAudioUnitTimePitch, DAWProject, UInt32
 
 ### Community 34 - "MixerPanelView"
-Cohesion: 0.11
-Nodes (19): MixerPanelView, .body, .channelFaderHeight, .channelFaderWidth, .channelStripWidth, .isCompact, .masterFaderHeight, .mastersStripRow (+11 more)
+Cohesion: 0.06
+Nodes (35): Double, Float, UUID, MixerPanelView, .body, .channelFaderHeight, .channelFaderWidth, .channelStripWidth (+27 more)
 
 ### Community 35 - "SupportedAudioFormats"
-Cohesion: 0.05
-Nodes (37): FileDocument, FileWrapper, ReadConfiguration, SimplePlayProjectFileDocument, .readableContentTypes, Data, DropURLLoader, NSItemProvider (+29 more)
+Cohesion: 0.31
+Nodes (9): UTType, SupportedAudioFormats, .contentTypes, .dropTypes, .filePickerTypes, .folderPickerTypes, .importPickerTypes, Set (+1 more)
 
-### Community 36 - ".sessionManagement"
-Cohesion: 0.60
-Nodes (3): .sessionManagement, .projectSessionMenuItems, .body
+### Community 36 - "TimelineOverviewBar"
+Cohesion: 0.16
+Nodes (15): Bool, CGFloat, CGSize, ClosedRange, Gesture, TimeInterval, TimelineOverviewBar, .barHeight (+7 more)
 
-### Community 37 - ".standardize"
-Cohesion: 0.23
-Nodes (7): StandardizedName, Bool, StandardTrackRole, String, URL, TrackNameStandardizer, TrackNameStandardizerTests
+### Community 37 - "AudioOutputDevice"
+Cohesion: 0.24
+Nodes (8): AudioDeviceID, Hashable, AudioOutputDevice, AudioDeviceService, Bool, Int, String, .audioSettings
 
-### Community 38 - "DAWProject"
-Cohesion: 0.09
-Nodes (26): AudioDeviceID, Double, Hashable, AudioOutputDevice, AudioSampleRate, .displayName, .id, rate44100 (+18 more)
+### Community 38 - "Testing"
+Cohesion: 0.22
+Nodes (4): SimplePlay, ProjectArchiveTests, SimplePlayTests, Testing
 
 ### Community 39 - "MacWindowTitleBarHidden.swift"
 Cohesion: 0.11
 Nodes (15): Notification, NSApplicationDelegate, NSEvent, NSObject, NSView, NSViewRepresentable, NSWindow, .body (+7 more)
 
-### Community 40 - "View"
+### Community 40 - ".log"
+Cohesion: 0.38
+Nodes (6): SectionLoopDiagnostics, AVAudioFrameCount, Double, Int64, String, TimeInterval
+
+### Community 41 - "SectionLoopContext"
 Cohesion: 0.20
-Nodes (9): Configuration, Bool, ToolbarMenuButtonStyleModifier, .importButton, .projectSessionButton, ImportToolbarMenuButton, .body, ProjectSessionToolbarMenuButton (+1 more)
+Nodes (11): AVAudioTime, SectionLoopContext, .duration, TimeInterval, UUID, AVAudioFrameCount, Bool, Int (+3 more)
 
-### Community 41 - ".frames"
-Cohesion: 0.32
-Nodes (6): Bool, Double, Int64, TimeInterval, TimelineSampleGrid, TimelineSampleGridTests
+### Community 42 - "Float"
+Cohesion: 0.21
+Nodes (5): AVAudioMixerNode, AVAudioPCMBuffer, Float, UUID, Void
 
-### Community 42 - "MIDIInputEvent"
-Cohesion: 0.18
-Nodes (7): MIDIPacket, Kind, controlChange, noteOn, MIDIInputEvent, Int, UInt8
+### Community 43 - "TimeInterval"
+Cohesion: 0.14
+Nodes (11): SectionEdgeGuides, Bool, TimeInterval, UInt8, TimelineScrollAlignment, center, leading, start (+3 more)
 
-### Community 43 - "FaderMeterStripView"
+### Community 44 - "WaveformClipView"
+Cohesion: 0.12
+Nodes (21): clips, Bool, Double, UUID, WaveformLoadMonitor, CGFloat, Int, WaveformLOD (+13 more)
+
+### Community 45 - "SwiftUI"
 Cohesion: 0.15
-Nodes (12): .projectMasterStrip, .mainVolumeControl, FaderMeterStripView, .reservesThumbClearance, .showsUnityMark, .usesUnityCenterDecibelScale, Bool, CGFloat (+4 more)
+Nodes (7): ResizablePropertiesSidebar, .body, Bool, Double, TrackWaveformProgressBar, .body, SwiftUI
 
-### Community 44 - ".peaks"
-Cohesion: 0.09
-Nodes (30): CheckedContinuation, Never, Path, clips, Double, Float, Int, MainActor (+22 more)
-
-### Community 45 - "MIDISourceInfo"
-Cohesion: 0.28
-Nodes (6): Identifiable, MIDISourceInfo, .id, Bool, String, .devicePicker
-
-### Community 46 - "SidebarPanel"
-Cohesion: 0.26
-Nodes (12): .audioSettings, .playbackSettings, .sectionEditor, .trackPitch, .volumeControls, DAWSecondaryButtonStyle, SidebarLabeledRow, .body (+4 more)
+### Community 46 - ".standardize"
+Cohesion: 0.23
+Nodes (7): StandardizedName, Bool, StandardTrackRole, String, URL, TrackNameStandardizer, TrackNameStandardizerTests
 
 ### Community 47 - "MIDIInputService"
-Cohesion: 0.16
-Nodes (9): MIDINotifyProc, MIDIPacketList, MIDIInputService, Int32, MainActor, MIDIEndpointRef, Void, UnsafeMutablePointer (+1 more)
+Cohesion: 0.07
+Nodes (23): CoreMIDI, MIDINotifyProc, MIDIPacket, MIDIPacketList, MIDIInputEvent, MIDIInputService, MIDISourceInfo, .id (+15 more)
 
-### Community 48 - "TrackWaveformProgressBar"
-Cohesion: 0.40
-Nodes (4): Bool, Double, TrackWaveformProgressBar, .body
-
-### Community 49 - "SwiftUI"
-Cohesion: 0.16
-Nodes (7): App, AppKit, Scene, SimplePlayApp, ResizablePropertiesSidebar, .body, SwiftUI
-
-### Community 50 - "PitchShiftSettings"
+### Community 48 - "PitchShiftSettings"
 Cohesion: 0.31
 Nodes (5): PitchShiftSettings, AVAudioUnitTimePitch, Double, Float, PitchShiftSettingsTests
 
-### Community 51 - ".attachClip"
-Cohesion: 0.27
-Nodes (5): AVAudioFile, ScheduledClip, AVAudioUnitTimePitch, DAWProject, UInt32
+### Community 50 - ".snap"
+Cohesion: 0.15
+Nodes (6): Bool, TimeInterval, ImportPanelKind, audioFiles, folder, .importMenuItems
 
-### Community 52 - "WorkspaceViewModel"
-Cohesion: 0.08
-Nodes (17): ClosedRange, Set, WorkspaceViewModel, .activePitchTrack, .canSaveDirectlyToCurrentURL, .isArrangementSectionControllingPlayback, .isMIDILearnActive, .isSectionInteractionActive (+9 more)
+### Community 51 - "AudioEngineError"
+Cohesion: 0.29
+Nodes (7): AudioEngineError, clipLoadFailed, deviceSelectionFailed, engineStartFailed, .errorDescription, noPlayableClips, playbackUnavailable
 
-### Community 53 - ".snap"
+### Community 52 - "TrackHeaderRowView"
 Cohesion: 0.12
-Nodes (9): Bool, TimeInterval, ImportPanelKind, audioFiles, folder, Int, .trackHeaderColumnTracksOnly, .trackLanes (+1 more)
+Nodes (12): Int, .trackHeaderColumnTracksOnly, .trackLanes, Binding, Double, TrackHeaderRowView, .displayColor, .liveTrack (+4 more)
 
-### Community 54 - "DAWVerticalFaderView"
-Cohesion: 0.09
-Nodes (25): ClosedRange, Double, Float, String, TrackVolumeSettings, .trackRange, DAWVerticalFaderView, .body (+17 more)
+### Community 53 - ".saveProject"
+Cohesion: 0.25
+Nodes (4): ProjectFilePanel, String, URL, .body
 
-### Community 55 - ".hex"
-Cohesion: 0.40
-Nodes (5): .defaultColor, Int, StandardTrackRole, String, TrackColorPalette
+### Community 54 - "FaderMeterStripView"
+Cohesion: 0.06
+Nodes (37): ClosedRange, Double, Float, String, TrackVolumeSettings, .trackRange, .projectMasterStrip, .mainVolumeControl (+29 more)
 
-### Community 56 - ".loadBucket"
-Cohesion: 0.31
-Nodes (5): CoreGraphics, CGFloat, Int, WaveformLOD, .requiredLOD
+### Community 55 - "TrackPitchControlView"
+Cohesion: 0.14
+Nodes (14): .actionButtons, Binding, Bool, Double, String, UUID, TrackPitchControlView, .menuTitle (+6 more)
 
-### Community 57 - "MIDINoteAssignment"
-Cohesion: 0.20
-Nodes (10): MIDILearnTarget, loopToggle, section, MIDINoteAssignment, .displayName, Bool, String, UInt8 (+2 more)
+### Community 56 - "ProjectPersistenceError"
+Cohesion: 0.17
+Nodes (12): JSONDecoder, .projectDecoder, JSONEncoder, .pretty, ManifestFile, ProjectPersistenceError, .errorDescription, invalidPackage (+4 more)
 
-### Community 58 - ".log"
-Cohesion: 0.44
-Nodes (5): SectionLoopDiagnostics, Double, Int64, String, TimeInterval
+### Community 57 - "ImportDocumentPickerSession"
+Cohesion: 0.25
+Nodes (8): ImportDocumentPickerPresenter, ImportDocumentPickerSession, Bool, URL, Void, UIDocumentPickerDelegate, UIDocumentPickerViewController, UIViewController
+
+### Community 58 - "SectionPlaybackMode"
+Cohesion: 0.14
+Nodes (13): CaseIterable, Identifiable, SectionPlaybackMode, continueTimeline, continueToNext, .displayName, .id, oneShot (+5 more)
 
 ### Community 59 - "UIKitToolbarMenuButtonRepresentable"
 Cohesion: 0.33
 Nodes (7): Coordinator, Context, String, Void, UIKitToolbarMenuButtonRepresentable, UIButton, UIViewRepresentable
 
-### Community 60 - "MIDIOutputService"
-Cohesion: 0.33
-Nodes (4): MIDIOutputService, Bool, MIDIEndpointRef, UInt8
+### Community 60 - "DAWProject"
+Cohesion: 0.36
+Nodes (9): DAWProject, .duration, Bool, Double, Int32, String, TimeInterval, UInt8 (+1 more)
 
 ### Community 61 - "DAWTheme"
+Cohesion: 0.12
+Nodes (15): .groupDivider, DAWIconToolbarButtonStyle, DAWLabeledToolbarButtonStyle, DAWPrimaryButtonStyle, Configuration, Content, .body, .mixerButton (+7 more)
+
+### Community 62 - ".loopMappingCard"
+Cohesion: 0.16
+Nodes (10): AppKit, ButtonStyle, .learnBanner, .loopMappingCard, SectionMappingAssignButtonStyle, SectionMappingCardGlow, SectionMappingPlayButtonStyle, Configuration (+2 more)
+
+### Community 63 - "WorkspaceView"
+Cohesion: 0.11
+Nodes (16): ContentView, .body, Binding, Bool, String, WorkspaceSettingsView, .body, .deleteSectionDialogTitle (+8 more)
+
+### Community 64 - "AudioDropTargetModifier"
+Cohesion: 0.27
+Nodes (7): AudioDropTargetModifier, Content, NSItemProvider, String, TimeInterval, View, View
+
+### Community 65 - "SimplePlayProjectFileDocument"
 Cohesion: 0.22
-Nodes (9): .groupDivider, .pinnedMastersColumn, .mixerButton, DAWTheme, .isPhone, Bool, CGFloat, Double (+1 more)
+Nodes (7): FileDocument, FileWrapper, ReadConfiguration, SimplePlayProjectFileDocument, .readableContentTypes, Data, WriteConfiguration
 
-### Community 62 - "TrackPitchControlView"
-Cohesion: 0.18
-Nodes (12): Binding, Bool, Double, String, UUID, TrackPitchControlView, .menuTitle, .pitchIsOriginal (+4 more)
+### Community 66 - "View"
+Cohesion: 0.15
+Nodes (18): Bool, String, Void, ToolbarMenuButtonStyleModifier, TopToolbarView, .importButton, .isCompact, .openButton (+10 more)
 
-### Community 63 - "TrackGroup"
-Cohesion: 0.14
-Nodes (16): CodingKey, Date, Encoder, CodingKeys, horizontalOffset, id, importedAt, name (+8 more)
+### Community 67 - "MIDILearnTarget"
+Cohesion: 0.40
+Nodes (4): MIDILearnTarget, loopToggle, section, UUID
 
-### Community 64 - ".format"
-Cohesion: 0.20
-Nodes (8): Bool, String, TimeInterval, TimeFormatting, .formattedCurrentTime, .formattedDuration, .selectionInfo, .body
+### Community 68 - ".format"
+Cohesion: 0.22
+Nodes (7): Bool, String, TimeInterval, .formattedCurrentTime, .formattedDuration, .selectionInfo, .body
 
-### Community 65 - "AudioEngineError"
-Cohesion: 0.25
-Nodes (8): AudioEngineError, clipLoadFailed, deviceSelectionFailed, engineStartFailed, .errorDescription, noPlayableClips, playbackUnavailable, String
+### Community 70 - ".sectionMappingCard"
+Cohesion: 0.15
+Nodes (12): MIDINoteAssignment, .displayName, Bool, String, UInt8, SectionPlaybackStatus, idle, playing (+4 more)
 
-### Community 66 - ".isNodeConnected"
+### Community 71 - "AudioDropOverlay"
 Cohesion: 0.33
-Nodes (3): AVAudioNode, AVAudioPlayerNode, .playbackGraphIsHealthy
+Nodes (5): AudioDropOverlay, .body, String, TimelineEmptyDropHint, .body
 
-### Community 67 - "AudioClip"
-Cohesion: 0.36
-Nodes (7): AudioClip, .endTime, Int, String, TimeInterval, URL, UUID
+### Community 72 - "DropURLLoader"
+Cohesion: 0.62
+Nodes (4): DropURLLoader, NSItemProvider, String, URL
 
-### Community 68 - "DAWProject"
-Cohesion: 0.39
-Nodes (4): groups, DAWProject, Int, UUID
+### Community 75 - "SidebarPanel"
+Cohesion: 0.29
+Nodes (10): .playbackSettings, .sectionEditor, .trackPitch, .volumeControls, SidebarLabeledRow, .body, SidebarPanel, .body (+2 more)
 
-### Community 69 - "UUID"
-Cohesion: 0.14
-Nodes (10): Double, Float, UUID, .mixerScrollWithPinnedMasters, Binding, Double, UUID, .body (+2 more)
+### Community 76 - "DAWSecondaryButtonStyle"
+Cohesion: 0.38
+Nodes (5): .selectedMarkerEditor, .sessionManagement, DAWSecondaryButtonStyle, .projectSessionMenuItems, .body
 
-### Community 70 - "TrackControlButton"
+### Community 77 - "WorkspaceViewModel"
+Cohesion: 0.07
+Nodes (28): SectionDragKind, move, resizeEnd, resizeStart, CGFloat, ClosedRange, Set, TimelineScrollRequest (+20 more)
+
+### Community 81 - "TrackControlButton"
 Cohesion: 0.22
 Nodes (8): PanKnobView, .body, Bool, Double, String, Void, TrackControlButton, .body
 
-### Community 71 - ".stem"
-Cohesion: 0.36
-Nodes (3): String, TimeInterval, TrackOrganizationServiceTests
-
-### Community 73 - "TrackHeaderRowView"
-Cohesion: 0.33
-Nodes (7): Binding, Double, TrackHeaderRowView, .displayColor, .liveTrack, .trackPan, .trackVolumeBinding
-
-### Community 76 - ".selectedMarkerEditor"
-Cohesion: 0.24
-Nodes (8): ButtonStyle, .selectedMarkerEditor, DAWIconToolbarButtonStyle, DAWLabeledToolbarButtonStyle, DAWPrimaryButtonStyle, Content, .body, UIKit
-
-### Community 77 - "CGFloat"
-Cohesion: 0.14
-Nodes (10): CGFloat, TimelineScrollAlignment, center, leading, start, TimelineScrollRequest, .minimumTimelineZoom, .timelineContentWidth (+2 more)
-
 ## Knowledge Gaps
-- **267 isolated node(s):** `id`, `name`, `startTime`, `endTime`, `colorHex` (+262 more)
+- **273 isolated node(s):** `id`, `name`, `startTime`, `endTime`, `colorHex` (+268 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `WorkspaceViewModel` connect `WorkspaceViewModel` to `SectionMarkerChipView`, `PropertiesSidebarView`, `TrackLaneView`, `Foundation`, `ArrangementSection`, `TimelineWorkspacePanel`, `TransportBarView`, `AudioImportService`, `AudioEngineService`, `StandardTrackRole`, `.applyImportedStems`, `MIDIMappingBarView`, `Equatable`, `TopToolbarView`, `TimeInterval`, `AudioTrack`, `.triggerSection`, `Sendable`, `TimelineOverviewBar`, `WorkspaceView`, `MixerPanelView`, `SupportedAudioFormats`, `.sessionManagement`, `DAWProject`, `View`, `MIDIInputEvent`, `MIDISourceInfo`, `SwiftUI`, `.snap`, `MIDINoteAssignment`, `DAWTheme`, `TrackPitchControlView`, `.format`, `UUID`, `.setZoom`, `TrackHeaderRowView`, `CGFloat`?**
-  _High betweenness centrality (0.423) - this node is a cross-community bridge._
-- **Why does `AudioTrack` connect `AudioTrack` to `MixerPanelView`, `AudioClip`, `DAWProject`, `UUID`, `DAWProject`, `TrackLaneView`, `TrackHeaderRowView`, `MIDISourceInfo`, `SwiftUI`, `PitchShiftSettings`, `WorkspaceViewModel`, `.hex`, `Equatable`, `Sendable`?**
-  _High betweenness centrality (0.077) - this node is a cross-community bridge._
-- **Why does `Foundation` connect `Foundation` to `.format`, `AudioClip`, `SupportedAudioFormats`, `.standardize`, `DAWProject`, `SwiftUI`, `AudioImportService`, `StandardTrackRole`, `SimplePlayProjectArchive`, `DAWVerticalFaderView`, `Equatable`, `MIDINoteAssignment`, `.loadBucket`, `Testing`, `TrackGroup`?**
-  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Why does `WorkspaceViewModel` connect `WorkspaceViewModel` to `SectionMarkerChipView`, `PropertiesSidebarView`, `TrackLaneView`, `Foundation`, `ArrangementSection`, `TimelineWorkspacePanel`, `TransportBarView`, `AudioImportService`, `AudioEngineService`, `.applyImportedStems`, `MIDIMappingBarView`, `ProjectPersistenceService`, `.stop`, `.frames`, `FileCommands`, `AudioTrack`, `.attachClip`, `MixerPanelView`, `TimelineOverviewBar`, `AudioOutputDevice`, `TimeInterval`, `SwiftUI`, `MIDIInputService`, `.snap`, `TrackHeaderRowView`, `.saveProject`, `TrackPitchControlView`, `SectionPlaybackMode`, `DAWTheme`, `.loopMappingCard`, `WorkspaceView`, `AudioDropTargetModifier`, `SimplePlayProjectFileDocument`, `View`, `MIDILearnTarget`, `.format`, `.setZoom`, `.sectionMappingCard`, `WorkspaceKeyboardShortcuts`, `DAWSecondaryButtonStyle`?**
+  _High betweenness centrality (0.443) - this node is a cross-community bridge._
+- **Why does `ArrangementSection` connect `ArrangementSection` to `Codable`, `SectionMarkerChipView`, `View`, `PropertiesSidebarView`, `.format`, `.sectionMappingCard`, `TimeInterval`, `SwiftUI`, `DAWProject`, `MIDIInputService`, `WorkspaceViewModel`, `MIDIMappingBarView`, `SectionPlaybackMode`, `.frames`, `Sendable`, `CodingKeys`?**
+  _High betweenness centrality (0.106) - this node is a cross-community bridge._
+- **Why does `AudioEngineService` connect `AudioEngineService` to `.attachClip`, `MixerPanelView`, `Foundation`, `SectionLoopContext`, `Float`, `WorkspaceViewModel`, `.applyImportedStems`?**
+  _High betweenness centrality (0.088) - this node is a cross-community bridge._
 - **Are the 12 inferred relationships involving `WorkspaceViewModel` (e.g. with `ArrangementPlaybackEngine` and `AudioEngineService`) actually correct?**
   _`WorkspaceViewModel` has 12 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `AudioEngineService` (e.g. with `WorkspaceViewModel` and `.configureAudioEngine()`) actually correct?**
   _`AudioEngineService` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 4 inferred relationships involving `ArrangementSection` (e.g. with `.body` and `.body`) actually correct?**
   _`ArrangementSection` has 4 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 3 inferred relationships involving `AudioTrack` (e.g. with `.duration` and `.hasSoloTracks`) actually correct?**
-  _`AudioTrack` has 3 INFERRED edges - model-reasoned connections that need verification._
+- **What connects `id`, `name`, `startTime` to the rest of the system?**
+  _273 weakly-connected nodes found - possible documentation gaps or missing edges._

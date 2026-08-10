@@ -58,6 +58,7 @@ enum SectionLoopDiagnostics {
         sampleRate: Double,
         label: String
     ) {
+#if DEBUG
         let sourceStartTime = TimelineSampleGrid.timeFromFrame(sourceStartFrame, sampleRate: sampleRate)
         log(String(
             format: "%@ | clip \"%@\" timeline [%.6f, %.6f) source %.6fs frames %llu sr %.0f",
@@ -69,5 +70,6 @@ enum SectionLoopDiagnostics {
             frameCount,
             sampleRate
         ))
+#endif
     }
 }

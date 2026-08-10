@@ -158,7 +158,7 @@ struct TimelineWorkspacePanel: View {
             Image(systemName: "flag.fill")
                 .font(.caption2)
                 .foregroundStyle(
-                    viewModel.isSectionRepeatEnabled && viewModel.project.sectionRepeatMIDIMapped
+                    viewModel.isSectionRepeatEnabled
                         ? DAWTheme.accent
                         : DAWTheme.textSecondary
                 )
@@ -178,7 +178,7 @@ struct TimelineWorkspacePanel: View {
                         .font(.caption2)
                         .foregroundStyle(DAWTheme.accent)
                         .lineLimit(1)
-                } else if viewModel.isSectionRepeatEnabled, viewModel.project.sectionRepeatMIDIMapped {
+                } else if viewModel.isSectionRepeatEnabled {
                     Text("Loop On")
                         .font(.caption2)
                         .foregroundStyle(DAWTheme.accent)
@@ -282,13 +282,13 @@ struct TimelineWorkspacePanel: View {
         let playheadX = CGFloat(viewModel.playheadTime) * viewModel.pixelsPerSecond
         let viewport = max(1, viewModel.timelineViewportWidth)
         let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
-        let blockWidth = viewport * 0.85
-        let visibleEnd = horizontalScrollOffset + viewport * 0.88
+        let margin = viewport * 0.12
+        let visibleStart = horizontalScrollOffset + margin
+        let visibleEnd = horizontalScrollOffset + viewport - margin
 
-        guard playheadX > visibleEnd else { return }
+        guard playheadX < visibleStart || playheadX > visibleEnd else { return }
 
-        let blockIndex = floor(playheadX / blockWidth)
-        let targetX = min(maxOffset, blockIndex * blockWidth)
+        let targetX = min(maxOffset, max(0, playheadX - viewport * 0.35))
         guard abs(targetX - horizontalScrollOffset) > 1 else { return }
 
         applyTimelineScroll(offsetX: targetX)
