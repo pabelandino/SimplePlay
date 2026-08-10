@@ -200,7 +200,7 @@
     "semantic_hash": ""
   },
   "SimplePlay/UI/Theme/DAWTheme.swift": {
-    "mtime": 1786320824.837234,
+    "mtime": 1786321802.5517101,
     "ast_hash": "af03dd2ad9c78b7c13f146a55be05119",
     "semantic_hash": ""
   },
@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
-    "mtime": 1786320586.9018674,
-    "ast_hash": "bb8178c24acd274541831c79cab54576",
+    "mtime": 1786321803.0255606,
+    "ast_hash": "5dfed5d3f26747574c2bfd2fe27a3135",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/PanKnobView.swift": {
@@ -360,7 +360,7 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift": {
-    "mtime": 1786320883.7373517,
+    "mtime": 1786321802.23974,
     "ast_hash": "f506cc5fd5e9521827117f35dc4a31f1",
     "semantic_hash": ""
   },

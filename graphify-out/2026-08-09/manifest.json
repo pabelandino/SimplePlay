@@ -160,13 +160,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786318129.7416012,
-    "ast_hash": "3986c30a61f095282289900a7311d683",
+    "mtime": 1786320870.836609,
+    "ast_hash": "5802e3f89a424053c7847fdaaf4d2a89",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
-    "mtime": 1786316841.3909953,
-    "ast_hash": "8fc4f2403609a87e5ff69fae4836d492",
+    "mtime": 1786320874.5895703,
+    "ast_hash": "ce1dea042aed8d308f34001219c9c570",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TransportBarView.swift": {
-    "mtime": 1786320577.6051974,
-    "ast_hash": "acf78d0346e9af7a8cfb717f0729bc04",
+    "mtime": 1786320824.7696762,
+    "ast_hash": "6b0fe0e2d5cb8003d3ac3b0dd0908dcc",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WaveformClipView.swift": {
@@ -195,13 +195,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceView.swift": {
-    "mtime": 1786318554.7815063,
-    "ast_hash": "7383b8e8c6b7e87f1b20537b85774809",
+    "mtime": 1786320871.6802015,
+    "ast_hash": "242a16b0c819e92940c0a01e206d08bf",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Theme/DAWTheme.swift": {
-    "mtime": 1786320577.840986,
-    "ast_hash": "0e82480b4c82bcc0fb1af1199407d367",
+    "mtime": 1786321528.3919373,
+    "ast_hash": "5bb9394f4d0e23ad4f747df5e19f20e2",
     "semantic_hash": ""
   },
   "SimplePlayTests/ArrangementPlaybackEngineTests.swift": {
@@ -360,13 +360,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift": {
-    "mtime": 1786316841.6366398,
-    "ast_hash": "25d94bcc823bc3b757db42adc7128a0a",
+    "mtime": 1786321536.4614756,
+    "ast_hash": "e724a8413f540bcd08b32c8f0b5ebd7f",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceSettingsView.swift": {
-    "mtime": 1786316841.6487615,
-    "ast_hash": "adaf6e639ad5f250e95f6a84439f8f05",
+    "mtime": 1786320878.4413655,
+    "ast_hash": "25c7f01e39775b60fd85078e406b1d4a",
     "semantic_hash": ""
   },
   "SimplePlayTests/SectionMarkerPaletteTests.swift": {

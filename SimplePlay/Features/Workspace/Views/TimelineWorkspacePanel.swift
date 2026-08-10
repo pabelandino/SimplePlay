@@ -185,17 +185,12 @@ struct TimelineWorkspacePanel: View {
     }
 
     private var masterSectionLaneScroll: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        mirroredHorizontalTimeline(height: DAWTheme.markerLaneHeight) {
             SectionMarkerLaneView(
                 viewModel: viewModel,
                 contentWidth: viewModel.timelineContentWidth
             )
-            .frame(width: viewModel.timelineContentWidth, height: DAWTheme.markerLaneHeight)
         }
-        .scrollPosition($timelineScrollPosition)
-        .scrollDisabled(true)
-        .frame(maxWidth: .infinity)
-        .frame(height: DAWTheme.markerLaneHeight)
     }
 
     // MARK: - Master horizontal scroll (tracks + playhead)
