@@ -165,8 +165,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
-    "mtime": 1786386492.7568758,
-    "ast_hash": "e512190337aac6d95f5e9716ffd0d11b",
+    "mtime": 1786386616.265647,
+    "ast_hash": "5b8a4bf3774a2c0f7255a1e21a7149b6",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
@@ -365,8 +365,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceSettingsView.swift": {
-    "mtime": 1786386488.6019049,
-    "ast_hash": "6e4731f81cd3a3891265f63e3fba7aa6",
+    "mtime": 1786386615.4921153,
+    "ast_hash": "bd295edbc9a9f19df0628c9511c24b04",
     "semantic_hash": ""
   },
   "SimplePlayTests/SectionMarkerPaletteTests.swift": {
@@ -465,8 +465,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/DAWGlassChrome.swift": {
-    "mtime": 1786386486.8718433,
-    "ast_hash": "9a6a49ed74902fd141d811a5167cb9b6",
+    "mtime": 1786386615.4152231,
+    "ast_hash": "fb96ce07f2787d0906e2b43018a97485",
     "semantic_hash": ""
   }
 }
