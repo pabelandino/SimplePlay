@@ -27,6 +27,14 @@ struct MIDIMappingBarView: View {
         return .smooth(duration: 0.32, extraBounce: 0.05)
     }
 
+    private var sectionQuickPadCornerRadius: CGFloat {
+        isCompact ? 8 : 7
+    }
+
+    private var sectionQuickPadMinHeight: CGFloat {
+        isCompact ? 46 : 42
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             collapsedBar
@@ -44,14 +52,18 @@ struct MIDIMappingBarView: View {
         }
         .onAppear {
             viewModel.applySavedMIDIDeviceConnection()
+#if os(macOS)
             if !viewModel.project.sections.isEmpty {
                 setMappingExpanded(true)
             }
+#endif
         }
         .onChange(of: viewModel.project.sections.count) { _, count in
+#if os(macOS)
             if count > 0 {
                 setMappingExpanded(true)
             }
+#endif
         }
 #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
@@ -84,7 +96,7 @@ struct MIDIMappingBarView: View {
     }
 
     private var collapsedBar: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: isCompact ? 4 : 8) {
             Group {
                 if isCompact {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -94,41 +106,49 @@ struct MIDIMappingBarView: View {
                     collapsedBarContent
                 }
             }
-            .frame(minHeight: 44)
+            .frame(minHeight: isCompact ? 34 : 44)
 
-            if !viewModel.project.sections.isEmpty {
+            if !viewModel.project.sections.isEmpty,
+               !viewModel.isMIDIMappingAssignModeEnabled {
                 sectionQuickPads
+                    .frame(minHeight: sectionQuickPadMinHeight)
             }
         }
-        .padding(.horizontal, isCompact ? 12 : 16)
+        .padding(.horizontal, isCompact ? 10 : 16)
 #if os(macOS)
         .padding(.leading, DAWTheme.macTrafficLightLeadingInset - 16)
 #endif
-        .padding(.vertical, 8)
+        .padding(.vertical, isCompact ? 4 : 8)
     }
 
     private var collapsedBarContent: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: isCompact ? 8 : 12) {
             Button {
                 setMappingExpanded(!viewModel.isMIDIMappingExpanded)
             } label: {
                 Label(
-                    viewModel.isMIDIMappingExpanded ? "Hide Mapping" : "Show Mapping",
+                    viewModel.isMIDIMappingExpanded ? "Hide" : "Mapping",
                     systemImage: "pianokeys"
                 )
-                    .font(.subheadline.weight(.semibold))
+                    .font(isCompact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
                     .foregroundStyle(DAWTheme.textPrimary)
             }
             .buttonStyle(.plain)
 
-            devicePicker
+            if !isCompact || viewModel.isMIDIMappingExpanded {
+                devicePicker
+            }
+
+            assignModeToggle
+
+            sectionLoopToggle
 
             if viewModel.isMIDILearnActive {
                 Label("Assigning…", systemImage: "dot.radiowaves.left.and.right")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(DAWTheme.accent)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
                     .background(DAWTheme.accent.opacity(0.15))
                     .clipShape(Capsule())
             }
@@ -148,15 +168,77 @@ struct MIDIMappingBarView: View {
                 viewModel.prepareMIDIInput()
             } label: {
                 Image(systemName: "arrow.clockwise")
+                    .font(isCompact ? .caption : .body)
             }
             .buttonStyle(DAWSecondaryButtonStyle())
             .help("Refresh MIDI devices")
         }
     }
 
+    private var assignModeToggle: some View {
+        Button {
+            viewModel.setMIDIMappingAssignModeEnabled(!viewModel.isMIDIMappingAssignModeEnabled)
+            if viewModel.isMIDIMappingAssignModeEnabled {
+                setMappingExpanded(true)
+            }
+        } label: {
+            Text(viewModel.isMIDIMappingAssignModeEnabled ? "Assign ON" : "Assign")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(viewModel.isMIDIMappingAssignModeEnabled ? DAWTheme.accent : DAWTheme.textSecondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, isCompact ? 3 : 4)
+                .background(
+                    viewModel.isMIDIMappingAssignModeEnabled
+                        ? DAWTheme.accent.opacity(0.14)
+                        : DAWTheme.background.opacity(0.45)
+                )
+                .clipShape(Capsule())
+                .overlay {
+                    Capsule()
+                        .stroke(
+                            viewModel.isMIDIMappingAssignModeEnabled ? DAWTheme.accent.opacity(0.5) : DAWTheme.border,
+                            lineWidth: 1
+                        )
+                }
+        }
+        .buttonStyle(.plain)
+        .help(viewModel.isMIDIMappingAssignModeEnabled
+            ? "Turn off MIDI assign mode"
+            : "Turn on MIDI assign mode to map controller pads")
+    }
+
+    private var sectionLoopToggle: some View {
+        let isLoopOn = viewModel.isSectionRepeatEnabled
+
+        return Button {
+            viewModel.toggleSectionRepeat()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: isLoopOn ? "repeat.circle.fill" : "repeat.circle")
+                    .font(isCompact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
+
+                Text(isLoopOn ? "Loop ON" : "Loop")
+                    .font(.caption2.weight(.semibold))
+            }
+            .foregroundStyle(isLoopOn ? DAWTheme.accent : DAWTheme.textSecondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, isCompact ? 3 : 4)
+            .background(isLoopOn ? DAWTheme.accent.opacity(0.14) : DAWTheme.background.opacity(0.45))
+            .clipShape(Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(isLoopOn ? DAWTheme.accent.opacity(0.5) : DAWTheme.border, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .help(isLoopOn
+            ? "Section loop is on — tap to disable"
+            : "Enable section loop to repeat the active section")
+    }
+
     private var sectionQuickPads: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: isCompact ? 6 : 8) {
                 ForEach(viewModel.project.sections) { section in
                     sectionQuickPad(section)
                 }
@@ -173,23 +255,24 @@ struct MIDIMappingBarView: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: statusIcon(for: status))
-                    .font(.caption2.weight(.bold))
+                    .font(isCompact ? .caption.weight(.bold) : .caption2.weight(.bold))
 
                 Circle()
                     .fill(section.color)
-                    .frame(width: 7, height: 7)
+                    .frame(width: isCompact ? 8 : 7, height: isCompact ? 8 : 7)
 
                 Text(section.name)
-                    .font(.caption.weight(.semibold))
+                    .font(isCompact ? .subheadline.weight(.semibold) : .caption.weight(.semibold))
                     .lineLimit(1)
             }
             .foregroundStyle(statusForeground(for: status))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .padding(.horizontal, isCompact ? 14 : 12)
+            .padding(.vertical, isCompact ? 12 : 10)
+            .frame(minHeight: sectionQuickPadMinHeight)
             .background(statusBackground(for: section, status: status))
-            .clipShape(Capsule())
+            .clipShape(RoundedRectangle(cornerRadius: sectionQuickPadCornerRadius, style: .continuous))
             .overlay {
-                Capsule()
+                RoundedRectangle(cornerRadius: sectionQuickPadCornerRadius, style: .continuous)
                     .stroke(statusBorder(for: section, status: status), lineWidth: status == .idle ? 1 : 1.5)
             }
         }
@@ -302,24 +385,26 @@ struct MIDIMappingBarView: View {
     }
 
     private var expandedPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: isCompact ? 8 : 12) {
             if viewModel.isMIDILearnActive {
                 learnBanner
             }
 
-            Text("Tap a section to play it. Enable Section Loop to repeat the active section. Assign MIDI pads below for your controller.")
-                .font(.caption2)
-                .foregroundStyle(DAWTheme.textSecondary)
+            if !isCompact {
+                Text("Tap a section to play it. Enable Section Loop to repeat the active section.")
+                    .font(.caption2)
+                    .foregroundStyle(DAWTheme.textSecondary)
+            }
 
             loopMappingCard
 
             if viewModel.project.sections.isEmpty {
-                Text("Create section markers in the timeline, then play them here or assign each one to a controller pad.")
-                    .font(.caption)
+                Text("Create section markers in the timeline, then play them from the pads above.")
+                    .font(.caption2)
                     .foregroundStyle(DAWTheme.textSecondary)
-            } else {
+            } else if viewModel.isMIDIMappingAssignModeEnabled {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: isCompact ? 8 : 10) {
                         ForEach(viewModel.project.sections) { section in
                             sectionMappingCard(section)
                         }
@@ -328,11 +413,11 @@ struct MIDIMappingBarView: View {
                 }
             }
         }
-        .padding(.horizontal, isCompact ? 12 : 16)
+        .padding(.horizontal, isCompact ? 10 : 16)
 #if os(macOS)
         .padding(.leading, DAWTheme.macTrafficLightLeadingInset - 16)
 #endif
-        .padding(.bottom, 12)
+        .padding(.bottom, isCompact ? 8 : 12)
     }
 
     @ViewBuilder
@@ -425,7 +510,7 @@ struct MIDIMappingBarView: View {
                         .clipShape(Capsule())
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 12)
+                .padding(.vertical, isCompact ? 8 : 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     isLoopOn
@@ -444,42 +529,44 @@ struct MIDIMappingBarView: View {
             .buttonStyle(SectionMappingPlayButtonStyle())
             .accessibilityLabel(isLoopOn ? "Disable section loop" : "Enable section loop")
 
-            Rectangle()
-                .fill(DAWTheme.border.opacity(0.85))
-                .frame(height: 1)
+            if viewModel.isMIDIMappingAssignModeEnabled {
+                Rectangle()
+                    .fill(DAWTheme.border.opacity(0.85))
+                    .frame(height: 1)
 
-            Button {
-                if isLearning {
-                    viewModel.cancelMIDILearn()
-                } else {
-                    viewModel.startMIDILearn(for: .loopToggle)
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isLearning ? "dot.radiowaves.left.and.right" : "pianokeys")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(isLearning ? DAWTheme.accent : DAWTheme.textSecondary)
-
-                    Text(isLearning ? "Listening…" : (isMapped ? loopAssignmentLabel : "No MIDI assigned"))
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(isLearning ? DAWTheme.accent : DAWTheme.textSecondary)
-                        .lineLimit(1)
-
-                    Spacer(minLength: 0)
-
-                    if !isLearning {
-                        Text("Assign")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(DAWTheme.textPrimary.opacity(0.85))
+                Button {
+                    if isLearning {
+                        viewModel.cancelMIDILearn()
+                    } else {
+                        viewModel.startMIDILearn(for: .loopToggle)
                     }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: isLearning ? "dot.radiowaves.left.and.right" : "pianokeys")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(isLearning ? DAWTheme.accent : DAWTheme.textSecondary)
+
+                        Text(isLearning ? "Listening…" : (isMapped ? loopAssignmentLabel : "No MIDI assigned"))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(isLearning ? DAWTheme.accent : DAWTheme.textSecondary)
+                            .lineLimit(1)
+
+                        Spacer(minLength: 0)
+
+                        if !isLearning {
+                            Text("Assign")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(DAWTheme.textPrimary.opacity(0.85))
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, isCompact ? 7 : 9)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(isLearning ? DAWTheme.accent.opacity(0.1) : DAWTheme.background.opacity(0.45))
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 9)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(isLearning ? DAWTheme.accent.opacity(0.1) : DAWTheme.background.opacity(0.45))
+                .buttonStyle(SectionMappingAssignButtonStyle(isLearning: isLearning))
+                .accessibilityLabel(isLearning ? "Listening for loop MIDI assignment" : "Assign MIDI for section loop")
             }
-            .buttonStyle(SectionMappingAssignButtonStyle(isLearning: isLearning))
-            .accessibilityLabel(isLearning ? "Listening for loop MIDI assignment" : "Assign MIDI for section loop")
         }
         .background(isLearning ? DAWTheme.accent.opacity(0.08) : DAWTheme.surfaceElevated.opacity(0.35))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -518,26 +605,28 @@ struct MIDIMappingBarView: View {
             .buttonStyle(SectionMappingPlayButtonStyle())
             .accessibilityLabel("Play \(section.name)")
 
-            Rectangle()
-                .fill(DAWTheme.border.opacity(0.85))
-                .frame(height: 1)
+            if viewModel.isMIDIMappingAssignModeEnabled {
+                Rectangle()
+                    .fill(DAWTheme.border.opacity(0.85))
+                    .frame(height: 1)
 
-            Button {
-                if isLearning {
-                    viewModel.cancelMIDILearn()
-                } else {
-                    viewModel.startMIDILearn(for: .section(section.id))
+                Button {
+                    if isLearning {
+                        viewModel.cancelMIDILearn()
+                    } else {
+                        viewModel.startMIDILearn(for: .section(section.id))
+                    }
+                } label: {
+                    sectionAssignRow(
+                        assignment: assignment,
+                        isLearning: isLearning
+                    )
                 }
-            } label: {
-                sectionAssignRow(
-                    assignment: assignment,
-                    isLearning: isLearning
-                )
+                .buttonStyle(SectionMappingAssignButtonStyle(isLearning: isLearning))
+                .accessibilityLabel(isLearning ? "Listening for MIDI assignment" : "Assign MIDI for \(section.name)")
             }
-            .buttonStyle(SectionMappingAssignButtonStyle(isLearning: isLearning))
-            .accessibilityLabel(isLearning ? "Listening for MIDI assignment" : "Assign MIDI for \(section.name)")
         }
-        .frame(width: 156)
+        .frame(width: isCompact ? 132 : 156)
         .background(cardBackground(for: section, status: status, isLearning: isLearning))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
@@ -560,26 +649,28 @@ struct MIDIMappingBarView: View {
         section: ArrangementSection,
         status: WorkspaceViewModel.SectionPlaybackStatus
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: isCompact ? 6 : 10) {
             HStack(alignment: .center, spacing: 8) {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
                     .fill(section.color)
-                    .frame(width: 3, height: 28)
+                    .frame(width: 3, height: isCompact ? 22 : 28)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(section.name)
-                        .font(.subheadline.weight(.bold))
+                        .font(isCompact ? .caption.weight(.bold) : .subheadline.weight(.bold))
                         .foregroundStyle(DAWTheme.textPrimary)
                         .lineLimit(1)
 
-                    Label {
-                        Text(sectionTimeRange(section))
-                    } icon: {
-                        Image(systemName: "clock")
+                    if !isCompact {
+                        Label {
+                            Text(sectionTimeRange(section))
+                        } icon: {
+                            Image(systemName: "clock")
+                        }
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(DAWTheme.textSecondary)
+                        .labelStyle(.titleAndIcon)
                     }
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(DAWTheme.textSecondary)
-                    .labelStyle(.titleAndIcon)
                 }
 
                 Spacer(minLength: 0)
@@ -587,7 +678,7 @@ struct MIDIMappingBarView: View {
                 sectionPlayGlyph(status: status, accent: section.color)
             }
 
-            if status != .idle {
+            if status != .idle, !isCompact {
                 HStack(spacing: 5) {
                     Image(systemName: statusIcon(for: status))
                         .font(.caption2.weight(.bold))
@@ -602,8 +693,8 @@ struct MIDIMappingBarView: View {
                 .clipShape(Capsule())
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
+        .padding(.horizontal, isCompact ? 10 : 12)
+        .padding(.vertical, isCompact ? 8 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(sectionPlayAreaBackground(section: section, status: status))
     }
@@ -618,11 +709,11 @@ struct MIDIMappingBarView: View {
         ZStack {
             Circle()
                 .fill(isPlaying ? accent.opacity(0.22) : DAWTheme.surfaceElevated)
-                .frame(width: 34, height: 34)
+                .frame(width: isCompact ? 28 : 34, height: isCompact ? 28 : 34)
 
             Circle()
                 .stroke(isPlaying ? accent.opacity(0.55) : DAWTheme.border, lineWidth: 1)
-                .frame(width: 34, height: 34)
+                .frame(width: isCompact ? 28 : 34, height: isCompact ? 28 : 34)
 
             Image(systemName: isPlaying ? "waveform" : "play.fill")
                 .font(.system(size: isPlaying ? 13 : 11, weight: .bold))

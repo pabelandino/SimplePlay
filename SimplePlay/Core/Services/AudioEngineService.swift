@@ -57,6 +57,7 @@ final class AudioEngineService {
     private(set) var isEngineRunning = false
     private(set) var playbackStartTime: TimeInterval = 0
     private var playbackReferenceHostTime: UInt64?
+    private var playbackReferencePlayerSample: AVAudioFramePosition?
     private var activeSectionLoop: SectionLoopContext?
     private var scheduledLoopCycleCount = 0
 
@@ -64,12 +65,66 @@ final class AudioEngineService {
         activeSectionLoop != nil
     }
 
+    var isAnyPlayerPlaying: Bool {
+        scheduledClips.values.contains { $0.player.isPlaying }
+    }
+
     /// Timeline position derived from the audio engine render clock (stays in sync under CPU load).
     func currentTimelineTime() -> TimeInterval? {
+        guard playbackReferenceHostTime != nil else { return nil }
+
+        if let sampleTimeline = timelineTimeFromPlayingPlayers() {
+            return sampleTimeline
+        }
+
         guard let reference = playbackReferenceHostTime else { return nil }
         let now = engine.outputNode.lastRenderTime?.hostTime ?? mach_absolute_time()
         guard now >= reference else { return playbackStartTime }
         return playbackStartTime + Self.secondsBetweenHostTimes(from: reference, to: now)
+    }
+
+    /// Sample-accurate timeline from player render clocks (matches audible playback on iOS).
+    private func timelineTimeFromPlayingPlayers() -> TimeInterval? {
+        capturePlaybackSampleReferenceIfNeeded()
+        guard let referenceSample = playbackReferencePlayerSample else { return nil }
+
+        var maxElapsed: TimeInterval?
+        for scheduled in scheduledClips.values {
+            guard scheduled.player.isPlaying,
+                  let nodeTime = scheduled.player.lastRenderTime,
+                  nodeTime.isSampleTimeValid,
+                  nodeTime.sampleRate > 0 else { continue }
+
+            let sampleDelta = nodeTime.sampleTime - referenceSample
+            guard sampleDelta >= 0 else { continue }
+            let elapsed = Double(sampleDelta) / nodeTime.sampleRate
+            maxElapsed = max(maxElapsed ?? elapsed, elapsed)
+        }
+
+        guard let maxElapsed else { return nil }
+        return playbackStartTime + maxElapsed
+    }
+
+    private func capturePlaybackSampleReferenceIfNeeded() {
+        guard playbackReferencePlayerSample == nil else { return }
+
+        var anchorSample: AVAudioFramePosition?
+
+        for scheduled in scheduledClips.values {
+            guard scheduled.player.isPlaying,
+                  let nodeTime = scheduled.player.lastRenderTime,
+                  nodeTime.isSampleTimeValid,
+                  nodeTime.sampleRate > 0 else { continue }
+
+            if let anchorSample, nodeTime.sampleTime >= anchorSample { continue }
+            anchorSample = nodeTime.sampleTime
+        }
+
+        playbackReferencePlayerSample = anchorSample
+    }
+
+    private func clearPlaybackSampleReference() {
+        playbackReferencePlayerSample = nil
     }
 
     var primaryClipSampleRate: Double? {
@@ -313,6 +368,7 @@ final class AudioEngineService {
 
         playbackStartTime = max(0, time)
         playbackReferenceHostTime = nil
+        clearPlaybackSampleReference()
         let clipRate = primaryClipSampleRate ?? project.audioSettings.sampleRate.rawValue
         if abs(clipRate - project.audioSettings.sampleRate.rawValue) > 1 {
             SectionLoopDiagnostics.log(String(
@@ -331,6 +387,8 @@ final class AudioEngineService {
             safelyStopPlayer(scheduled.player)
         }
 
+        let playerStartAnchor = resolvePlaybackStartAnchor()
+
         var playersToStart: [AVAudioPlayerNode] = []
 
         for scheduled in scheduledClips.values {
@@ -342,14 +400,19 @@ final class AudioEngineService {
                     from: playbackStartTime,
                     loop: sectionLoop,
                     initialCycles: Self.initialLoopCycles,
-                    labelPrefix: "initial"
+                    labelPrefix: "initial",
+                    playerStartAnchor: playerStartAnchor
                 )
                 if queued {
                     playersToStart.append(scheduled.player)
                 }
             } else {
                 guard shouldPlayClip(scheduled.clip, at: playbackStartTime) else { continue }
-                guard scheduleClip(scheduled, from: playbackStartTime) else { continue }
+                guard scheduleClip(
+                    scheduled,
+                    from: playbackStartTime,
+                    playerStartAnchor: playerStartAnchor
+                ) else { continue }
                 playersToStart.append(scheduled.player)
             }
         }
@@ -358,7 +421,11 @@ final class AudioEngineService {
             for scheduled in scheduledClips.values {
                 safelyResetPlayer(scheduled.player)
                 guard shouldPlayClip(scheduled.clip, at: playbackStartTime) else { continue }
-                guard scheduleClip(scheduled, from: playbackStartTime) else { continue }
+                guard scheduleClip(
+                    scheduled,
+                    from: playbackStartTime,
+                    playerStartAnchor: playerStartAnchor
+                ) else { continue }
                 playersToStart.append(scheduled.player)
             }
             activeSectionLoop = nil
@@ -370,18 +437,83 @@ final class AudioEngineService {
             return false
         }
 
-        let startAnchor = makeSynchronizedPlaybackAnchor()
-        for player in playersToStart {
-            _ = safelyPlayPlayer(player, at: startAnchor)
-        }
-
-        playbackReferenceHostTime = startAnchor.hostTime
+        startScheduledPlayers(playersToStart, anchor: playerStartAnchor)
 
         if playbackStartTime < project.duration {
             return true
         }
 
         return true
+    }
+
+    private func startScheduledPlayers(_ players: [AVAudioPlayerNode], anchor: AVAudioTime) {
+#if os(iOS)
+        // iPad/iPhone: play(at: nil) is required when segments start mid-file (seek / sections).
+        for player in players {
+            _ = safelyPlayPlayer(player, at: nil)
+        }
+        markPlaybackReferenceTime()
+#else
+        for player in players {
+            _ = safelyPlayPlayer(player, at: anchor)
+        }
+        playbackReferenceHostTime = anchor.hostTime
+#endif
+    }
+
+    /// Host-time anchor for sample-accurate player start and segment scheduling (macOS).
+    private func resolvePlaybackStartAnchor() -> AVAudioTime {
+        if renderClockIsLive(),
+           let anchor = makeSynchronizedPlaybackAnchor() {
+            return anchor
+        }
+
+        let sampleRate = primaryClipSampleRate ?? 48_000
+        let leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+        return AVAudioTime(hostTime: leadHost, sampleTime: 0, atRate: sampleRate)
+    }
+
+    private func segmentScheduleTime(
+        offsetSamplesFromPlayhead: AVAudioFramePosition,
+        sampleRate: Double,
+        playerStartAnchor: AVAudioTime
+    ) -> AVAudioTime? {
+        guard offsetSamplesFromPlayhead > 0 else { return nil }
+
+#if os(iOS)
+        // Relative to the player timeline when using play(at: nil) on iOS.
+        return AVAudioTime(
+            sampleTime: offsetSamplesFromPlayhead,
+            atRate: sampleRate
+        )
+#else
+        let offsetSeconds = Double(offsetSamplesFromPlayhead) / sampleRate
+        let hostTime = playerStartAnchor.hostTime &+ AVAudioTime.hostTime(forSeconds: offsetSeconds)
+
+        if playerStartAnchor.isSampleTimeValid, playerStartAnchor.sampleRate > 0 {
+            return AVAudioTime(
+                hostTime: hostTime,
+                sampleTime: playerStartAnchor.sampleTime + offsetSamplesFromPlayhead,
+                atRate: playerStartAnchor.sampleRate
+            )
+        }
+
+        return AVAudioTime(hostTime: hostTime, sampleTime: offsetSamplesFromPlayhead, atRate: sampleRate)
+#endif
+    }
+
+    /// True when the engine render clock was updated recently (avoids stale host times after stop).
+    private func renderClockIsLive() -> Bool {
+        guard let nodeTime = engine.outputNode.lastRenderTime,
+              nodeTime.isHostTimeValid else {
+            return false
+        }
+
+        let now = mach_absolute_time()
+        guard now >= nodeTime.hostTime else { return true }
+
+        let age = Self.secondsBetweenHostTimes(from: nodeTime.hostTime, to: now)
+        return age < 0.25
     }
 
     /// Queues additional loop cycles without stopping active players (seamless section repeat).
@@ -425,33 +557,34 @@ final class AudioEngineService {
     /// Re-syncs the host playback clock to a timeline position (e.g. after a seamless section loop wrap).
     func reanchorPlaybackTimeline(at time: TimeInterval) {
         playbackStartTime = max(0, time)
-        if engine.isRunning, let hostTime = engine.outputNode.lastRenderTime?.hostTime {
-            playbackReferenceHostTime = hostTime
-        } else {
-            playbackReferenceHostTime = mach_absolute_time()
-        }
+        clearPlaybackSampleReference()
+        markPlaybackReferenceTime()
     }
 
     func pause() {
         for scheduled in scheduledClips.values {
-            safelyPausePlayer(scheduled.player)
+            safelyStopPlayer(scheduled.player)
+            scheduled.player.reset()
         }
         playbackReferenceHostTime = nil
+        clearPlaybackSampleReference()
         clearSectionLoopState()
         resetMeters()
-#if !os(macOS)
-        stopEngineIfRunning()
-#endif
     }
 
     func stop() {
         playbackStartTime = 0
         playbackReferenceHostTime = nil
+        clearPlaybackSampleReference()
         clearSectionLoopState()
         for scheduled in scheduledClips.values {
             safelyStopPlayer(scheduled.player)
+            scheduled.player.reset()
         }
         resetMeters()
+#if !os(macOS)
+        stopEngineIfRunning()
+#endif
     }
 
     private func shouldPlayClip(_ clip: AudioClip, at playheadTime: TimeInterval) -> Bool {
@@ -459,7 +592,11 @@ final class AudioEngineService {
     }
 
     @discardableResult
-    private func scheduleClip(_ scheduled: ScheduledClip, from playheadTime: TimeInterval) -> Bool {
+    private func scheduleClip(
+        _ scheduled: ScheduledClip,
+        from playheadTime: TimeInterval,
+        playerStartAnchor: AVAudioTime
+    ) -> Bool {
         let clip = scheduled.clip
         let file = scheduled.file
         let player = scheduled.player
@@ -478,18 +615,18 @@ final class AudioEngineService {
         let frameCount = AVAudioFrameCount(clipEndFrame - playbackStartFrame)
         guard frameCount > 0, sourceStartFrame >= 0, sourceStartFrame < file.length else { return false }
 
-        let when: AVAudioTime? = playbackStartFrame > playheadFrame
-            ? AVAudioTime(
-                sampleTime: AVAudioFramePosition(playbackStartFrame - playheadFrame),
-                atRate: sampleRate
-            )
-            : nil
+        let scheduleAt = segmentScheduleTime(
+            offsetSamplesFromPlayhead: playbackStartFrame - playheadFrame,
+            sampleRate: sampleRate,
+            playerStartAnchor: playerStartAnchor
+        )
 
-        player.scheduleSegment(
-            file,
+        scheduleFileSegment(
+            player: player,
+            file: file,
             startingFrame: sourceStartFrame,
             frameCount: frameCount,
-            at: when
+            at: scheduleAt
         )
         return true
     }
@@ -500,7 +637,8 @@ final class AudioEngineService {
         from playheadTime: TimeInterval,
         loop: SectionLoopContext,
         initialCycles: Int,
-        labelPrefix: String
+        labelPrefix: String,
+        playerStartAnchor: AVAudioTime
     ) -> Bool {
         let sampleRate = scheduled.file.processingFormat.sampleRate
         guard sampleRate > 0 else { return false }
@@ -610,8 +748,9 @@ final class AudioEngineService {
             return false
         }
 
-        player.scheduleSegment(
-            file,
+        scheduleFileSegment(
+            player: player,
+            file: file,
             startingFrame: sourceStartFrame,
             frameCount: frameCount,
             at: at
@@ -633,6 +772,26 @@ final class AudioEngineService {
         guard isNodeConnected(player) else { return }
         player.stop()
         player.reset()
+    }
+
+    private func scheduleFileSegment(
+        player: AVAudioPlayerNode,
+        file: AVAudioFile,
+        startingFrame: AVAudioFramePosition,
+        frameCount: AVAudioFrameCount,
+        at: AVAudioTime?
+    ) {
+#if os(iOS)
+        if startingFrame > 0 {
+            player.prepare(withFrameCount: frameCount)
+        }
+#endif
+        player.scheduleSegment(
+            file,
+            startingFrame: startingFrame,
+            frameCount: frameCount,
+            at: at
+        )
     }
 
     @discardableResult
@@ -669,31 +828,26 @@ final class AudioEngineService {
         }
     }
 
-    private func makeSynchronizedPlaybackAnchor() -> AVAudioTime {
-        let leadHost: UInt64
-        let sampleRate: Double
-        let sampleTime: AVAudioFramePosition?
-
-        if let nodeTime = engine.outputNode.lastRenderTime, nodeTime.isHostTimeValid {
-            leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
-            sampleRate = nodeTime.sampleRate > 0
-                ? nodeTime.sampleRate
-                : (primaryClipSampleRate ?? 48_000)
-            if nodeTime.isSampleTimeValid, sampleRate > 0 {
-                let leadSamples = AVAudioFramePosition(Self.playbackLeadInSeconds * sampleRate)
-                sampleTime = nodeTime.sampleTime + leadSamples
-            } else {
-                sampleTime = nil
-            }
-        } else {
-            leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
-            sampleRate = primaryClipSampleRate ?? 48_000
-            sampleTime = nil
+    private func makeSynchronizedPlaybackAnchor() -> AVAudioTime? {
+        guard let nodeTime = engine.outputNode.lastRenderTime,
+              nodeTime.isHostTimeValid else {
+            return nil
         }
 
-        if let sampleTime, sampleRate > 0 {
-            return AVAudioTime(hostTime: leadHost, sampleTime: sampleTime, atRate: sampleRate)
+        let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+        let sampleRate = nodeTime.sampleRate > 0
+            ? nodeTime.sampleRate
+            : (primaryClipSampleRate ?? 48_000)
+
+        if nodeTime.isSampleTimeValid, sampleRate > 0 {
+            let leadSamples = AVAudioFramePosition(Self.playbackLeadInSeconds * sampleRate)
+            return AVAudioTime(
+                hostTime: leadHost,
+                sampleTime: nodeTime.sampleTime + leadSamples,
+                atRate: sampleRate
+            )
         }
+
         return AVAudioTime(hostTime: leadHost)
     }
 
@@ -716,6 +870,7 @@ final class AudioEngineService {
 #endif
 
         if engine.isRunning, playbackGraphIsHealthy {
+            engine.prepare()
             isEngineRunning = true
             return true
         }
@@ -759,9 +914,7 @@ final class AudioEngineService {
 #if !os(macOS)
     private func reactivateAudioSessionIfNeeded() throws {
         let session = AVAudioSession.sharedInstance()
-        if !session.isOtherAudioPlaying {
-            try session.setActive(true)
-        }
+        try session.setActive(true)
     }
 #endif
 

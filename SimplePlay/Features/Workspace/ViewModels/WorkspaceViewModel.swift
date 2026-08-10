@@ -191,6 +191,7 @@ final class WorkspaceViewModel {
     var availableMIDISources: [MIDISourceInfo] = []
     var connectedMIDISourceName: String?
     var isMIDIMappingExpanded = false
+    var isMIDIMappingAssignModeEnabled = false
 
     let audioEngine = AudioEngineService()
     let arrangementEngine = ArrangementPlaybackEngine()
@@ -204,6 +205,8 @@ final class WorkspaceViewModel {
     private let playbackTickInterval: TimeInterval = 1.0 / 30.0
     private let playheadPublishInterval: TimeInterval = 1.0 / 10.0
     private var loopPrebufferTriggered = false
+    private var arrangementSyncedToAudioThisTick = false
+    private var suppressTimelineJumpRestartUntil: Date?
 
     init() {
         MIDIInputService.shared.onEvent = { [weak self] event in
@@ -407,6 +410,8 @@ final class WorkspaceViewModel {
             selectedGroupID = project.groups[groupIndex].id
         }
 
+        alignProjectSampleRateToImportedStems(stems)
+
         arrangementEngine.configure(sections: project.sections)
         configureAudioEngine()
         WaveformLoadMonitor.shared.reset()
@@ -416,6 +421,28 @@ final class WorkspaceViewModel {
     private func clampZoomToTimelineLimits() {
         guard project.duration > 0, zoom < minimumTimelineZoom else { return }
         zoom = minimumTimelineZoom
+    }
+
+    private func alignProjectSampleRateToImportedStems(_ stems: [TrackOrganizationService.ImportedStem]) {
+        let urls = stems.map(\.url)
+        guard let detected = AudioSampleRate.dominantSampleRate(fileURLs: urls),
+              project.audioSettings.sampleRate != detected else { return }
+
+        project.audioSettings.sampleRate = detected
+        let notice = "Project sample rate set to \(detected.displayName) to match imported audio."
+        if let existing = importNoticeMessage, !existing.isEmpty {
+            importNoticeMessage = "\(existing)\n\(notice)"
+        } else {
+            importNoticeMessage = notice
+        }
+    }
+
+    private func reconcileProjectSampleRateWithLoadedClips() {
+        guard let clipRate = audioEngine.primaryClipSampleRate,
+              let matched = AudioSampleRate.nearest(to: clipRate),
+              project.audioSettings.sampleRate != matched else { return }
+
+        project.audioSettings.sampleRate = matched
     }
 
     func requestResetSession() {
@@ -797,6 +824,7 @@ final class WorkspaceViewModel {
         arrangementEngine.seek(to: playheadTime)
 
         if configureAudioEngine() {
+            reconcileProjectSampleRateWithLoadedClips()
             applyAudioSettings()
         }
         clampZoomToTimelineLimits()
@@ -997,8 +1025,21 @@ final class WorkspaceViewModel {
     }
 
     func applyAudioSettings() {
+        let wasPlaying = isPlaying
+        let resumeTime = arrangementEngine.currentTime
+        if wasPlaying {
+            pause()
+        }
+
         do {
             try audioEngine.apply(settings: project.audioSettings)
+            if audioEngine.isPlaybackGraphReady {
+                _ = configureAudioEngine()
+            }
+            if wasPlaying {
+                playheadTime = resumeTime
+                play()
+            }
         } catch {
             reportError(error)
         }
@@ -1084,7 +1125,7 @@ final class WorkspaceViewModel {
 
     private func resyncPlaybackIfNeeded() {
         guard isPlaying else { return }
-        if !startAudioPlayback(from: playheadTime) {
+        if !restartAudioPlayback(from: arrangementEngine.currentTime) {
             pause()
         }
     }
@@ -1524,13 +1565,50 @@ final class WorkspaceViewModel {
         setSectionRepeatEnabled(!arrangementEngine.isRepeatEnabled)
     }
 
+    @discardableResult
+    private func restartAudioPlayback(from time: TimeInterval) -> Bool {
+        let shouldResumeTimer = playbackTimer != nil
+        if shouldResumeTimer {
+            stopPlaybackTimer()
+        }
+
+        guard startAudioPlayback(from: time) else {
+            return false
+        }
+
+        if shouldResumeTimer {
+            startPlaybackTimer()
+        }
+        return true
+    }
+
+    /// Starts audio for a section trigger using the same path as transport play (reliable on iPad).
+    @discardableResult
+    private func resumeSectionTriggerPlayback(from time: TimeInterval) -> Bool {
+        playheadTime = time
+        suppressTimelineJumpRestartUntil = Date().addingTimeInterval(0.35)
+        arrangementEngine.seek(to: playheadTime)
+        arrangementEngine.play()
+        arrangementEngine.ensureSectionPlaybackContext(at: playheadTime)
+
+        guard restartAudioPlayback(from: playheadTime) else {
+            return false
+        }
+
+        isPlaying = true
+        loopPrebufferTriggered = false
+        return true
+    }
+
     func setSectionRepeatEnabled(_ enabled: Bool) {
         arrangementEngine.setRepeatEnabled(enabled)
 
         guard enabled, isPlaying else { return }
         arrangementEngine.ensureSectionPlaybackContext(at: arrangementEngine.currentTime)
         guard currentSectionLoopContext(at: arrangementEngine.currentTime) != nil else { return }
-        _ = startAudioPlayback(from: arrangementEngine.currentTime)
+        if !restartAudioPlayback(from: arrangementEngine.currentTime) {
+            pause()
+        }
     }
 
     func triggerSection(_ section: ArrangementSection) {
@@ -1552,6 +1630,10 @@ final class WorkspaceViewModel {
             }
         case .enabledRepeatAtEnd:
             if isPlaying {
+                if !audioEngine.isAnyPlayerPlaying,
+                   !resumeSectionTriggerPlayback(from: arrangementEngine.currentTime) {
+                    pause()
+                }
                 return
             }
         case .activatedImmediately:
@@ -1561,15 +1643,14 @@ final class WorkspaceViewModel {
         playheadTime = arrangementEngine.currentTime
         scrollTimelineToPlayhead(alignment: .center)
 
-        arrangementEngine.play()
-        guard startAudioPlayback(from: playheadTime) else {
-            arrangementEngine.pause()
-            return
+        if isPlaying {
+            guard resumeSectionTriggerPlayback(from: playheadTime) else {
+                pause()
+                return
+            }
+        } else {
+            play()
         }
-
-        isPlaying = true
-        loopPrebufferTriggered = false
-        startPlaybackTimer()
     }
 
     func handleIncomingMIDI(_ event: MIDIInputEvent) {
@@ -1596,6 +1677,8 @@ final class WorkspaceViewModel {
             section.midiNote == event.number &&
             section.midiUsesControlChange == (event.kind == .controlChange)
         }) else { return }
+
+        guard event.kind == .noteOn || event.kind == .controlChange else { return }
 
         triggerSection(section)
     }
@@ -1690,7 +1773,15 @@ final class WorkspaceViewModel {
         refreshMIDIDevices()
     }
 
+    func setMIDIMappingAssignModeEnabled(_ enabled: Bool) {
+        isMIDIMappingAssignModeEnabled = enabled
+        if !enabled {
+            cancelMIDILearn()
+        }
+    }
+
     func startMIDILearn(for target: MIDILearnTarget) {
+        isMIDIMappingAssignModeEnabled = true
         isMIDIMappingExpanded = true
         applySavedMIDIDeviceConnection()
         MIDIInputService.shared.acceptAllSources = true
@@ -1754,14 +1845,21 @@ final class WorkspaceViewModel {
 
     func pause() {
         isPlaying = false
+        suppressTimelineJumpRestartUntil = nil
         audioEngine.pause()
         arrangementEngine.pause()
+        playheadTime = arrangementEngine.currentTime
+        playheadPublishAccumulator = 0
+        loopPrebufferTriggered = false
         stopPlaybackTimer()
     }
 
     func stop() {
         isPlaying = false
+        suppressTimelineJumpRestartUntil = nil
         playheadTime = 0
+        playheadPublishAccumulator = 0
+        loopPrebufferTriggered = false
         audioEngine.stop()
         arrangementEngine.stop()
         stopPlaybackTimer()
@@ -1784,7 +1882,7 @@ final class WorkspaceViewModel {
 
         if isPlaying {
             arrangementEngine.ensureSectionPlaybackContext(at: playheadTime)
-            if !startAudioPlayback(from: playheadTime) {
+            if !restartAudioPlayback(from: playheadTime) {
                 pause()
             }
         }
@@ -1832,45 +1930,26 @@ final class WorkspaceViewModel {
         guard isPlaying else { return 0 }
 
         guard let audioTime = audioEngine.currentTimelineTime() else {
-            return playbackTickInterval
+            return audioEngine.isAnyPlayerPlaying ? playbackTickInterval : 0
         }
 
         let rawDelta = audioTime - previousTime
-
-        if let loop = currentSectionLoopContext(at: previousTime) {
-            let loopDuration = loop.endTime - loop.startTime
-
-            if rawDelta < 0 {
-                audioEngine.reanchorPlaybackTimeline(at: previousTime)
-                return playbackTickInterval
-            }
-
-            if loopDuration > 0, rawDelta > loopDuration * 0.45 {
-                audioEngine.reanchorPlaybackTimeline(at: previousTime)
-                return min(rawDelta, playbackTickInterval * 2)
-            }
-
-            if rawDelta <= 0.5 {
-                return rawDelta
-            }
-
-            audioEngine.reanchorPlaybackTimeline(at: previousTime)
-            return playbackTickInterval
-        }
-
         if rawDelta >= 0, rawDelta <= 0.5 {
             return rawDelta
         }
-
         if rawDelta > 0.5 {
+            guard audioTime <= project.duration + 0.25 else {
+                return playbackTickInterval
+            }
             arrangementEngine.seek(to: audioTime)
+            arrangementSyncedToAudioThisTick = true
             return 0
         }
-
         return 0
     }
 
     private func tickPlayback() {
+        arrangementSyncedToAudioThisTick = false
         let previousTime = arrangementEngine.currentTime
         let delta = computePlaybackDelta(previousTime: previousTime)
         let inSectionLoop = currentSectionLoopContext(at: previousTime) != nil
@@ -1906,7 +1985,10 @@ final class WorkspaceViewModel {
             scrollTimelineToPlayhead(alignment: .center)
         }
 
-        if isPlaying, didJumpTimeline {
+        if isPlaying,
+           didJumpTimeline,
+           !arrangementSyncedToAudioThisTick,
+           suppressTimelineJumpRestartUntil.map({ Date() >= $0 }) ?? true {
             if isSectionLoopWrap(from: previousTime, to: newTime) {
                 audioEngine.reanchorPlaybackTimeline(at: newTime)
                 loopPrebufferTriggered = false

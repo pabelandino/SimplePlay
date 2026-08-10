@@ -55,20 +55,19 @@ struct PropertiesSidebarView: View {
                 options: AudioSampleRate.allCases.map { ($0, $0.displayName) },
                 selection: $viewModel.project.audioSettings.sampleRate
             )
-
-            HStack(spacing: 8) {
-                Button("Apply Audio Settings") {
-                    viewModel.applyAudioSettings()
-                }
-                .buttonStyle(DAWPrimaryButtonStyle())
-                .frame(maxWidth: .infinity)
-
-                Button("Refresh Devices") {
-                    viewModel.refreshAudioDevices()
-                }
-                .buttonStyle(DAWSecondaryButtonStyle())
-                .frame(maxWidth: .infinity)
+            .onChange(of: viewModel.project.audioSettings.sampleRate) { _, _ in
+                viewModel.applyAudioSettings()
             }
+
+            SettingsFootnote(
+                text: "Match the project rate to your stems (usually 44.1 kHz). Changes apply immediately."
+            )
+
+            Button("Refresh Devices") {
+                viewModel.refreshAudioDevices()
+            }
+            .buttonStyle(DAWSecondaryButtonStyle())
+            .frame(maxWidth: .infinity)
         }
     }
 

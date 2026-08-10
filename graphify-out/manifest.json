@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioEngineService.swift": {
-    "mtime": 1786383668.2844667,
-    "ast_hash": "1f83f210ee46b7423c24d900ad595ee9",
+    "mtime": 1786398049.673762,
+    "ast_hash": "4d005cd893786a045e67c3fc88c7c2a4",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioImportService.swift": {
@@ -160,13 +160,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786383669.459624,
-    "ast_hash": "590a6f80a5485b9e3c77ab18d001d605",
+    "mtime": 1786398046.6494994,
+    "ast_hash": "6373ee605c52b9dfb1bd4248129f6be0",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
-    "mtime": 1786386616.265647,
-    "ast_hash": "5b8a4bf3774a2c0f7255a1e21a7149b6",
+    "mtime": 1786397809.7561269,
+    "ast_hash": "39d115c2c0e6cb7bfd7dc116bf60c1b5",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
@@ -255,8 +255,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/AudioSettings.swift": {
-    "mtime": 1786250934.9233189,
-    "ast_hash": "273002e4ad27afc390562a1975430200",
+    "mtime": 1786397805.478641,
+    "ast_hash": "dd939056774e9689e0e70eb9b4d8c2e1",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioDeviceService.swift": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
-    "mtime": 1786383289.6918175,
-    "ast_hash": "0e8042b3831f59c65e0c1c3c5319c2b5",
+    "mtime": 1786398512.3036213,
+    "ast_hash": "3e689f2ae6747f3463b3a891be192da0",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {
