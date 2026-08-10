@@ -4,10 +4,16 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 struct MIDIMappingBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+#if os(iOS)
+    @State private var showsDevicePicker = false
+#endif
 
     private var isCompact: Bool {
         horizontalSizeClass == .compact
@@ -26,8 +32,21 @@ struct MIDIMappingBarView: View {
             Rectangle().fill(DAWTheme.border).frame(height: 1)
         }
         .onAppear {
-            viewModel.refreshMIDIDevices()
+            viewModel.applySavedMIDIDeviceConnection()
+            if !viewModel.project.sections.isEmpty {
+                viewModel.isMIDIMappingExpanded = true
+            }
         }
+        .onChange(of: viewModel.project.sections.count) { _, count in
+            if count > 0 {
+                viewModel.isMIDIMappingExpanded = true
+            }
+        }
+#if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            viewModel.applySavedMIDIDeviceConnection()
+        }
+#endif
     }
 
     private var collapsedBar: some View {
@@ -55,7 +74,10 @@ struct MIDIMappingBarView: View {
                     viewModel.isMIDIMappingExpanded.toggle()
                 }
             } label: {
-                Label("MIDI", systemImage: "pianokeys")
+                Label(
+                    viewModel.isMIDIMappingExpanded ? "Hide Mapping" : "Show Mapping",
+                    systemImage: "pianokeys"
+                )
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(DAWTheme.textPrimary)
             }
@@ -87,7 +109,7 @@ struct MIDIMappingBarView: View {
             }
 
             Button {
-                viewModel.refreshMIDIDevices()
+                viewModel.prepareMIDIInput()
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
@@ -96,7 +118,63 @@ struct MIDIMappingBarView: View {
         }
     }
 
+    @ViewBuilder
     private var devicePicker: some View {
+#if os(iOS)
+        Button {
+            viewModel.prepareMIDIInput()
+            showsDevicePicker = true
+        } label: {
+            devicePickerLabel
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showsDevicePicker) {
+            NavigationStack {
+                List {
+                    Button {
+                        viewModel.selectMIDIDevice(nil)
+                        showsDevicePicker = false
+                    } label: {
+                        HStack {
+                            Text("All Inputs")
+                            Spacer()
+                            if viewModel.project.preferredMIDISourceUniqueID == nil,
+                               viewModel.connectedMIDISourceName == "All Inputs" {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(DAWTheme.accent)
+                            }
+                        }
+                    }
+
+                    ForEach(viewModel.availableMIDISources) { source in
+                        Button {
+                            viewModel.selectMIDIDevice(source)
+                            showsDevicePicker = false
+                        } label: {
+                            HStack {
+                                Text(source.name)
+                                Spacer()
+                                if viewModel.project.preferredMIDISourceUniqueID == source.uniqueID {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(DAWTheme.accent)
+                                }
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("MIDI Input")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            showsDevicePicker = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+#else
         Menu {
             Button("All Inputs") {
                 viewModel.selectMIDIDevice(nil)
@@ -111,30 +189,35 @@ struct MIDIMappingBarView: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(viewModel.connectedMIDISourceName != nil ? Color.green : Color.orange)
-                    .frame(width: 8, height: 8)
-
-                Text(devicePickerTitle)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(devicePickerTitleColor)
-                    .lineLimit(1)
-
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(DAWTheme.textSecondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .background(DAWTheme.surfaceElevated)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay {
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(DAWTheme.border, lineWidth: 1)
-            }
+            devicePickerLabel
         }
         .buttonStyle(.plain)
+#endif
+    }
+
+    private var devicePickerLabel: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(viewModel.connectedMIDISourceName != nil ? Color.green : Color.orange)
+                .frame(width: 8, height: 8)
+
+            Text(devicePickerTitle)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(devicePickerTitleColor)
+                .lineLimit(1)
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(DAWTheme.textSecondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(DAWTheme.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(DAWTheme.border, lineWidth: 1)
+        }
     }
 
     private var devicePickerTitle: String {
@@ -149,15 +232,11 @@ struct MIDIMappingBarView: View {
         let isLearning = viewModel.midiLearnTarget == .loopToggle
 
         return Button {
-            if isLearning {
-                viewModel.cancelMIDILearn()
-            } else {
-                viewModel.startMIDILearn(for: .loopToggle)
-            }
+            viewModel.isMIDIMappingExpanded = true
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "repeat.circle.fill")
-                Text("Loop")
+                Image(systemName: viewModel.isSectionRepeatEnabled ? "repeat.circle.fill" : "repeat.circle")
+                Text(isLearning ? "Listening…" : "Loop")
                     .font(.caption.weight(.semibold))
             }
             .foregroundStyle(isLearning ? DAWTheme.accent : DAWTheme.textPrimary)
@@ -171,7 +250,16 @@ struct MIDIMappingBarView: View {
             }
         }
         .buttonStyle(.plain)
-        .help("Assign Loop Repeat button")
+        .help(viewModel.project.sectionRepeatMIDIMapped
+            ? "Loop toggle · \(loopAssignmentLabel)"
+            : "Open MIDI mapping to assign Loop toggle")
+    }
+
+    private var loopAssignmentLabel: String {
+        MIDINoteAssignment(
+            note: viewModel.project.sectionRepeatMIDINote,
+            channel: viewModel.project.sectionRepeatMIDIChannel
+        ).displayName
     }
 
     private var expandedPanel: some View {
@@ -179,6 +267,12 @@ struct MIDIMappingBarView: View {
             if viewModel.isMIDILearnActive {
                 learnBanner
             }
+
+            Text("Tap Assign on a section, then press a pad. While playing, another pad queues a jump at the section end. Press the same section pad again during playback to repeat that section once.")
+                .font(.caption2)
+                .foregroundStyle(DAWTheme.textSecondary)
+
+            loopMappingCard
 
             if viewModel.project.sections.isEmpty {
                 Text("Create section markers in the timeline, then assign each one to a pad.")
@@ -204,20 +298,32 @@ struct MIDIMappingBarView: View {
 
     @ViewBuilder
     private var learnBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "hand.tap.fill")
-                .foregroundStyle(DAWTheme.accent)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "hand.tap.fill")
+                    .foregroundStyle(DAWTheme.accent)
 
-            Text(viewModel.midiLearnStatusMessage ?? "Press a pad or button on your controller.")
-                .font(.caption)
-                .foregroundStyle(DAWTheme.textPrimary)
+                Text(viewModel.midiLearnStatusMessage ?? "Press a pad or button on your controller.")
+                    .font(.caption)
+                    .foregroundStyle(DAWTheme.textPrimary)
 
-            Spacer()
+                Spacer()
 
-            Button("Cancel") {
-                viewModel.cancelMIDILearn()
+                Button("Cancel") {
+                    viewModel.cancelMIDILearn()
+                }
+                .buttonStyle(DAWSecondaryButtonStyle())
             }
-            .buttonStyle(DAWSecondaryButtonStyle())
+
+            if let debug = viewModel.lastMIDIInputDebugMessage {
+                Text("Last input: \(debug)")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(DAWTheme.textSecondary)
+            } else {
+                Text("Waiting for MIDI… If nothing appears, try All Inputs or refresh.")
+                    .font(.caption2)
+                    .foregroundStyle(DAWTheme.textSecondary)
+            }
         }
         .padding(12)
         .background(
@@ -230,9 +336,55 @@ struct MIDIMappingBarView: View {
         )
     }
 
+    private var loopMappingCard: some View {
+        let isLearning = viewModel.midiLearnTarget == .loopToggle
+        let isMapped = viewModel.project.sectionRepeatMIDIMapped
+        let assignment = MIDINoteAssignment(
+            note: viewModel.project.sectionRepeatMIDINote,
+            channel: viewModel.project.sectionRepeatMIDIChannel
+        )
+
+        return HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Loop Toggle", systemImage: "repeat.circle.fill")
+                    .font(.caption.weight(.semibold))
+
+                Text(isMapped ? assignment.displayName : "Not assigned")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(DAWTheme.textSecondary)
+
+                Text("Assign a dedicated controller button here. Until then, section pads never toggle Loop.")
+                    .font(.caption2)
+                    .foregroundStyle(DAWTheme.textSecondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Button(isLearning ? "Listening…" : "Assign Button") {
+                if isLearning {
+                    viewModel.cancelMIDILearn()
+                } else {
+                    viewModel.startMIDILearn(for: .loopToggle)
+                }
+            }
+            .buttonStyle(DAWSecondaryButtonStyle())
+        }
+        .padding(10)
+        .background(isLearning ? DAWTheme.accent.opacity(0.12) : DAWTheme.background.opacity(0.55))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isLearning ? DAWTheme.accent : DAWTheme.border, lineWidth: isLearning ? 2 : 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
     private func sectionMappingCard(_ section: ArrangementSection) -> some View {
         let isLearning = viewModel.midiLearnTarget == .section(section.id)
-        let assignment = MIDINoteAssignment(note: section.midiNote, channel: section.midiChannel)
+        let assignment = MIDINoteAssignment(
+            note: section.midiNote,
+            channel: section.midiChannel,
+            usesControlChange: section.midiUsesControlChange
+        )
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {

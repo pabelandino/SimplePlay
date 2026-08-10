@@ -270,6 +270,10 @@ final class AudioEngineService {
         var startedAnyPlayer = false
 
         for scheduled in scheduledClips.values {
+            safelyStopPlayer(scheduled.player)
+        }
+
+        for scheduled in scheduledClips.values {
             safelyResetPlayer(scheduled.player)
             guard shouldPlayClip(scheduled.clip, at: playbackStartTime) else { continue }
             guard scheduleClip(scheduled, from: playbackStartTime) else { continue }

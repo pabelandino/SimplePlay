@@ -16,16 +16,13 @@ struct TopToolbarView: View {
         horizontalSizeClass == .compact
     }
 
-    private var usesPhoneToolbar: Bool {
+    /// Icon-only actions on iPhone and narrow macOS layouts.
+    private var usesCompactToolbarActions: Bool {
 #if os(iOS)
         UIDevice.current.userInterfaceIdiom == .phone
 #else
-        false
+        isCompact
 #endif
-    }
-
-    private var usesIconActionButtons: Bool {
-        usesPhoneToolbar || isCompact
     }
 
     var body: some View {
@@ -37,25 +34,25 @@ struct TopToolbarView: View {
                     MacWindowDragRegion()
                 }
 #endif
-            HStack(spacing: usesIconActionButtons ? 6 : 16) {
+            HStack(spacing: usesCompactToolbarActions ? 6 : 10) {
                 projectTitle
 
-                Spacer(minLength: usesIconActionButtons ? 4 : 8)
+                Spacer(minLength: usesCompactToolbarActions ? 4 : 8)
 
                 toolButtons
 
-                if !usesIconActionButtons {
+                if !usesCompactToolbarActions {
                     Spacer(minLength: 8)
                 }
 
                 actionButtons
             }
-            .padding(.horizontal, usesIconActionButtons ? 10 : 16)
+            .padding(.horizontal, usesCompactToolbarActions ? 10 : 16)
 #if os(macOS)
             .padding(.leading, DAWTheme.macTrafficLightLeadingInset - 16)
 #endif
         }
-        .frame(height: usesIconActionButtons ? DAWTheme.compactToolbarHeight : DAWTheme.toolbarHeight)
+        .frame(height: usesCompactToolbarActions ? DAWTheme.compactToolbarHeight : DAWTheme.toolbarHeight)
 #if os(macOS)
         .frame(minHeight: DAWTheme.toolbarHeight + DAWTheme.macTitleBarTopInset)
 #endif
@@ -69,7 +66,7 @@ struct TopToolbarView: View {
 
     private var projectTitle: some View {
         Text(viewModel.project.name)
-            .font(usesIconActionButtons ? .subheadline.weight(.semibold) : .headline)
+            .font(usesCompactToolbarActions ? .subheadline.weight(.semibold) : .headline)
             .foregroundStyle(DAWTheme.textPrimary)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
@@ -77,7 +74,7 @@ struct TopToolbarView: View {
     }
 
     private var toolButtons: some View {
-        HStack(spacing: usesIconActionButtons ? 4 : 12) {
+        HStack(spacing: usesCompactToolbarActions ? 4 : 12) {
             timelineToolButton(
                 tool: .hand,
                 systemName: "hand.raised",
@@ -89,7 +86,7 @@ struct TopToolbarView: View {
                 help: "Select clips"
             )
 
-            if !usesIconActionButtons {
+            if !usesCompactToolbarActions {
                 toolButton("plus")
                 toolButton("scissors")
             }
@@ -97,85 +94,131 @@ struct TopToolbarView: View {
     }
 
     private var actionButtons: some View {
-        HStack(spacing: usesIconActionButtons ? 4 : 12) {
-            TrackPitchControlView(viewModel: viewModel, compact: usesIconActionButtons)
+        HStack(spacing: usesCompactToolbarActions ? 4 : 8) {
+            TrackPitchControlView(viewModel: viewModel, compact: usesCompactToolbarActions)
 
-            toolbarIconButton(
-                systemName: "gearshape",
-                accessibilityLabel: "Settings"
-            ) {
+            settingsButton
+            openButton
+            projectSessionButton
+            saveButton
+            importButton
+        }
+    }
+
+    @ViewBuilder
+    private var settingsButton: some View {
+        if usesCompactToolbarActions {
+            toolbarIconButton(systemName: "gearshape", accessibilityLabel: "Settings") {
                 viewModel.showSettings = true
             }
-
-            if usesIconActionButtons {
-                toolbarIconButton(
-                    systemName: "folder",
-                    accessibilityLabel: "Open Project"
-                ) {
-                    viewModel.openProject()
-                }
-
-                projectSessionMenu(compact: true)
-
-                toolbarIconButton(
-                    systemName: "square.and.arrow.down",
-                    accessibilityLabel: "Save Project"
-                ) {
-                    viewModel.saveProject()
-                }
-
-                Menu {
-                    Button("Import Audio Files", systemImage: "doc.badge.plus") {
-                        viewModel.presentImportPanel(for: .audioFiles)
-                    }
-                    Button("Import Folder", systemImage: "folder.badge.plus") {
-                        viewModel.presentImportPanel(for: .folder)
-                    }
-                } label: {
-                    Image(systemName: "tray.and.arrow.down")
-                }
-                .buttonStyle(DAWIconToolbarButtonStyle())
-                .accessibilityLabel("Import")
-            } else {
-                Button("Open") { viewModel.openProject() }
-                    .buttonStyle(DAWSecondaryButtonStyle())
-                projectSessionMenu(compact: false)
-                Button("Save") { viewModel.saveProject() }
-                    .buttonStyle(DAWSecondaryButtonStyle())
-                Menu {
-                    Button("Import Audio Files") {
-                        viewModel.presentImportPanel(for: .audioFiles)
-                    }
-                    Button("Import Folder") {
-                        viewModel.presentImportPanel(for: .folder)
-                    }
-                } label: {
-                    Text("Import")
-                }
-                .buttonStyle(DAWSecondaryButtonStyle())
-                .help("Import audio files or a folder (max 20 audio files)")
+        } else {
+            toolbarLabeledButton(title: "Settings", systemName: "gearshape", help: "Settings") {
+                viewModel.showSettings = true
             }
         }
     }
 
     @ViewBuilder
-    private func projectSessionMenu(compact: Bool) -> some View {
-        if compact {
-            Menu {
-                projectSessionMenuItems
-            } label: {
+    private var openButton: some View {
+        if usesCompactToolbarActions {
+            toolbarIconButton(systemName: "folder", accessibilityLabel: "Open Project") {
+                viewModel.openProject()
+            }
+        } else {
+            toolbarLabeledButton(title: "Open", systemName: "folder", help: "Open Project") {
+                viewModel.openProject()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var projectSessionButton: some View {
+#if os(iOS)
+        ProjectSessionToolbarMenuButton(
+            viewModel: viewModel,
+            showsLabel: !usesCompactToolbarActions
+        )
+#else
+        projectSessionMenu(labeled: !usesCompactToolbarActions)
+#endif
+    }
+
+    @ViewBuilder
+    private var saveButton: some View {
+        if usesCompactToolbarActions {
+            toolbarIconButton(systemName: "internaldrive.fill", accessibilityLabel: "Save Project") {
+                viewModel.saveProject()
+            }
+        } else {
+            toolbarLabeledButton(
+                title: "Save",
+                systemName: "internaldrive.fill",
+                help: "Save Project"
+            ) {
+                viewModel.saveProject()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var importButton: some View {
+#if os(iOS)
+        ImportToolbarMenuButton(
+            viewModel: viewModel,
+            showsLabel: !usesCompactToolbarActions
+        )
+#else
+        importMenu(labeled: !usesCompactToolbarActions)
+#endif
+    }
+
+    @ViewBuilder
+    private func importMenu(labeled: Bool) -> some View {
+        Menu {
+            importMenuItems
+        } label: {
+            if labeled {
+                HStack(spacing: 5) {
+                    Image(systemName: "waveform.badge.plus")
+                    Text("Import")
+                        .font(.caption.weight(.semibold))
+                }
+            } else {
+                Image(systemName: "waveform.badge.plus")
+            }
+        }
+        .modifier(ToolbarMenuButtonStyleModifier(labeled: labeled))
+        .accessibilityLabel("Import audio")
+        .help("Import audio files or a folder (max 20 audio files)")
+    }
+
+    @ViewBuilder
+    private func projectSessionMenu(labeled: Bool) -> some View {
+        Menu {
+            projectSessionMenuItems
+        } label: {
+            if labeled {
+                HStack(spacing: 5) {
+                    Image(systemName: "doc.badge.plus")
+                    Text("New")
+                        .font(.caption.weight(.semibold))
+                }
+            } else {
                 Image(systemName: "doc.badge.plus")
             }
-            .buttonStyle(DAWIconToolbarButtonStyle())
-            .accessibilityLabel("Project Session")
-        } else {
-            Menu {
-                projectSessionMenuItems
-            } label: {
-                Text("New")
-            }
-            .buttonStyle(DAWSecondaryButtonStyle())
-            .help("Start a new project or reset the current session")
+        }
+        .modifier(ToolbarMenuButtonStyleModifier(labeled: labeled))
+        .accessibilityLabel("Project Session")
+        .help("Start a new project or reset the current session")
+    }
+
+    @ViewBuilder
+    private var importMenuItems: some View {
+        Button("Import Audio Files", systemImage: "doc.badge.plus") {
+            viewModel.presentImportPanel(for: .audioFiles)
+        }
+        Button("Import Folder", systemImage: "folder.badge.plus") {
+            viewModel.presentImportPanel(for: .folder)
         }
     }
 
@@ -187,6 +230,25 @@ struct TopToolbarView: View {
         Button("Reset Session", systemImage: "arrow.counterclockwise", role: .destructive) {
             viewModel.requestResetSession()
         }
+    }
+
+    private func toolbarLabeledButton(
+        title: String,
+        systemName: String,
+        help: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: systemName)
+                    .font(.system(size: 14, weight: .medium))
+                Text(title)
+                    .font(.caption.weight(.semibold))
+            }
+        }
+        .buttonStyle(DAWLabeledToolbarButtonStyle())
+        .help(help)
+        .accessibilityLabel(help)
     }
 
     private func toolbarIconButton(
@@ -261,5 +323,30 @@ struct DAWIconToolbarButtonStyle: ButtonStyle {
             .frame(width: 36, height: 36)
             .background(DAWTheme.surfaceElevated.opacity(configuration.isPressed ? 0.7 : 1))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct DAWLabeledToolbarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(DAWTheme.textPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(minHeight: 36)
+            .background(DAWTheme.surfaceElevated.opacity(configuration.isPressed ? 0.7 : 1))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private struct ToolbarMenuButtonStyleModifier: ViewModifier {
+    let labeled: Bool
+
+    func body(content: Content) -> some View {
+        if labeled {
+            content.buttonStyle(DAWLabeledToolbarButtonStyle())
+        } else {
+            content.buttonStyle(DAWIconToolbarButtonStyle())
+        }
     }
 }

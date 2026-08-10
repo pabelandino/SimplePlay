@@ -15,6 +15,7 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
     var colorHex: String
     var midiNote: UInt8
     var midiChannel: UInt8
+    var midiUsesControlChange: Bool
     var playbackMode: SectionPlaybackMode
     /// Optional section to jump to after this one finishes (for continueToNext mode).
     var nextSectionID: UUID?
@@ -29,7 +30,8 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
         colorHex: String,
         midiNote: UInt8 = 60,
         midiChannel: UInt8 = 0,
-        playbackMode: SectionPlaybackMode = .repeatSection,
+        midiUsesControlChange: Bool = false,
+        playbackMode: SectionPlaybackMode = .continueTimeline,
         nextSectionID: UUID? = nil,
         waitForCurrentToFinish: Bool = true
     ) {
@@ -40,6 +42,7 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
         self.colorHex = colorHex
         self.midiNote = midiNote
         self.midiChannel = midiChannel
+        self.midiUsesControlChange = midiUsesControlChange
         self.playbackMode = playbackMode
         self.nextSectionID = nextSectionID
         self.waitForCurrentToFinish = waitForCurrentToFinish
@@ -47,7 +50,7 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id, name, startTime, endTime, colorHex
-        case midiNote, midiChannel, playbackMode
+        case midiNote, midiChannel, midiUsesControlChange, playbackMode
         case nextSectionID, waitForCurrentToFinish
     }
 
@@ -59,6 +62,7 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
         endTime = try container.decode(TimeInterval.self, forKey: .endTime)
         midiNote = try container.decode(UInt8.self, forKey: .midiNote)
         midiChannel = try container.decodeIfPresent(UInt8.self, forKey: .midiChannel) ?? 0
+        midiUsesControlChange = try container.decodeIfPresent(Bool.self, forKey: .midiUsesControlChange) ?? false
         playbackMode = try container.decode(SectionPlaybackMode.self, forKey: .playbackMode)
         nextSectionID = try container.decodeIfPresent(UUID.self, forKey: .nextSectionID)
         waitForCurrentToFinish = try container.decodeIfPresent(Bool.self, forKey: .waitForCurrentToFinish) ?? true

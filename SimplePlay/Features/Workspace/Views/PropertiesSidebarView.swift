@@ -245,12 +245,23 @@ struct PropertiesSidebarView: View {
                 }
 
                 LabeledContent("Pad Mapping") {
-                    Text(MIDINoteAssignment(note: section.midiNote, channel: section.midiChannel).displayName)
+                    Text(
+                        MIDINoteAssignment(
+                            note: section.midiNote,
+                            channel: section.midiChannel,
+                            usesControlChange: section.midiUsesControlChange
+                        ).displayName
+                    )
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(DAWTheme.textSecondary)
                 }
 
-                Text("Use the MIDI Controller panel above the timeline to assign pads.")
+                Button("Assign Pad") {
+                    viewModel.startMIDILearn(for: .section(section.id))
+                }
+                .buttonStyle(DAWSecondaryButtonStyle())
+
+                Text("While playing, another pad queues a jump at the current section end. Press the same section pad again during playback to repeat it once.")
                     .font(.caption2)
                     .foregroundStyle(DAWTheme.textSecondary)
 

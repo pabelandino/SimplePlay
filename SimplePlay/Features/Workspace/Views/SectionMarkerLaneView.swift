@@ -298,6 +298,9 @@ fileprivate struct SectionMarkerChipView: View {
             }
         )
         .contextMenu {
+            Button("Assign MIDI Pad") {
+                viewModel.startMIDILearn(for: .section(section.id))
+            }
             Button("Delete Marker", role: .destructive) {
                 viewModel.requestDeleteSection(section.id)
             }

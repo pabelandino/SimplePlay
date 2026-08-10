@@ -34,21 +34,7 @@ struct WorkspaceView: View {
         .sheet(isPresented: $viewModel.showSettings) {
             WorkspaceSettingsView(viewModel: viewModel)
         }
-#if os(iOS)
-        .background {
-            AudioImportDocumentPicker(
-                isPresented: $viewModel.showImportPanel,
-                contentTypes: viewModel.importPanelKind == .folder
-                    ? SupportedAudioFormats.folderPickerTypes
-                    : SupportedAudioFormats.filePickerTypes,
-                allowsMultipleSelection: viewModel.importPanelKind != .folder,
-                copiesAsFiles: viewModel.importPanelKind != .folder,
-                onPick: { urls in
-                    viewModel.handleImportPickerResults(urls)
-                }
-            )
-        }
-#else
+#if os(macOS)
         .fileImporter(
             isPresented: $viewModel.showImportPanel,
             allowedContentTypes: SupportedAudioFormats.importPickerTypes,

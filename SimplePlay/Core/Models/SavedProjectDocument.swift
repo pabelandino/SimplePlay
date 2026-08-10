@@ -108,6 +108,7 @@ struct PersistedProject: Codable, Sendable, Equatable {
     var sections: [ArrangementSection]
     var sectionRepeatMIDINote: UInt8
     var sectionRepeatMIDIChannel: UInt8
+    var sectionRepeatMIDIMapped: Bool
     var preferredMIDISourceName: String?
     var preferredMIDISourceUniqueID: Int32?
     var snapInterval: TimeInterval
@@ -118,7 +119,7 @@ struct PersistedProject: Codable, Sendable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case id, name, tracks, groups, sections
-        case sectionRepeatMIDINote, sectionRepeatMIDIChannel
+        case sectionRepeatMIDINote, sectionRepeatMIDIChannel, sectionRepeatMIDIMapped
         case preferredMIDISourceName, preferredMIDISourceUniqueID
         case snapInterval, isSnapEnabled, masterVolume, tempo, audioSettings
     }
@@ -131,6 +132,7 @@ struct PersistedProject: Codable, Sendable, Equatable {
         sections: [ArrangementSection],
         sectionRepeatMIDINote: UInt8 = 36,
         sectionRepeatMIDIChannel: UInt8 = 0,
+        sectionRepeatMIDIMapped: Bool = false,
         preferredMIDISourceName: String? = nil,
         preferredMIDISourceUniqueID: Int32? = nil,
         snapInterval: TimeInterval,
@@ -146,6 +148,7 @@ struct PersistedProject: Codable, Sendable, Equatable {
         self.sections = sections
         self.sectionRepeatMIDINote = sectionRepeatMIDINote
         self.sectionRepeatMIDIChannel = sectionRepeatMIDIChannel
+        self.sectionRepeatMIDIMapped = sectionRepeatMIDIMapped
         self.preferredMIDISourceName = preferredMIDISourceName
         self.preferredMIDISourceUniqueID = preferredMIDISourceUniqueID
         self.snapInterval = snapInterval
@@ -164,6 +167,7 @@ struct PersistedProject: Codable, Sendable, Equatable {
         sections = try container.decode([ArrangementSection].self, forKey: .sections)
         sectionRepeatMIDINote = try container.decodeIfPresent(UInt8.self, forKey: .sectionRepeatMIDINote) ?? 36
         sectionRepeatMIDIChannel = try container.decodeIfPresent(UInt8.self, forKey: .sectionRepeatMIDIChannel) ?? 0
+        sectionRepeatMIDIMapped = try container.decodeIfPresent(Bool.self, forKey: .sectionRepeatMIDIMapped) ?? false
         preferredMIDISourceName = try container.decodeIfPresent(String.self, forKey: .preferredMIDISourceName)
         preferredMIDISourceUniqueID = try container.decodeIfPresent(Int32.self, forKey: .preferredMIDISourceUniqueID)
         snapInterval = try container.decode(TimeInterval.self, forKey: .snapInterval)

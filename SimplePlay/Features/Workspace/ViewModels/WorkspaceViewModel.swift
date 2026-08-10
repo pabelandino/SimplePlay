@@ -83,12 +83,22 @@ final class WorkspaceViewModel {
         arrangementEngine.pendingSection?.name
     }
 
+    var repeatingSectionName: String? {
+        switch arrangementEngine.state {
+        case .repeatingSectionAtEnd(let section):
+            return section.name
+        default:
+            return nil
+        }
+    }
+
     var sectionCreationPreview: ClosedRange<TimeInterval>?
     var preferredMarkerPreset: String = "Verse"
     private var sectionCreationStartTime: TimeInterval?
 
     var midiLearnTarget: MIDILearnTarget?
     var midiLearnStatusMessage: String?
+    var lastMIDIInputDebugMessage: String?
     var availableMIDISources: [MIDISourceInfo] = []
     var connectedMIDISourceName: String?
     var isMIDIMappingExpanded = false
@@ -106,11 +116,16 @@ final class WorkspaceViewModel {
     private let playheadPublishInterval: TimeInterval = 1.0 / 15.0
 
     init() {
-        MIDIInputService.shared.onNoteOn = { [weak self] note, channel in
-            self?.handleIncomingMIDINote(note: note, channel: channel)
+        MIDIInputService.shared.onEvent = { [weak self] event in
+            self?.handleIncomingMIDI(event)
         }
+        prepareMIDIInput()
+    }
+
+    func prepareMIDIInput() {
+        MIDIInputService.shared.ensureReady()
+        MIDIInputService.shared.preferredSourceUniqueID = project.preferredMIDISourceUniqueID
         refreshMIDIDevices()
-        applySavedMIDIDeviceConnection()
     }
 
     var isMIDILearnActive: Bool {
@@ -205,10 +220,31 @@ final class WorkspaceViewModel {
         pendingImportPlacement = .appendNewGroup(startTime: nil)
     }
 
-    func presentImportPanel(for kind: ImportPanelKind, placement: TrackOrganizationService.ImportPlacement = .appendNewGroup(startTime: nil)) {
+    func presentImportPanel(
+        for kind: ImportPanelKind,
+        placement: TrackOrganizationService.ImportPlacement = .appendNewGroup(startTime: nil),
+        afterMenuDismiss: Bool = false
+    ) {
         pendingImportPlacement = placement
         importPanelKind = kind
+#if os(iOS)
+        let contentTypes = kind == .folder
+            ? SupportedAudioFormats.folderPickerTypes
+            : SupportedAudioFormats.filePickerTypes
+        let delay = afterMenuDismiss ? 0.45 : 0.1
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [self] in
+            ImportDocumentPickerPresenter.present(
+                contentTypes: contentTypes,
+                allowsMultipleSelection: kind != .folder,
+                copiesAsFiles: kind != .folder,
+                onPick: { [self] urls in
+                    handleImportPickerResults(urls)
+                }
+            )
+        }
+#else
         showImportPanel = true
+#endif
     }
 
     func presentAddTrackImport() {
@@ -1066,7 +1102,7 @@ final class WorkspaceViewModel {
         addSection(
             name: nextSectionMarkerName(),
             range: snappedLower...snappedUpper,
-            mode: .repeatSection
+            mode: .continueTimeline
         )
     }
 
@@ -1163,10 +1199,16 @@ final class WorkspaceViewModel {
         sectionDragKind = .move
     }
 
-    func updateSectionMIDI(_ sectionID: UUID, note: UInt8, channel: UInt8) {
+    func updateSectionMIDI(
+        _ sectionID: UUID,
+        note: UInt8,
+        channel: UInt8,
+        usesControlChange: Bool = false
+    ) {
         guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
         project.sections[index].midiNote = min(127, note)
         project.sections[index].midiChannel = min(15, channel)
+        project.sections[index].midiUsesControlChange = usesControlChange
         arrangementEngine.configure(sections: project.sections)
     }
 
@@ -1210,14 +1252,20 @@ final class WorkspaceViewModel {
         isSelectionLoopEnabled = false
         selectedSectionID = section.id
 
-        arrangementEngine.triggerSection(section)
+        if isPlaying {
+            arrangementEngine.ensureSectionPlaybackContext(at: arrangementEngine.currentTime)
+        }
+
+        let result = arrangementEngine.triggerSection(section)
         midiOutput.sendSectionTrigger(section)
 
-        if arrangementEngine.isRepeatEnabled,
-           arrangementEngine.pendingSection?.id == section.id,
-           case .playingSection(let current) = arrangementEngine.state,
-           current.id != section.id {
-            return
+        switch result {
+        case .queuedForEnd, .enabledRepeatAtEnd:
+            if isPlaying {
+                return
+            }
+        case .activatedImmediately:
+            break
         }
 
         playheadTime = arrangementEngine.currentTime
@@ -1232,41 +1280,78 @@ final class WorkspaceViewModel {
         startPlaybackTimer()
     }
 
-    func handleIncomingMIDINote(note: UInt8, channel: UInt8) {
+    func handleIncomingMIDI(_ event: MIDIInputEvent) {
+        lastMIDIInputDebugMessage = midiDebugDescription(for: event)
+
         if let target = midiLearnTarget {
-            applyMIDILearn(note: note, channel: channel, target: target)
+            applyMIDILearn(event: event, target: target)
             midiLearnTarget = nil
+            MIDIInputService.shared.acceptAllSources = false
             return
         }
 
-        if note == project.sectionRepeatMIDINote,
-           channel == project.sectionRepeatMIDIChannel {
+        if project.sectionRepeatMIDIMapped,
+           event.kind == .noteOn,
+           event.number == project.sectionRepeatMIDINote,
+           event.channel == project.sectionRepeatMIDIChannel {
             toggleSectionRepeat()
             return
         }
 
-        guard let section = project.sections.first(where: {
-            $0.midiNote == note && $0.midiChannel == channel
+        guard let section = project.sections.first(where: { section in
+            section.midiChannel == event.channel &&
+            section.midiNote == event.number &&
+            section.midiUsesControlChange == (event.kind == .controlChange)
         }) else { return }
 
         triggerSection(section)
     }
 
-    private func applyMIDILearn(note: UInt8, channel: UInt8, target: MIDILearnTarget) {
+    private func midiDebugDescription(for event: MIDIInputEvent) -> String {
+        let assignment = MIDINoteAssignment(
+            note: event.number,
+            channel: event.channel,
+            usesControlChange: event.kind == .controlChange
+        )
+        if let sourceUniqueID = event.sourceUniqueID,
+           let sourceName = availableMIDISources.first(where: { $0.uniqueID == sourceUniqueID })?.name {
+            return "\(assignment.displayName) · \(sourceName)"
+        }
+        return assignment.displayName
+    }
+
+    private func applyMIDILearn(event: MIDIInputEvent, target: MIDILearnTarget) {
+        let assignment = MIDINoteAssignment(
+            note: event.number,
+            channel: event.channel,
+            usesControlChange: event.kind == .controlChange
+        )
+
         switch target {
         case .section(let sectionID):
-            updateSectionMIDI(sectionID, note: note, channel: channel)
+            updateSectionMIDI(
+                sectionID,
+                note: event.number,
+                channel: event.channel,
+                usesControlChange: event.kind == .controlChange
+            )
             if let section = project.sections.first(where: { $0.id == sectionID }) {
-                midiLearnStatusMessage = "Mapped “\(section.name)” → \(MIDINoteAssignment(note: note, channel: channel).displayName)"
+                midiLearnStatusMessage = "Mapped “\(section.name)” → \(assignment.displayName)"
             }
         case .loopToggle:
-            project.sectionRepeatMIDINote = note
-            project.sectionRepeatMIDIChannel = channel
-            midiLearnStatusMessage = "Loop Repeat → \(MIDINoteAssignment(note: note, channel: channel).displayName)"
+            guard event.kind == .noteOn else {
+                midiLearnStatusMessage = "Loop Repeat needs a note message. Try another pad."
+                return
+            }
+            project.sectionRepeatMIDINote = event.number
+            project.sectionRepeatMIDIChannel = event.channel
+            project.sectionRepeatMIDIMapped = true
+            midiLearnStatusMessage = "Loop Repeat → \(assignment.displayName)"
         }
     }
 
     func refreshMIDIDevices() {
+        MIDIInputService.shared.ensureReady()
         availableMIDISources = MIDIInputService.shared.availableSources()
         connectedMIDISourceName = MIDIInputService.shared.connectedSourceName
     }
@@ -1275,29 +1360,45 @@ final class WorkspaceViewModel {
         if let source {
             project.preferredMIDISourceName = source.name
             project.preferredMIDISourceUniqueID = source.uniqueID
-            _ = MIDIInputService.shared.connect(to: source)
         } else {
             project.preferredMIDISourceName = nil
             project.preferredMIDISourceUniqueID = nil
-            _ = MIDIInputService.shared.connect(to: nil)
         }
+
+        MIDIInputService.shared.preferredSourceUniqueID = project.preferredMIDISourceUniqueID
+        _ = MIDIInputService.shared.connect(to: source)
         refreshMIDIDevices()
+
+        if !isMIDILearnActive {
+            if let source {
+                midiLearnStatusMessage = "Connected to “\(source.name)”."
+            } else if !availableMIDISources.isEmpty {
+                midiLearnStatusMessage = "Listening on all MIDI inputs."
+            }
+        }
     }
 
     func applySavedMIDIDeviceConnection() {
-        refreshMIDIDevices()
+        prepareMIDIInput()
 
         if project.preferredMIDISourceUniqueID != nil || project.preferredMIDISourceName != nil {
             _ = MIDIInputService.shared.reconnectSavedDevice(
                 name: project.preferredMIDISourceName,
                 uniqueID: project.preferredMIDISourceUniqueID
             )
+        } else {
+            _ = MIDIInputService.shared.connect(to: nil)
         }
 
+        MIDIInputService.shared.preferredSourceUniqueID = project.preferredMIDISourceUniqueID
         refreshMIDIDevices()
     }
 
     func startMIDILearn(for target: MIDILearnTarget) {
+        isMIDIMappingExpanded = true
+        prepareMIDIInput()
+        MIDIInputService.shared.acceptAllSources = true
+        lastMIDIInputDebugMessage = nil
         midiLearnTarget = target
         switch target {
         case .section(let id):
@@ -1312,12 +1413,14 @@ final class WorkspaceViewModel {
 
     func cancelMIDILearn() {
         midiLearnTarget = nil
+        MIDIInputService.shared.acceptAllSources = false
+        lastMIDIInputDebugMessage = nil
         midiLearnStatusMessage = nil
     }
 
     private var isArrangementSectionControllingPlayback: Bool {
         switch arrangementEngine.state {
-        case .playingSection, .waitingToJump:
+        case .playingSection, .repeatingSectionAtEnd, .waitingToJump:
             return true
         case .idle, .continuingTimeline:
             return false
@@ -1388,6 +1491,14 @@ final class WorkspaceViewModel {
         }
     }
 
+    private func playbackTimelineDidJump(
+        from previousTime: TimeInterval,
+        to newTime: TimeInterval,
+        delta: TimeInterval
+    ) -> Bool {
+        abs(newTime - (previousTime + delta)) > max(0.05, delta * 0.5)
+    }
+
     private func publishPlayheadTime(_ time: TimeInterval, force: Bool = false) {
         if force {
             playheadPublishAccumulator = 0
@@ -1442,10 +1553,14 @@ final class WorkspaceViewModel {
         arrangementEngine.tick(delta: delta, projectDuration: project.duration)
         let newTime = arrangementEngine.currentTime
 
-        let jumpedSections = newTime < previousTime - 0.01 || abs(newTime - previousTime) > delta * 2
-        publishPlayheadTime(newTime, force: jumpedSections)
+        let didJumpTimeline = playbackTimelineDidJump(
+            from: previousTime,
+            to: newTime,
+            delta: delta
+        )
+        publishPlayheadTime(newTime, force: didJumpTimeline)
 
-        if newTime < previousTime - 0.01 {
+        if isPlaying, didJumpTimeline {
             if !startAudioPlayback(from: newTime) {
                 pause()
                 return

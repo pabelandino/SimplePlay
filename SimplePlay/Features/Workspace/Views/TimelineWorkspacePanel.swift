@@ -155,15 +155,29 @@ struct TimelineWorkspacePanel: View {
         HStack(spacing: isCompact ? 4 : 8) {
             Image(systemName: "flag.fill")
                 .font(.caption2)
-                .foregroundStyle(viewModel.isSectionRepeatEnabled ? DAWTheme.accent : DAWTheme.textSecondary)
+                .foregroundStyle(
+                    viewModel.isSectionRepeatEnabled && viewModel.project.sectionRepeatMIDIMapped
+                        ? DAWTheme.accent
+                        : DAWTheme.textSecondary
+                )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Sections")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(DAWTheme.textPrimary)
 
-                if viewModel.isSectionRepeatEnabled {
-                    Text(viewModel.queuedSectionName.map { "Repeat · \($0)" } ?? "Repeat On")
+                if let queued = viewModel.queuedSectionName {
+                    Text("Next · \(queued)")
+                        .font(.caption2)
+                        .foregroundStyle(DAWTheme.accent)
+                        .lineLimit(1)
+                } else if let repeating = viewModel.repeatingSectionName {
+                    Text("Repeat once · \(repeating)")
+                        .font(.caption2)
+                        .foregroundStyle(DAWTheme.accent)
+                        .lineLimit(1)
+                } else if viewModel.isSectionRepeatEnabled, viewModel.project.sectionRepeatMIDIMapped {
+                    Text("Loop On")
                         .font(.caption2)
                         .foregroundStyle(DAWTheme.accent)
                         .lineLimit(1)

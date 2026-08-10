@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/ArrangementSection.swift": {
-    "mtime": 1786316841.1511698,
-    "ast_hash": "d67c95c8f22fb724271bc06719613e36",
+    "mtime": 1786335314.1681628,
+    "ast_hash": "14aca730acf2e53e01d23d8aaefdc64e",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/AudioClip.swift": {
@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/DAWProject.swift": {
-    "mtime": 1786316841.165372,
-    "ast_hash": "80fff283c21347cb8f55c34d37edb247",
+    "mtime": 1786335340.4800115,
+    "ast_hash": "62f0bedac6c641c42db0dab827e00c22",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/SectionPlaybackMode.swift": {
@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/ArrangementPlaybackEngine.swift": {
-    "mtime": 1786316841.231839,
-    "ast_hash": "549c6c22a359621a32ceed62d99ff0fb",
+    "mtime": 1786335314.180855,
+    "ast_hash": "1de9d0454fbdf727df38776986a10f24",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioEngineService.swift": {
-    "mtime": 1786316876.2597508,
-    "ast_hash": "57ee40fbcab8a220ab824e190743c20f",
+    "mtime": 1786335766.667337,
+    "ast_hash": "3ab0e061f124a43ac5b98976f34a0157",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioImportService.swift": {
@@ -160,13 +160,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786320870.836609,
-    "ast_hash": "5802e3f89a424053c7847fdaaf4d2a89",
+    "mtime": 1786337505.6653244,
+    "ast_hash": "1842592661cb8e2f68485302f0acf1a3",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
-    "mtime": 1786320874.5895703,
-    "ast_hash": "ce1dea042aed8d308f34001219c9c570",
+    "mtime": 1786335314.2146478,
+    "ast_hash": "cfa14b16afb4ddca5b5749f9b8e1ba9f",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
@@ -175,8 +175,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TopToolbarView.swift": {
-    "mtime": 1786316841.3193753,
-    "ast_hash": "619623c667907ae3c077f38d8c53364f",
+    "mtime": 1786337898.338477,
+    "ast_hash": "5e65c993eeb1d6021ce06270f246b6b9",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TrackHeaderColumnView.swift": {
@@ -195,8 +195,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceView.swift": {
-    "mtime": 1786320871.6802015,
-    "ast_hash": "242a16b0c819e92940c0a01e206d08bf",
+    "mtime": 1786337506.5957983,
+    "ast_hash": "a7bdfd83b184d3aa9f04ec5a54c2294a",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Theme/DAWTheme.swift": {
@@ -205,8 +205,8 @@
     "semantic_hash": ""
   },
   "SimplePlayTests/ArrangementPlaybackEngineTests.swift": {
-    "mtime": 1786316841.4459555,
-    "ast_hash": "0b5452ba8e99eee1c5a07f619607eedb",
+    "mtime": 1786335314.225839,
+    "ast_hash": "48f964a65e61de1bb6f4ad4312885b4b",
     "semantic_hash": ""
   },
   "SimplePlayTests/TrackNameStandardizerTests.swift": {
@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
-    "mtime": 1786321803.0255606,
-    "ast_hash": "5dfed5d3f26747574c2bfd2fe27a3135",
+    "mtime": 1786335348.7038512,
+    "ast_hash": "c123a504c61de9d2a98dd522fb489311",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/PanKnobView.swift": {
@@ -280,13 +280,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/SavedProjectDocument.swift": {
-    "mtime": 1786316841.527139,
-    "ast_hash": "ed21fb86ce097fabe2084bc291c84ad3",
+    "mtime": 1786335341.690818,
+    "ast_hash": "60ef569e5f3cf34ad136e95ed41afe31",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/ProjectPersistenceService.swift": {
-    "mtime": 1786316841.53856,
-    "ast_hash": "0f24404682feaee753a6686c8af0be97",
+    "mtime": 1786335342.4628403,
+    "ast_hash": "a027dbccfee8cb8962a2af0117a997f8",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/WaveformLoadMonitor.swift": {
@@ -350,8 +350,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/MIDIInputService.swift": {
-    "mtime": 1786316841.6149182,
-    "ast_hash": "59001cae13be0e8b15040cccaff00417",
+    "mtime": 1786335314.250769,
+    "ast_hash": "124cc95c2dc9bcd8e7907901cb9fa730",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Utils/SectionMarkerPalette.swift": {
@@ -360,8 +360,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift": {
-    "mtime": 1786321802.23974,
-    "ast_hash": "f506cc5fd5e9521827117f35dc4a31f1",
+    "mtime": 1786335314.2652724,
+    "ast_hash": "4501bea990b6e4ab6d32e66a93d0ba96",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceSettingsView.swift": {
@@ -375,13 +375,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/MIDILearnTarget.swift": {
-    "mtime": 1786316841.68358,
-    "ast_hash": "153a5d6a0ee8c7e454d01cfdfd668d13",
+    "mtime": 1786335314.2750287,
+    "ast_hash": "5694d593c54b43920ce3def3b51985f5",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
-    "mtime": 1786316841.6936383,
-    "ast_hash": "ab4844891dfa4d1618d24ba482733d7a",
+    "mtime": 1786335348.2450936,
+    "ast_hash": "61b4add73dfd3b7b069521899c8effef",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {
@@ -395,8 +395,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/AudioImportDocumentPicker.swift": {
-    "mtime": 1786316841.7151344,
-    "ast_hash": "2e9588b6fd27ad891af3424578de1ea4",
+    "mtime": 1786337524.7730522,
+    "ast_hash": "aa51db5bf78344fc2d8ba1e6a051d08b",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MixerPanelView.swift": {
@@ -432,6 +432,11 @@
   "SimplePlayTests/TimelineRulerScaleTests.swift": {
     "mtime": 1786317889.475,
     "ast_hash": "1ee971850322594ab1287025c8a00417",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/ImportToolbarMenuButton.swift": {
+    "mtime": 1786337848.3811274,
+    "ast_hash": "09c769521d1f5d6fe1aefdb917859b03",
     "semantic_hash": ""
   }
 }

@@ -14,6 +14,8 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
     var sections: [ArrangementSection]
     var sectionRepeatMIDINote: UInt8
     var sectionRepeatMIDIChannel: UInt8
+    /// Loop toggle MIDI is inactive until the user assigns it via the Loop Assign Button.
+    var sectionRepeatMIDIMapped: Bool
     var preferredMIDISourceName: String?
     var preferredMIDISourceUniqueID: Int32?
     var snapInterval: TimeInterval
@@ -30,6 +32,7 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
         sections: [ArrangementSection] = [],
         sectionRepeatMIDINote: UInt8 = 36,
         sectionRepeatMIDIChannel: UInt8 = 0,
+        sectionRepeatMIDIMapped: Bool = false,
         preferredMIDISourceName: String? = nil,
         preferredMIDISourceUniqueID: Int32? = nil,
         snapInterval: TimeInterval = 0.25,
@@ -45,6 +48,7 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
         self.sections = sections
         self.sectionRepeatMIDINote = sectionRepeatMIDINote
         self.sectionRepeatMIDIChannel = sectionRepeatMIDIChannel
+        self.sectionRepeatMIDIMapped = sectionRepeatMIDIMapped
         self.preferredMIDISourceName = preferredMIDISourceName
         self.preferredMIDISourceUniqueID = preferredMIDISourceUniqueID
         self.snapInterval = snapInterval
