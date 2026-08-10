@@ -10,8 +10,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_contentview",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": "contentview.swift"
     },
     {
@@ -22,8 +22,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "swiftui",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "swiftui"
     },
     {
@@ -35,8 +35,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_contentview_contentview",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": "contentview"
     },
     {
@@ -57,8 +57,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "simpleplay_contentview_contentview_body",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": ".body"
     },
     {
@@ -68,8 +68,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_models_arrangementsection",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "arrangementsection.swift"
     },
     {
@@ -104,8 +104,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "identifiable",
-      "community": 47,
-      "community_name": "MIDIInputService",
+      "community": 45,
+      "community_name": "AudioSampleRate",
       "norm_label": "identifiable"
     },
     {
@@ -116,7 +116,7 @@
       "_origin": "ast",
       "id": "codable",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "codable"
     },
     {
@@ -126,7 +126,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "sendable",
-      "community": 31,
+      "community": 24,
       "community_name": "Sendable",
       "norm_label": "sendable"
     },
@@ -138,7 +138,7 @@
       "_origin": "ast",
       "id": "equatable",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "equatable"
     },
     {
@@ -657,8 +657,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_models_audiosettings_audiooutputdevice",
-      "community": 45,
-      "community_name": "AudioSampleRate",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "audiooutputdevice"
     },
     {
@@ -668,8 +668,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "hashable",
-      "community": 45,
-      "community_name": "AudioSampleRate",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "hashable"
     },
     {
@@ -679,8 +679,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "audiotrack.swift"
     },
     {
@@ -692,7 +692,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_audiotrack",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "audiotrack"
     },
@@ -703,7 +703,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_swift_uuid",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "uuid"
     },
@@ -714,7 +714,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_swift_string",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "string"
     },
@@ -725,7 +725,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_swift_standardtrackrole",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "standardtrackrole"
     },
@@ -736,7 +736,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_swift_bool",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "bool"
     },
@@ -747,7 +747,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_swift_double",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "double"
     },
@@ -759,7 +759,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_audiotrack_init",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": ".init()"
     },
@@ -770,7 +770,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_audiotrack_displayname",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": ".displayname"
     },
@@ -781,7 +781,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "simpleplay_core_models_audiotrack_audiotrack_color",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": ".color"
     },
@@ -917,7 +917,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "midilearntarget.swift"
     },
     {
@@ -930,7 +930,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_midilearntarget",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "midilearntarget"
     },
     {
@@ -941,7 +941,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_midilearntarget_section",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "section"
     },
     {
@@ -952,7 +952,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_swift_uuid",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "uuid"
     },
     {
@@ -963,7 +963,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_midilearntarget_looptoggle",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "looptoggle"
     },
     {
@@ -976,7 +976,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_midinoteassignment",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "midinoteassignment"
     },
     {
@@ -987,7 +987,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_swift_uint8",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "uint8"
     },
     {
@@ -998,7 +998,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_swift_bool",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "bool"
     },
     {
@@ -1010,7 +1010,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_midinoteassignment_init",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".init()"
     },
     {
@@ -1021,7 +1021,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_swift_string",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "string"
     },
     {
@@ -1032,7 +1032,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_midilearntarget_midinoteassignment_displayname",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".displayname"
     },
     {
@@ -1043,7 +1043,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "savedprojectdocument.swift"
     },
     {
@@ -1055,8 +1055,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_savedprojectdocument",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "savedprojectdocument"
     },
     {
@@ -1066,8 +1066,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_int",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "int"
     },
     {
@@ -1077,8 +1077,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_dawproject",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "dawproject"
     },
     {
@@ -1091,7 +1091,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_workspacesnapshot",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "workspacesnapshot"
     },
     {
@@ -1102,7 +1102,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_timeinterval",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "timeinterval"
     },
     {
@@ -1113,7 +1113,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_double",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "double"
     },
     {
@@ -1124,7 +1124,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_bool",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "bool"
     },
     {
@@ -1135,8 +1135,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_savedprojectdocument_init",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".init()"
     },
     {
@@ -1149,7 +1149,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_persistedclip",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "persistedclip"
     },
     {
@@ -1160,7 +1160,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_uuid",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "uuid"
     },
     {
@@ -1171,7 +1171,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_string",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "string"
     },
     {
@@ -1184,7 +1184,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_persistedtrack",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "persistedtrack"
     },
     {
@@ -1195,7 +1195,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_standardtrackrole",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "standardtrackrole"
     },
     {
@@ -1352,7 +1352,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_persistedtrack_init",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": ".init()"
     },
     {
@@ -1363,7 +1363,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_decoder",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "decoder"
     },
     {
@@ -1376,7 +1376,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_persistedproject",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "persistedproject"
     },
     {
@@ -1387,7 +1387,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_uint8",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "uint8"
     },
     {
@@ -1398,7 +1398,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_swift_int32",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": "int32"
     },
     {
@@ -1430,8 +1430,8 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_codingkeys_groups",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "groups"
     },
     {
@@ -1564,7 +1564,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_models_savedprojectdocument_persistedproject_init",
       "community": 24,
-      "community_name": "Equatable",
+      "community_name": "Sendable",
       "norm_label": ".init()"
     },
     {
@@ -1587,8 +1587,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionloopcontext_sectionloopcontext",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "sectionloopcontext"
     },
     {
@@ -1598,8 +1598,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionloopcontext_swift_uuid",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "uuid"
     },
     {
@@ -1609,8 +1609,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionloopcontext_swift_timeinterval",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "timeinterval"
     },
     {
@@ -1620,8 +1620,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionloopcontext_sectionloopcontext_duration",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".duration"
     },
     {
@@ -1631,8 +1631,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": "sectionplaybackmode.swift"
     },
     {
@@ -1644,8 +1644,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode_sectionplaybackmode",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": "sectionplaybackmode"
     },
     {
@@ -1666,8 +1666,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode_sectionplaybackmode_repeatsection",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": "repeatsection"
     },
     {
@@ -1677,8 +1677,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode_sectionplaybackmode_continuetimeline",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": "continuetimeline"
     },
     {
@@ -1688,8 +1688,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode_sectionplaybackmode_continuetonext",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": "continuetonext"
     },
     {
@@ -1699,8 +1699,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode_sectionplaybackmode_oneshot",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": "oneshot"
     },
     {
@@ -1710,8 +1710,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode_sectionplaybackmode_id",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": ".id"
     },
     {
@@ -1721,8 +1721,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "simpleplay_core_models_sectionplaybackmode_sectionplaybackmode_displayname",
-      "community": 20,
-      "community_name": "StandardTrackRole",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": ".displayname"
     },
     {
@@ -1858,8 +1858,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_models_standardtrackrole",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "standardtrackrole.swift"
     },
     {
@@ -2135,8 +2135,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "simpleplay_core_models_standardtrackrole_standardtrackrole_defaultcolor",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".defaultcolor"
     },
     {
@@ -2831,8 +2831,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "audiodeviceservice"
     },
     {
@@ -2843,8 +2843,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_listoutputdevices",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".listoutputdevices()"
     },
     {
@@ -2855,8 +2855,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_channelpairoptions",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".channelpairoptions()"
     },
     {
@@ -2866,8 +2866,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_swift_int",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "int"
     },
     {
@@ -2878,8 +2878,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_channelpairlabel",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".channelpairlabel()"
     },
     {
@@ -2889,8 +2889,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_swift_string",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "string"
     },
     {
@@ -2901,8 +2901,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_listoutputdevicesmac",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".listoutputdevicesmac()"
     },
     {
@@ -2913,8 +2913,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_devicehasoutput",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".devicehasoutput()"
     },
     {
@@ -2924,8 +2924,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "audiodeviceid",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "audiodeviceid"
     },
     {
@@ -2935,8 +2935,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_swift_bool",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "bool"
     },
     {
@@ -2947,8 +2947,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_outputchannelcount",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".outputchannelcount()"
     },
     {
@@ -2959,8 +2959,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_devicename",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".devicename()"
     },
     {
@@ -2971,8 +2971,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audiodeviceservice_audiodeviceservice_listoutputdevicesios",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".listoutputdevicesios()"
     },
     {
@@ -2995,8 +2995,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineerror",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "audioengineerror"
     },
     {
@@ -3017,8 +3017,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineerror_deviceselectionfailed",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "deviceselectionfailed"
     },
     {
@@ -3028,8 +3028,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineerror_enginestartfailed",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "enginestartfailed"
     },
     {
@@ -3039,8 +3039,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineerror_cliploadfailed",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "cliploadfailed"
     },
     {
@@ -3050,8 +3050,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_string",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "string"
     },
     {
@@ -3061,8 +3061,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineerror_noplayableclips",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "noplayableclips"
     },
     {
@@ -3072,8 +3072,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineerror_playbackunavailable",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "playbackunavailable"
     },
     {
@@ -3083,8 +3083,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineerror_errordescription",
-      "community": 65,
-      "community_name": "AudioEngineError",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".errordescription"
     },
     {
@@ -3096,8 +3096,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_scheduledclip",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "scheduledclip"
     },
     {
@@ -3118,8 +3118,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "avaudiofile",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "avaudiofile"
     },
     {
@@ -3129,8 +3129,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "avaudioplayernode",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "avaudioplayernode"
     },
     {
@@ -3140,8 +3140,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_avaudiounittimepitch",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "avaudiounittimepitch"
     },
     {
@@ -3186,8 +3186,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_timeinterval",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "timeinterval"
     },
     {
@@ -3265,8 +3265,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_dawproject",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "dawproject"
     },
     {
@@ -3276,8 +3276,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_bool",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "bool"
     },
     {
@@ -3299,8 +3299,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_attachclip",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".attachclip()"
     },
     {
@@ -3323,8 +3323,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_apply",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".apply()"
     },
     {
@@ -3347,8 +3347,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_updatetrackpitch",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".updatetrackpitch()"
     },
     {
@@ -3359,8 +3359,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_play",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".play()"
     },
     {
@@ -3371,8 +3371,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_appendsectionloopcycles",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".appendsectionloopcycles()"
     },
     {
@@ -3382,8 +3382,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_int",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "int"
     },
     {
@@ -3394,8 +3394,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_clearsectionloopstate",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".clearsectionloopstate()"
     },
     {
@@ -3406,8 +3406,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_pause",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".pause()"
     },
     {
@@ -3418,8 +3418,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_stop",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".stop()"
     },
     {
@@ -3430,8 +3430,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_shouldplayclip",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".shouldplayclip()"
     },
     {
@@ -3442,8 +3442,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_scheduleclip",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".scheduleclip()"
     },
     {
@@ -3454,8 +3454,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_scheduleclipwithsectionloop",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".scheduleclipwithsectionloop()"
     },
     {
@@ -3466,8 +3466,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_scheduleloopbody",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".scheduleloopbody()"
     },
     {
@@ -3478,8 +3478,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_scheduletimelinesegment",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".scheduletimelinesegment()"
     },
     {
@@ -3489,8 +3489,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_int64",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "int64"
     },
     {
@@ -3500,8 +3500,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "avaudiotime",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "avaudiotime"
     },
     {
@@ -3512,8 +3512,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_safelyresetplayer",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".safelyresetplayer()"
     },
     {
@@ -3524,8 +3524,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_safelyplayplayer",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".safelyplayplayer()"
     },
     {
@@ -3536,8 +3536,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_safelypauseplayer",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".safelypauseplayer()"
     },
     {
@@ -3548,8 +3548,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_safelystopplayer",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".safelystopplayer()"
     },
     {
@@ -3560,8 +3560,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_isnodeconnected",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".isnodeconnected()"
     },
     {
@@ -3571,8 +3571,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "avaudionode",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "avaudionode"
     },
     {
@@ -3594,8 +3594,8 @@
       "source_location": "L616",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_playbackgraphishealthy",
-      "community": 53,
-      "community_name": ".isNodeConnected",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".playbackgraphishealthy"
     },
     {
@@ -3772,8 +3772,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "avaudiopcmbuffer",
-      "community": 19,
-      "community_name": "AudioEngineService",
+      "community": 44,
+      "community_name": ".peaks",
       "norm_label": "avaudiopcmbuffer"
     },
     {
@@ -3784,8 +3784,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_setdefaultoutputdevice",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".setdefaultoutputdevice()"
     },
     {
@@ -3795,8 +3795,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_swift_uint32",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "uint32"
     },
     {
@@ -3807,8 +3807,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_audioengineservice_audioengineservice_configureaudiosession",
-      "community": 51,
-      "community_name": ".attachClip",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".configureaudiosession()"
     },
     {
@@ -4132,8 +4132,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_services_midiinputservice",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 47,
+      "community_name": "MIDIInputService",
       "norm_label": "midiinputservice.swift"
     },
     {
@@ -4144,8 +4144,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "coremidi",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 47,
+      "community_name": "MIDIInputService",
       "norm_label": "coremidi"
     },
     {
@@ -4216,8 +4216,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_midiinputservice_kind",
-      "community": 47,
-      "community_name": "MIDIInputService",
+      "community": 24,
+      "community_name": "Sendable",
       "norm_label": "kind"
     },
     {
@@ -4227,8 +4227,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "simpleplay_core_services_midiinputservice_kind_noteon",
-      "community": 47,
-      "community_name": "MIDIInputService",
+      "community": 24,
+      "community_name": "Sendable",
       "norm_label": "noteon"
     },
     {
@@ -4238,8 +4238,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "simpleplay_core_services_midiinputservice_kind_controlchange",
-      "community": 47,
-      "community_name": "MIDIInputService",
+      "community": 24,
+      "community_name": "Sendable",
       "norm_label": "controlchange"
     },
     {
@@ -4611,8 +4611,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_services_midioutputservice",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 47,
+      "community_name": "MIDIInputService",
       "norm_label": "midioutputservice.swift"
     },
     {
@@ -4740,8 +4740,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "projectpersistenceservice.swift"
     },
     {
@@ -4753,8 +4753,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceerror",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "projectpersistenceerror"
     },
     {
@@ -4764,8 +4764,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceerror_invalidpackage",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "invalidpackage"
     },
     {
@@ -4775,8 +4775,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceerror_missingmanifest",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "missingmanifest"
     },
     {
@@ -4786,8 +4786,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceerror_missingaudiofile",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": "missingaudiofile"
     },
     {
@@ -4797,8 +4797,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_swift_string",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "string"
     },
     {
@@ -4808,8 +4808,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceerror_unsupportedversion",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": "unsupportedversion"
     },
     {
@@ -4819,8 +4819,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_swift_int",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "int"
     },
     {
@@ -4830,8 +4830,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceerror_errordescription",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": ".errordescription"
     },
     {
@@ -4843,8 +4843,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": "projectpersistenceservice"
     },
     {
@@ -4855,8 +4855,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_exportdata",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".exportdata()"
     },
     {
@@ -4866,8 +4866,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_swift_data",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "data"
     },
     {
@@ -4878,8 +4878,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_save",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".save()"
     },
     {
@@ -4889,8 +4889,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_swift_url",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": "url"
     },
     {
@@ -4901,8 +4901,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_load",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".load()"
     },
     {
@@ -4913,8 +4913,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_buildarchivepayload",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".buildarchivepayload()"
     },
     {
@@ -4925,8 +4925,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_loadlegacypackage",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".loadlegacypackage()"
     },
     {
@@ -4937,8 +4937,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_islegacypackage",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".islegacypackage()"
     },
     {
@@ -4948,8 +4948,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_swift_bool",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": "bool"
     },
     {
@@ -4960,8 +4960,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_openedprojectcacheroot",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".openedprojectcacheroot()"
     },
     {
@@ -4971,8 +4971,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_swift_uuid",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": "uuid"
     },
     {
@@ -4983,8 +4983,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_normalizedprojecturl",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".normalizedprojecturl()"
     },
     {
@@ -4995,8 +4995,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_preparedirectory",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".preparedirectory()"
     },
     {
@@ -5007,8 +5007,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_prepareparentdirectory",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".prepareparentdirectory()"
     },
     {
@@ -5019,8 +5019,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_makepersistedproject",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".makepersistedproject()"
     },
     {
@@ -5030,8 +5030,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_swift_dawproject",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": "dawproject"
     },
     {
@@ -5042,8 +5042,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_restoreruntimeproject",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".restoreruntimeproject()"
     },
     {
@@ -5054,8 +5054,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_projectpersistenceservice_migratelegacygrouppitch",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 23,
+      "community_name": "ProjectPersistenceService",
       "norm_label": ".migratelegacygrouppitch()"
     },
     {
@@ -5067,8 +5067,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_manifestfile",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "manifestfile"
     },
     {
@@ -5080,8 +5080,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_jsonencoder",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "jsonencoder"
     },
     {
@@ -5091,8 +5091,8 @@
       "source_location": "L300",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_jsonencoder_pretty",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": ".pretty"
     },
     {
@@ -5104,8 +5104,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_jsondecoder",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": "jsondecoder"
     },
     {
@@ -5115,8 +5115,8 @@
       "source_location": "L309",
       "_origin": "ast",
       "id": "simpleplay_core_services_projectpersistenceservice_jsondecoder_projectdecoder",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 15,
+      "community_name": "ProjectPersistenceError",
       "norm_label": ".projectdecoder"
     },
     {
@@ -5140,7 +5140,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "trackorganizationservice"
     },
     {
@@ -5153,7 +5153,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_importplacement",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "importplacement"
     },
     {
@@ -5164,7 +5164,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_importplacement_appendnewgroup",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "appendnewgroup"
     },
     {
@@ -5175,7 +5175,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_swift_timeinterval",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "timeinterval"
     },
     {
@@ -5186,7 +5186,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_importplacement_insertintogroup",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "insertintogroup"
     },
     {
@@ -5197,7 +5197,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_swift_int",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "int"
     },
     {
@@ -5210,7 +5210,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_importedstem",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "importedstem"
     },
     {
@@ -5221,7 +5221,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_swift_url",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "url"
     },
     {
@@ -5232,7 +5232,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_swift_string",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "string"
     },
     {
@@ -5244,7 +5244,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_buildtracks",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".buildtracks()"
     },
     {
@@ -5256,7 +5256,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_merge",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".merge()"
     },
     {
@@ -5267,7 +5267,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_swift_dawproject",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": "dawproject"
     },
     {
@@ -5279,7 +5279,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_importstems",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".importstems()"
     },
     {
@@ -5291,7 +5291,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_appendnewgroup",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".appendnewgroup()"
     },
     {
@@ -5303,7 +5303,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_insertintogroup",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".insertintogroup()"
     },
     {
@@ -5315,7 +5315,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_insertionindexaftergroup",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".insertionindexaftergroup()"
     },
     {
@@ -5327,7 +5327,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_inserttracksintogroup",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".inserttracksintogroup()"
     },
     {
@@ -5339,7 +5339,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_sorttrackspreservinggroupblocks",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".sorttrackspreservinggroupblocks()"
     },
     {
@@ -5351,7 +5351,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_importinitial",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".importinitial()"
     },
     {
@@ -5363,7 +5363,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_sorttracks",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".sorttracks()"
     },
     {
@@ -5375,7 +5375,7 @@
       "_origin": "ast",
       "id": "simpleplay_core_services_trackorganizationservice_trackorganizationservice_mergetracks",
       "community": 31,
-      "community_name": "Sendable",
+      "community_name": "AudioTrack",
       "norm_label": ".mergetracks()"
     },
     {
@@ -5780,8 +5780,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_services_waveformloadmonitor_waveformloadmonitor_reset",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".reset()"
     },
     {
@@ -5909,8 +5909,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_pitchshiftsettings",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": "pitchshiftsettings"
     },
     {
@@ -5920,8 +5920,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_swift_double",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": "double"
     },
     {
@@ -5931,8 +5931,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_swift_float",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": "float"
     },
     {
@@ -5943,8 +5943,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_pitchshiftsettings_clampsemitones",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": ".clampsemitones()"
     },
     {
@@ -5955,8 +5955,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_pitchshiftsettings_cents",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": ".cents()"
     },
     {
@@ -5967,8 +5967,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_pitchshiftsettings_apply",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": ".apply()"
     },
     {
@@ -5978,8 +5978,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_swift_avaudiounittimepitch",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": "avaudiounittimepitch"
     },
     {
@@ -5991,8 +5991,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_dawproject",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "dawproject"
     },
     {
@@ -6003,8 +6003,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_dawproject_pitchsemitones",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".pitchsemitones()"
     },
     {
@@ -6014,8 +6014,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_swift_uuid",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "uuid"
     },
     {
@@ -6026,8 +6026,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_dawproject_track",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".track()"
     },
     {
@@ -6037,8 +6037,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_swift_int",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "int"
     },
     {
@@ -6049,8 +6049,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_dawproject_group",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".group()"
     },
     {
@@ -6061,8 +6061,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_dawproject_primarygroupid",
-      "community": 64,
-      "community_name": "DAWProject",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".primarygroupid()"
     },
     {
@@ -6073,8 +6073,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_pitchshiftsettings_dawproject_tracks",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".tracks()"
     },
     {
@@ -6084,8 +6084,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_utils_projectfilepanel",
-      "community": 39,
-      "community_name": "MacWindowTitleBarHidden.swift",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "projectfilepanel.swift"
     },
     {
@@ -6096,8 +6096,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "appkit",
-      "community": 39,
-      "community_name": "MacWindowTitleBarHidden.swift",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "appkit"
     },
     {
@@ -6109,8 +6109,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_projectfilepanel_projectfilepanel",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "projectfilepanel"
     },
     {
@@ -6121,8 +6121,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_projectfilepanel_projectfilepanel_choosesaveurl",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".choosesaveurl()"
     },
     {
@@ -6132,8 +6132,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_projectfilepanel_swift_string",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "string"
     },
     {
@@ -6143,8 +6143,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_projectfilepanel_swift_url",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": "url"
     },
     {
@@ -6155,8 +6155,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_projectfilepanel_projectfilepanel_chooseopenurl",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".chooseopenurl()"
     },
     {
@@ -6191,8 +6191,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_sectionloopdiagnostics",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "sectionloopdiagnostics"
     },
     {
@@ -6203,8 +6203,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_sectionloopdiagnostics_log",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".log()"
     },
     {
@@ -6214,8 +6214,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_swift_string",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "string"
     },
     {
@@ -6226,8 +6226,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_sectionloopdiagnostics_logplaybackstart",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".logplaybackstart()"
     },
     {
@@ -6237,8 +6237,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_swift_timeinterval",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "timeinterval"
     },
     {
@@ -6248,8 +6248,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_swift_double",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "double"
     },
     {
@@ -6260,8 +6260,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_sectionloopdiagnostics_logtimelinewrap",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".logtimelinewrap()"
     },
     {
@@ -6272,8 +6272,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_sectionloopdiagnostics_logscheduledsegment",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".logscheduledsegment()"
     },
     {
@@ -6283,8 +6283,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_sectionloopdiagnostics_swift_int64",
-      "community": 58,
-      "community_name": ".log",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "int64"
     },
     {
@@ -6294,8 +6294,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "avaudioframecount",
-      "community": 15,
-      "community_name": "SectionLoopContext",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "avaudioframecount"
     },
     {
@@ -6797,8 +6797,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_snapgrid_snapgrid_snap",
-      "community": 21,
-      "community_name": ".applyImportedStems",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".snap()"
     },
     {
@@ -6808,8 +6808,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_snapgrid_swift_timeinterval",
-      "community": 21,
-      "community_name": ".applyImportedStems",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": "timeinterval"
     },
     {
@@ -6819,8 +6819,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_snapgrid_swift_bool",
-      "community": 21,
-      "community_name": ".applyImportedStems",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": "bool"
     },
     {
@@ -6944,8 +6944,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_supportedaudioformats_supportedaudioformats_issupported",
-      "community": 21,
-      "community_name": ".applyImportedStems",
+      "community": 18,
+      "community_name": "AudioImportService",
       "norm_label": ".issupported()"
     },
     {
@@ -6955,8 +6955,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_supportedaudioformats_swift_url",
-      "community": 21,
-      "community_name": ".applyImportedStems",
+      "community": 18,
+      "community_name": "AudioImportService",
       "norm_label": "url"
     },
     {
@@ -6966,8 +6966,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_supportedaudioformats_swift_bool",
-      "community": 21,
-      "community_name": ".applyImportedStems",
+      "community": 18,
+      "community_name": "AudioImportService",
       "norm_label": "bool"
     },
     {
@@ -6977,8 +6977,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timeformatting",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "timeformatting.swift"
     },
     {
@@ -6990,8 +6990,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timeformatting_timeformatting",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "timeformatting"
     },
     {
@@ -7002,8 +7002,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timeformatting_timeformatting_format",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".format()"
     },
     {
@@ -7013,8 +7013,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timeformatting_swift_timeinterval",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "timeinterval"
     },
     {
@@ -7024,8 +7024,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timeformatting_swift_bool",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "bool"
     },
     {
@@ -7035,8 +7035,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timeformatting_swift_string",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "string"
     },
     {
@@ -7046,8 +7046,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinerulerscale",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": "timelinerulerscale.swift"
     },
     {
@@ -7058,8 +7058,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "coregraphics",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": "coregraphics"
     },
     {
@@ -7164,8 +7164,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_timelinesamplegrid",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "timelinesamplegrid"
     },
     {
@@ -7176,8 +7176,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_timelinesamplegrid_sampleduration",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".sampleduration()"
     },
     {
@@ -7187,8 +7187,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_swift_double",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "double"
     },
     {
@@ -7198,8 +7198,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_swift_timeinterval",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "timeinterval"
     },
     {
@@ -7210,8 +7210,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_timelinesamplegrid_frames",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".frames()"
     },
     {
@@ -7221,8 +7221,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_swift_int64",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "int64"
     },
     {
@@ -7233,8 +7233,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_timelinesamplegrid_timefromframe",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".timefromframe()"
     },
     {
@@ -7245,8 +7245,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_timelinesamplegrid_quantize",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".quantize()"
     },
     {
@@ -7257,8 +7257,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_timelinesamplegrid_snapsectionboundary",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".snapsectionboundary()"
     },
     {
@@ -7268,8 +7268,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_timelinesamplegrid_swift_bool",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "bool"
     },
     {
@@ -7279,8 +7279,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "trackcolorpalette.swift"
     },
     {
@@ -7292,8 +7292,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_trackcolorpalette",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "trackcolorpalette"
     },
     {
@@ -7303,8 +7303,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_swift_string",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "string"
     },
     {
@@ -7315,8 +7315,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_trackcolorpalette_color",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".color()"
     },
     {
@@ -7326,8 +7326,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_swift_standardtrackrole",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "standardtrackrole"
     },
     {
@@ -7337,8 +7337,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_swift_int",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "int"
     },
     {
@@ -7349,8 +7349,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_trackcolorpalette_hex",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".hex()"
     },
     {
@@ -7361,8 +7361,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_trackcolorpalette_assigndistinctcolors",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".assigndistinctcolors()"
     },
     {
@@ -7373,8 +7373,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_trackcolorpalette_ensuredistinctcolors",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".ensuredistinctcolors()"
     },
     {
@@ -7385,8 +7385,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_trackcolorpalette_paletteindex",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".paletteindex()"
     },
     {
@@ -7398,8 +7398,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_standardtrackrole",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "standardtrackrole"
     },
     {
@@ -7409,8 +7409,8 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_standardtrackrole_fallbackcolor",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".fallbackcolor"
     },
     {
@@ -7422,7 +7422,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_dawproject",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "dawproject"
     },
@@ -7433,7 +7433,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_swift_bool",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": "bool"
     },
@@ -7444,7 +7444,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_dawproject_hassolotracks",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": ".hassolotracks"
     },
@@ -7456,7 +7456,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_dawproject_istrackdisplayedincolor",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": ".istrackdisplayedincolor()"
     },
@@ -7468,7 +7468,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_dawproject_displaycolor",
-      "community": 40,
+      "community": 31,
       "community_name": "AudioTrack",
       "norm_label": ".displaycolor()"
     },
@@ -7481,8 +7481,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_color",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "color"
     },
     {
@@ -7493,8 +7493,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_trackcolorpalette_color_init",
-      "community": 27,
-      "community_name": "Color",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".init()"
     },
     {
@@ -7784,8 +7784,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_core_utils_waveformlod",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": "waveformlod.swift"
     },
     {
@@ -7797,8 +7797,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_waveformlod_waveformlod",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": "waveformlod"
     },
     {
@@ -7809,8 +7809,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_waveformlod_waveformlod_targetsamplecount",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": ".targetsamplecount()"
     },
     {
@@ -7820,8 +7820,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_waveformlod_swift_cgfloat",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": "cgfloat"
     },
     {
@@ -7831,8 +7831,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_core_utils_waveformlod_swift_int",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": "int"
     },
     {
@@ -7843,8 +7843,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_core_utils_waveformlod_waveformlod_loadbucket",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": ".loadbucket()"
     },
     {
@@ -7889,8 +7889,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_filecommands_filecommands_body",
-      "community": 49,
-      "community_name": "FileCommands",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".body"
     },
     {
@@ -7924,8 +7924,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_transportcommands_transportcommands_body",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".body"
     },
     {
@@ -7948,8 +7948,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "viewmodifier",
-      "community": 4,
-      "community_name": "TrackLaneView",
+      "community": 16,
+      "community_name": "TimelineWorkspacePanel",
       "norm_label": "viewmodifier"
     },
     {
@@ -7960,8 +7960,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_transportcommands_workspacekeyboardshortcuts_body",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": ".body()"
     },
     {
@@ -7971,8 +7971,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_transportcommands_swift_content",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": "content"
     },
     {
@@ -7982,8 +7982,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_transportcommands_swift_view",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": "view"
     },
     {
@@ -8075,8 +8075,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_swift_closedrange",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": "closedrange"
     },
     {
@@ -8100,7 +8100,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_importpanelkind",
       "community": 63,
-      "community_name": ".presentImportPanel",
+      "community_name": ".snap",
       "norm_label": "importpanelkind"
     },
     {
@@ -8111,7 +8111,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_importpanelkind_audiofiles",
       "community": 63,
-      "community_name": ".presentImportPanel",
+      "community_name": ".snap",
       "norm_label": "audiofiles"
     },
     {
@@ -8122,7 +8122,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_importpanelkind_folder",
       "community": 63,
-      "community_name": ".presentImportPanel",
+      "community_name": ".snap",
       "norm_label": "folder"
     },
     {
@@ -8165,8 +8165,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_swift_int",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": "int"
     },
     {
@@ -8178,8 +8178,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_sectiondragkind",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": "sectiondragkind"
     },
     {
@@ -8189,8 +8189,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_sectiondragkind_move",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": "move"
     },
     {
@@ -8200,8 +8200,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_sectiondragkind_resizestart",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": "resizestart"
     },
     {
@@ -8211,8 +8211,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_sectiondragkind_resizeend",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": "resizeend"
     },
     {
@@ -8360,8 +8360,8 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_activesectionedgeguides",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 26,
+      "community_name": "TimeInterval",
       "norm_label": ".activesectionedgeguides"
     },
     {
@@ -8371,8 +8371,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "timer",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 26,
+      "community_name": "TimeInterval",
       "norm_label": "timer"
     },
     {
@@ -8428,8 +8428,8 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_formattedcurrenttime",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".formattedcurrenttime"
     },
     {
@@ -8439,8 +8439,8 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_formattedduration",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".formattedduration"
     },
     {
@@ -8498,7 +8498,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_presentimportpanel",
       "community": 63,
-      "community_name": ".presentImportPanel",
+      "community_name": ".snap",
       "norm_label": ".presentimportpanel()"
     },
     {
@@ -8509,8 +8509,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_presentaddtrackimport",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".presentaddtrackimport()"
     },
     {
@@ -8545,8 +8545,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_clampzoomtotimelinelimits",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".clampzoomtotimelinelimits()"
     },
     {
@@ -8581,8 +8581,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_performresetsession",
-      "community": 33,
-      "community_name": ".body",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".performresetsession()"
     },
     {
@@ -8593,8 +8593,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_createnewproject",
-      "community": 33,
-      "community_name": ".body",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".createnewproject()"
     },
     {
@@ -8616,8 +8616,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_makeemptyproject",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".makeemptyproject()"
     },
     {
@@ -8627,8 +8627,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_swift_dawproject",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": "dawproject"
     },
     {
@@ -8639,8 +8639,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_replaceproject",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".replaceproject()"
     },
     {
@@ -8651,8 +8651,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_activegroupindex",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".activegroupindex()"
     },
     {
@@ -8675,8 +8675,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_resolvedaddtrackstarttime",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".resolvedaddtrackstarttime()"
     },
     {
@@ -8710,8 +8710,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_configureaudioengine",
-      "community": 19,
-      "community_name": "AudioEngineService",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".configureaudioengine()"
     },
     {
@@ -8794,8 +8794,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_saveproject",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".saveproject()"
     },
     {
@@ -8806,8 +8806,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_saveprojectas",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".saveprojectas()"
     },
     {
@@ -8818,8 +8818,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_openproject",
-      "community": 49,
-      "community_name": "FileCommands",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".openproject()"
     },
     {
@@ -8877,8 +8877,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_makesaveddocument",
-      "community": 24,
-      "community_name": "Equatable",
+      "community": 42,
+      "community_name": "SavedProjectDocument",
       "norm_label": ".makesaveddocument()"
     },
     {
@@ -8889,8 +8889,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_applyloadedproject",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".applyloadedproject()"
     },
     {
@@ -8925,8 +8925,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_resolveimportstarttime",
-      "community": 21,
-      "community_name": ".applyImportedStems",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".resolveimportstarttime()"
     },
     {
@@ -9045,8 +9045,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_scrolltimelinetostart",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 77,
+      "community_name": "CGFloat",
       "norm_label": ".scrolltimelinetostart()"
     },
     {
@@ -9117,8 +9117,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_setmastervolume",
-      "community": 70,
-      "community_name": ".setMasterVolume",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".setmastervolume()"
     },
     {
@@ -9153,8 +9153,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_trackmeterlevel",
-      "community": 67,
-      "community_name": ".groupMasterStrip",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".trackmeterlevel()"
     },
     {
@@ -9164,8 +9164,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_swift_float",
-      "community": 67,
-      "community_name": ".groupMasterStrip",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": "float"
     },
     {
@@ -9176,8 +9176,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_groupmeterlevel",
-      "community": 67,
-      "community_name": ".groupMasterStrip",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".groupmeterlevel()"
     },
     {
@@ -9199,8 +9199,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_istrackaudibleatplayhead",
-      "community": 43,
-      "community_name": ".body",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".istrackaudibleatplayhead()"
     },
     {
@@ -9211,8 +9211,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_applyaudiosettings",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".applyaudiosettings()"
     },
     {
@@ -9223,8 +9223,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_refreshaudiodevices",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".refreshaudiodevices()"
     },
     {
@@ -9258,8 +9258,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_resetselectedtrackpitch",
-      "community": 62,
-      "community_name": "TrackPitchControlView",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".resetselectedtrackpitch()"
     },
     {
@@ -9270,8 +9270,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_toggleselectionloop",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 26,
+      "community_name": "TimeInterval",
       "norm_label": ".toggleselectionloop()"
     },
     {
@@ -9330,8 +9330,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_resyncplaybackifneeded",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".resyncplaybackifneeded()"
     },
     {
@@ -9390,8 +9390,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_trackdragvisualoffset",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".trackdragvisualoffset()"
     },
     {
@@ -9402,8 +9402,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_showstrackdropindicator",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".showstrackdropindicator()"
     },
     {
@@ -9462,8 +9462,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_selectclipsintersecting",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": ".selectclipsintersecting()"
     },
     {
@@ -9498,8 +9498,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_movetrack",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".movetrack()"
     },
     {
@@ -9510,8 +9510,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_addsection",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 14,
+      "community_name": "ArrangementSection",
       "norm_label": ".addsection()"
     },
     {
@@ -9546,8 +9546,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_commitsectioncreation",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": ".commitsectioncreation()"
     },
     {
@@ -9558,8 +9558,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_cancelsectioncreation",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": ".cancelsectioncreation()"
     },
     {
@@ -9582,8 +9582,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_normalizedsectionboundary",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": ".normalizedsectionboundary()"
     },
     {
@@ -9594,8 +9594,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_normalizedsectionrange",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": ".normalizedsectionrange()"
     },
     {
@@ -9617,8 +9617,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_samplealignedsectionbounds",
-      "community": 26,
-      "community_name": "TimeInterval",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".samplealignedsectionbounds()"
     },
     {
@@ -9629,8 +9629,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_nextsectionmarkername",
-      "community": 66,
-      "community_name": ".addSection",
+      "community": 52,
+      "community_name": "WorkspaceViewModel",
       "norm_label": ".nextsectionmarkername()"
     },
     {
@@ -9641,8 +9641,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_selectsection",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".selectsection()"
     },
     {
@@ -9665,8 +9665,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_updatesectionmovepreview",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".updatesectionmovepreview()"
     },
     {
@@ -9677,8 +9677,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_clearsectionmovepreview",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".clearsectionmovepreview()"
     },
     {
@@ -9689,8 +9689,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_beginsectiondrag",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".beginsectiondrag()"
     },
     {
@@ -9701,8 +9701,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_cancelsectiondrag",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".cancelsectiondrag()"
     },
     {
@@ -9713,8 +9713,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_updatesectiondragpreview",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".updatesectiondragpreview()"
     },
     {
@@ -9725,8 +9725,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_rawtimefromtimelinex",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".rawtimefromtimelinex()"
     },
     {
@@ -9737,8 +9737,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_previewrangeforsectiondrag",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".previewrangeforsectiondrag()"
     },
     {
@@ -9749,8 +9749,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_commitsectiondragpreview",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".commitsectiondragpreview()"
     },
     {
@@ -9761,8 +9761,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_clearsectiondragstate",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".clearsectiondragstate()"
     },
     {
@@ -9773,8 +9773,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_updatesectionmidi",
-      "community": 26,
-      "community_name": "TimeInterval",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".updatesectionmidi()"
     },
     {
@@ -9784,8 +9784,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_swift_uint8",
-      "community": 26,
-      "community_name": "TimeInterval",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": "uint8"
     },
     {
@@ -9797,7 +9797,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_deletesection",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": ".deletesection()"
     },
     {
@@ -9808,8 +9808,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_requestdeletesection",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".requestdeletesection()"
     },
     {
@@ -9821,7 +9821,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_cancelsectiondeletion",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": ".cancelsectiondeletion()"
     },
     {
@@ -9833,7 +9833,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_confirmpendingsectiondeletion",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": ".confirmpendingsectiondeletion()"
     },
     {
@@ -9964,7 +9964,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_startmidilearn",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".startmidilearn()"
     },
     {
@@ -9976,7 +9976,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_cancelmidilearn",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".cancelmidilearn()"
     },
     {
@@ -9998,8 +9998,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_toggleplayback",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 26,
+      "community_name": "TimeInterval",
       "norm_label": ".toggleplayback()"
     },
     {
@@ -10034,8 +10034,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel_stop",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".stop()"
     },
     {
@@ -10117,8 +10117,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 76,
+      "community_name": "TopToolbarView.swift",
       "norm_label": "midimappingbarview.swift"
     },
     {
@@ -10129,8 +10129,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "uikit",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 76,
+      "community_name": "TopToolbarView.swift",
       "norm_label": "uikit"
     },
     {
@@ -10142,7 +10142,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": "midimappingbarview"
     },
@@ -10153,7 +10153,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_swift_bool",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": "bool"
     },
@@ -10161,88 +10161,32 @@
       "label": ".isCompact",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L19",
+      "source_location": "L18",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_iscompact",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": ".iscompact"
-    },
-    {
-      "label": "Animation",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "animation",
-      "community": 23,
-      "community_name": "MIDIMappingBarView",
-      "norm_label": "animation"
-    },
-    {
-      "label": ".mappingPanelAnimation",
-      "file_type": "code",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L23",
-      "_origin": "ast",
-      "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_mappingpanelanimation",
-      "community": 23,
-      "community_name": "MIDIMappingBarView",
-      "norm_label": ".mappingpanelanimation"
     },
     {
       "label": ".body",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L30",
+      "source_location": "L22",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_body",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": ".body"
-    },
-    {
-      "label": "AnyTransition",
-      "file_type": "code",
-      "source_file": "",
-      "source_location": "",
-      "_origin": "ast",
-      "id": "anytransition",
-      "community": 23,
-      "community_name": "MIDIMappingBarView",
-      "norm_label": "anytransition"
-    },
-    {
-      "label": ".expandedPanelTransition",
-      "file_type": "code",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L63",
-      "_origin": "ast",
-      "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_expandedpaneltransition",
-      "community": 23,
-      "community_name": "MIDIMappingBarView",
-      "norm_label": ".expandedpaneltransition"
-    },
-    {
-      "label": ".setMappingExpanded()",
-      "file_type": "code",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L78",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_setmappingexpanded",
-      "community": 23,
-      "community_name": "MIDIMappingBarView",
-      "norm_label": ".setmappingexpanded()"
     },
     {
       "label": ".collapsedBar",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L82",
+      "source_location": "L52",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_collapsedbar",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": ".collapsedbar"
     },
@@ -10250,10 +10194,10 @@
       "label": ".collapsedBarContent",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L100",
+      "source_location": "L70",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_collapsedbarcontent",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": ".collapsedbarcontent"
     },
@@ -10261,7 +10205,7 @@
       "label": ".devicePicker",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L149",
+      "source_location": "L121",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_devicepicker",
       "community": 47,
@@ -10272,10 +10216,10 @@
       "label": ".devicePickerLabel",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L226",
+      "source_location": "L198",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_devicepickerlabel",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": ".devicepickerlabel"
     },
@@ -10286,7 +10230,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_swift_string",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": "string"
     },
@@ -10294,10 +10238,10 @@
       "label": ".devicePickerTitle",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L251",
+      "source_location": "L223",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_devicepickertitle",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": ".devicepickertitle"
     },
@@ -10305,10 +10249,10 @@
       "label": ".devicePickerTitleColor",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L255",
+      "source_location": "L227",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_devicepickertitlecolor",
-      "community": 23,
+      "community": 57,
       "community_name": "MIDIMappingBarView",
       "norm_label": ".devicepickertitlecolor"
     },
@@ -10316,67 +10260,67 @@
       "label": ".loopQuickButton",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L259",
+      "source_location": "L231",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopquickbutton",
-      "community": 23,
-      "community_name": "MIDIMappingBarView",
+      "community": 61,
+      "community_name": "View",
       "norm_label": ".loopquickbutton"
     },
     {
       "label": ".loopAssignmentLabel",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L286",
+      "source_location": "L258",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopassignmentlabel",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".loopassignmentlabel"
     },
     {
       "label": ".expandedPanel",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L293",
+      "source_location": "L265",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_expandedpanel",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".expandedpanel"
     },
     {
       "label": ".learnBanner",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L327",
+      "source_location": "L299",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_learnbanner",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".learnbanner"
     },
     {
       "label": ".loopMappingCard",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L367",
+      "source_location": "L339",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopmappingcard",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".loopmappingcard"
     },
     {
       "label": ".sectionMappingCard()",
       "file_type": "code",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L409",
+      "source_location": "L381",
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_sectionmappingcard",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".sectionmappingcard()"
     },
     {
@@ -10386,8 +10330,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "mixerpanelview.swift"
     },
     {
@@ -10520,8 +10464,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_mixerpanelview_mixerscrollwithpinnedmasters",
-      "community": 34,
-      "community_name": "MixerPanelView",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".mixerscrollwithpinnedmasters"
     },
     {
@@ -10564,8 +10508,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_mixerpanelview_mastersstriprow",
-      "community": 67,
-      "community_name": ".groupMasterStrip",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".mastersstriprow"
     },
     {
@@ -10631,8 +10575,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_mixerpanelview_mixerchannelstrip",
-      "community": 34,
-      "community_name": "MixerPanelView",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".mixerchannelstrip()"
     },
     {
@@ -10643,8 +10587,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_mixerpanelview_groupmasterstrip",
-      "community": 67,
-      "community_name": ".groupMasterStrip",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".groupmasterstrip()"
     },
     {
@@ -10654,8 +10598,8 @@
       "source_location": "L306",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_mixerpanelview_projectmasterstrip",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".projectmasterstrip"
     },
     {
@@ -10666,8 +10610,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_mixerpanelview_groupshortname",
-      "community": 67,
-      "community_name": ".groupMasterStrip",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".groupshortname()"
     },
     {
@@ -10677,8 +10621,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_swift_string",
-      "community": 67,
-      "community_name": ".groupMasterStrip",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "string"
     },
     {
@@ -10757,8 +10701,8 @@
       "source_location": "L376",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_mixerpanelview_mixerpanelview_mastervolumebinding",
-      "community": 70,
-      "community_name": ".setMasterVolume",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".mastervolumebinding"
     },
     {
@@ -10803,8 +10747,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_audiosettings",
-      "community": 38,
-      "community_name": "AudioDeviceService",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".audiosettings"
     },
     {
@@ -10858,8 +10802,8 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_trackpitch",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".trackpitch"
     },
     {
@@ -10902,8 +10846,8 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_selectedtrackpitchbinding",
-      "community": 2,
-      "community_name": "PropertiesSidebarView",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".selectedtrackpitchbinding"
     },
     {
@@ -10979,8 +10923,8 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_sectioneditor",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".sectioneditor"
     },
     {
@@ -10991,7 +10935,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_selectedmarkereditor",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": ".selectedmarkereditor"
     },
     {
@@ -11012,8 +10956,8 @@
       "source_location": "L299",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_selectioninfo",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".selectioninfo"
     },
     {
@@ -11023,8 +10967,8 @@
       "source_location": "L320",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_playbacksettings",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".playbacksettings"
     },
     {
@@ -11034,8 +10978,8 @@
       "source_location": "L331",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_volumecontrols",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".volumecontrols"
     },
     {
@@ -11056,8 +11000,8 @@
       "source_location": "L363",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_propertiessidebarview_propertiessidebarview_mastervolumebinding",
-      "community": 70,
-      "community_name": ".setMasterVolume",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".mastervolumebinding"
     },
     {
@@ -11286,8 +11230,8 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_sectionmarkerlaneview_sectionmarkerghostchipview_body",
-      "community": 55,
-      "community_name": ".format",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".body"
     },
     {
@@ -11354,8 +11298,8 @@
       "source_location": "L318",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_sectionmarkerlaneview_sectionmarkerchipview_chipmoveortapgesture",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".chipmoveortapgesture"
     },
     {
@@ -11435,8 +11379,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_sectionmarkerlaneview_sectionmarkerchipview_sectiondraggesture",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 40,
+      "community_name": ".previewRangeForSectionDrag",
       "norm_label": ".sectiondraggesture()"
     },
     {
@@ -12169,8 +12113,8 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_timelineworkspacepanel_timelineworkspacepanel_pinnedtimelineheaders",
-      "community": 16,
-      "community_name": "TimelineWorkspacePanel",
+      "community": 4,
+      "community_name": "TrackLaneView",
       "norm_label": ".pinnedtimelineheaders"
     },
     {
@@ -12191,8 +12135,8 @@
       "source_location": "L121",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_timelineworkspacepanel_timelineworkspacepanel_trackheadercolumntracksonly",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 63,
+      "community_name": ".snap",
       "norm_label": ".trackheadercolumntracksonly"
     },
     {
@@ -12202,8 +12146,8 @@
       "source_location": "L156",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_timelineworkspacepanel_timelineworkspacepanel_markerheaderrow",
-      "community": 16,
-      "community_name": "TimelineWorkspacePanel",
+      "community": 61,
+      "community_name": "View",
       "norm_label": ".markerheaderrow"
     },
     {
@@ -12362,8 +12306,8 @@
       "source_location": "L392",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_timelineworkspacepanel_timelineworkspacepanel_tracklanes",
-      "community": 52,
-      "community_name": "WorkspaceViewModel",
+      "community": 16,
+      "community_name": "TimelineWorkspacePanel",
       "norm_label": ".tracklanes"
     },
     {
@@ -12373,8 +12317,8 @@
       "source_location": "L416",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_timelineworkspacepanel_timelineworkspacepanel_sectionedgeguides",
-      "community": 1,
-      "community_name": "SectionMarkerChipView",
+      "community": 16,
+      "community_name": "TimelineWorkspacePanel",
       "norm_label": ".sectionedgeguides"
     },
     {
@@ -12490,8 +12434,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_swift_bool",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": "bool"
     },
     {
@@ -12589,8 +12533,8 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_toptoolbarview_projectsessionbutton",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": ".projectsessionbutton"
     },
     {
@@ -12611,8 +12555,8 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_toptoolbarview_importbutton",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": ".importbutton"
     },
     {
@@ -12623,8 +12567,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_toptoolbarview_importmenu",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": ".importmenu()"
     },
     {
@@ -12635,8 +12579,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_toptoolbarview_projectsessionmenu",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": ".projectsessionmenu()"
     },
     {
@@ -12647,7 +12591,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_toptoolbarview_importmenuitems",
       "community": 63,
-      "community_name": ".presentImportPanel",
+      "community_name": ".snap",
       "norm_label": ".importmenuitems"
     },
     {
@@ -12788,7 +12732,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_dawsecondarybuttonstyle",
       "community": 57,
-      "community_name": "MIDINoteAssignment",
+      "community_name": "MIDIMappingBarView",
       "norm_label": "dawsecondarybuttonstyle"
     },
     {
@@ -12862,8 +12806,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_toptoolbarview_toolbarmenubuttonstylemodifier",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": "toolbarmenubuttonstylemodifier"
     },
     {
@@ -12896,8 +12840,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "trackheadercolumnview.swift"
     },
     {
@@ -12909,8 +12853,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_trackheaderrowview",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "trackheaderrowview"
     },
     {
@@ -12920,8 +12864,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_trackheaderrowview_livetrack",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".livetrack"
     },
     {
@@ -12931,8 +12875,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_trackheaderrowview_displaycolor",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".displaycolor"
     },
     {
@@ -12942,8 +12886,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_trackheaderrowview_body",
-      "community": 43,
-      "community_name": ".body",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".body"
     },
     {
@@ -12953,8 +12897,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_swift_binding",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "binding"
     },
     {
@@ -12964,8 +12908,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_swift_double",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "double"
     },
     {
@@ -12975,8 +12919,8 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_trackheaderrowview_trackvolumebinding",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".trackvolumebinding"
     },
     {
@@ -12986,8 +12930,8 @@
       "source_location": "L120",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_trackheaderrowview_trackpan",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".trackpan"
     },
     {
@@ -12999,8 +12943,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackheadercolumnview_trackreorderhandle",
-      "community": 43,
-      "community_name": ".body",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "trackreorderhandle"
     },
     {
@@ -13056,8 +13000,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_trackpitchcontrolview_trackpitchcontrolview_pitchmenu",
-      "community": 62,
-      "community_name": "TrackPitchControlView",
+      "community": 69,
+      "community_name": "UUID",
       "norm_label": ".pitchmenu"
     },
     {
@@ -13402,8 +13346,8 @@
       "source_location": "L163",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_transportbarview_transportbarview_transportcontrols",
-      "community": 30,
-      "community_name": ".applyLoadedProject",
+      "community": 26,
+      "community_name": "TimeInterval",
       "norm_label": ".transportcontrols"
     },
     {
@@ -13436,8 +13380,8 @@
       "source_location": "L256",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_transportbarview_transportbarview_mainvolumecontrol",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".mainvolumecontrol"
     },
     {
@@ -13626,8 +13570,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_waveformclipview_waveformclipview_requiredlod",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 43,
+      "community_name": ".loadBucket",
       "norm_label": ".requiredlod"
     },
     {
@@ -13744,8 +13688,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "path",
-      "community": 44,
-      "community_name": ".peaks",
+      "community": 4,
+      "community_name": "TrackLaneView",
       "norm_label": "path"
     },
     {
@@ -13780,7 +13724,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": "workspacesettingsview.swift"
     },
     {
@@ -13793,7 +13737,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview_workspacesettingsview",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": "workspacesettingsview"
     },
     {
@@ -13804,7 +13748,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview_workspacesettingsview_body",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": ".body"
     },
     {
@@ -13815,7 +13759,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview_swift_string",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": "string"
     },
     {
@@ -13826,7 +13770,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview_workspacesettingsview_deletesectiondialogtitle",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": ".deletesectiondialogtitle"
     },
     {
@@ -13837,7 +13781,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview_swift_binding",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": "binding"
     },
     {
@@ -13848,7 +13792,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview_swift_bool",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": "bool"
     },
     {
@@ -13859,7 +13803,7 @@
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspacesettingsview_workspacesettingsview_sectiondeletiondialogbinding",
       "community": 33,
-      "community_name": ".body",
+      "community_name": "WorkspaceSettingsView",
       "norm_label": ".sectiondeletiondialogbinding"
     },
     {
@@ -13882,8 +13826,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_workspaceview",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": "workspaceview"
     },
     {
@@ -13893,8 +13837,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_workspaceview_body",
-      "community": 33,
-      "community_name": ".body",
+      "community": 21,
+      "community_name": ".applyImportedStems",
       "norm_label": ".body"
     },
     {
@@ -13904,8 +13848,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_swift_string",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": "string"
     },
     {
@@ -13915,8 +13859,8 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_workspaceview_deletesectiondialogtitle",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": ".deletesectiondialogtitle"
     },
     {
@@ -13926,8 +13870,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_swift_binding",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": "binding"
     },
     {
@@ -13937,8 +13881,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_swift_bool",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": "bool"
     },
     {
@@ -13948,8 +13892,8 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_workspaceview_sectiondeletiondialogbinding",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": ".sectiondeletiondialogbinding"
     },
     {
@@ -13959,8 +13903,8 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "simpleplay_features_workspace_views_workspaceview_workspaceview_phonebottomchrome",
-      "community": 33,
-      "community_name": ".body",
+      "community": 41,
+      "community_name": "WorkspaceView",
       "norm_label": ".phonebottomchrome"
     },
     {
@@ -13970,8 +13914,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_simpleplayapp",
-      "community": 39,
-      "community_name": "MacWindowTitleBarHidden.swift",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "simpleplayapp.swift"
     },
     {
@@ -14605,8 +14549,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "fadermeterstripview.swift"
     },
     {
@@ -14618,8 +14562,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_fadermeterstripview",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "fadermeterstripview"
     },
     {
@@ -14629,8 +14573,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_swift_double",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "double"
     },
     {
@@ -14640,8 +14584,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_swift_float",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "float"
     },
     {
@@ -14651,8 +14595,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_swift_bool",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "bool"
     },
     {
@@ -14662,8 +14606,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_swift_cgfloat",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "cgfloat"
     },
     {
@@ -14673,8 +14617,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_swift_closedrange",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "closedrange"
     },
     {
@@ -14684,8 +14628,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_swift_int",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": "int"
     },
     {
@@ -14695,8 +14639,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_fadermeterstripview_showsunitymark",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".showsunitymark"
     },
     {
@@ -14706,8 +14650,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_fadermeterstripview_usesunitycenterdecibelscale",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".usesunitycenterdecibelscale"
     },
     {
@@ -14728,8 +14672,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "simpleplay_ui_components_fadermeterstripview_fadermeterstripview_reservesthumbclearance",
-      "community": 42,
-      "community_name": "FaderMeterStripView",
+      "community": 34,
+      "community_name": "MixerPanelView",
       "norm_label": ".reservesthumbclearance"
     },
     {
@@ -14739,8 +14683,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_ui_components_importtoolbarmenubutton",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": "importtoolbarmenubutton.swift"
     },
     {
@@ -14752,8 +14696,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_ui_components_importtoolbarmenubutton_importtoolbarmenubutton",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": "importtoolbarmenubutton"
     },
     {
@@ -14763,8 +14707,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "simpleplay_ui_components_importtoolbarmenubutton_importtoolbarmenubutton_body",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": ".body"
     },
     {
@@ -14776,8 +14720,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_ui_components_importtoolbarmenubutton_projectsessiontoolbarmenubutton",
-      "community": 56,
-      "community_name": "ToolbarMenuButtonStyleModifier",
+      "community": 25,
+      "community_name": "TopToolbarView",
       "norm_label": "projectsessiontoolbarmenubutton"
     },
     {
@@ -15293,8 +15237,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_ui_components_resizablepropertiessidebar",
-      "community": 39,
-      "community_name": "MacWindowTitleBarHidden.swift",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "resizablepropertiessidebar.swift"
     },
     {
@@ -15306,8 +15250,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_ui_components_resizablepropertiessidebar_resizablepropertiessidebar",
-      "community": 39,
-      "community_name": "MacWindowTitleBarHidden.swift",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": "resizablepropertiessidebar"
     },
     {
@@ -15317,8 +15261,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "simpleplay_ui_components_resizablepropertiessidebar_resizablepropertiessidebar_body",
-      "community": 39,
-      "community_name": "MacWindowTitleBarHidden.swift",
+      "community": 38,
+      "community_name": "SwiftUI",
       "norm_label": ".body"
     },
     {
@@ -15328,8 +15272,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_ui_components_sidebarpanel",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "sidebarpanel.swift"
     },
     {
@@ -15341,8 +15285,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_ui_components_sidebarpanel_sidebarpanel",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "sidebarpanel"
     },
     {
@@ -15352,8 +15296,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_sidebarpanel_swift_string",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "string"
     },
     {
@@ -15363,8 +15307,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplay_ui_components_sidebarpanel_swift_content",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "content"
     },
     {
@@ -15374,8 +15318,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "simpleplay_ui_components_sidebarpanel_sidebarpanel_body",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".body"
     },
     {
@@ -15387,8 +15331,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplay_ui_components_sidebarpanel_sidebarlabeledrow",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": "sidebarlabeledrow"
     },
     {
@@ -15398,8 +15342,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "simpleplay_ui_components_sidebarpanel_sidebarlabeledrow_body",
-      "community": 50,
-      "community_name": "SidebarPanel",
+      "community": 2,
+      "community_name": "PropertiesSidebarView",
       "norm_label": ".body"
     },
     {
@@ -15615,8 +15559,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplay_ui_theme_dawtheme",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 76,
+      "community_name": "TopToolbarView.swift",
       "norm_label": "dawtheme.swift"
     },
     {
@@ -15694,8 +15638,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_arrangementplaybackenginetests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "arrangementplaybackenginetests.swift"
     },
     {
@@ -15706,8 +15650,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "testing",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "testing"
     },
     {
@@ -15718,8 +15662,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "simpleplay",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "simpleplay"
     },
     {
@@ -15931,8 +15875,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_pitchshiftsettingstests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "pitchshiftsettingstests.swift"
     },
     {
@@ -15944,8 +15888,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplaytests_pitchshiftsettingstests_pitchshiftsettingstests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": "pitchshiftsettingstests"
     },
     {
@@ -15956,8 +15900,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_pitchshiftsettingstests_pitchshiftsettingstests_clampssemitonestosaferange",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": ".clampssemitonestosaferange()"
     },
     {
@@ -15968,8 +15912,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_pitchshiftsettingstests_pitchshiftsettingstests_convertssemitonestocents",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": ".convertssemitonestocents()"
     },
     {
@@ -15980,8 +15924,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_pitchshiftsettingstests_pitchshiftsettingstests_resolvestrackpitchbytrackid",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 30,
+      "community_name": "PitchShiftSettings",
       "norm_label": ".resolvestrackpitchbytrackid()"
     },
     {
@@ -15991,8 +15935,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_projectarchivetests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "projectarchivetests.swift"
     },
     {
@@ -16004,8 +15948,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplaytests_projectarchivetests_projectarchivetests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "projectarchivetests"
     },
     {
@@ -16027,8 +15971,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_sectionmarkerpalettetests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "sectionmarkerpalettetests.swift"
     },
     {
@@ -16075,8 +16019,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_simpleplaytests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "simpleplaytests.swift"
     },
     {
@@ -16088,8 +16032,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplaytests_simpleplaytests_simpleplaytests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "simpleplaytests"
     },
     {
@@ -16100,8 +16044,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_simpleplaytests_simpleplaytests_example",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": ".example()"
     },
     {
@@ -16111,8 +16055,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_timelinerulerscaletests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "timelinerulerscaletests.swift"
     },
     {
@@ -16183,8 +16127,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_timelinesamplegridtests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "timelinesamplegridtests.swift"
     },
     {
@@ -16196,8 +16140,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplaytests_timelinesamplegridtests_timelinesamplegridtests",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": "timelinesamplegridtests"
     },
     {
@@ -16208,8 +16152,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_timelinesamplegridtests_timelinesamplegridtests_quantizealignstosamplegrid",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".quantizealignstosamplegrid()"
     },
     {
@@ -16220,8 +16164,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_timelinesamplegridtests_timelinesamplegridtests_snapsectionboundaryusesgridthensamples",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".snapsectionboundaryusesgridthensamples()"
     },
     {
@@ -16232,8 +16176,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_timelinesamplegridtests_timelinesamplegridtests_framesandtimeroundtrip",
-      "community": 41,
-      "community_name": ".frames",
+      "community": 19,
+      "community_name": "AudioEngineService",
       "norm_label": ".framesandtimeroundtrip()"
     },
     {
@@ -16243,8 +16187,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_tracknamestandardizertests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "tracknamestandardizertests.swift"
     },
     {
@@ -16315,8 +16259,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests",
-      "community": 6,
-      "community_name": "Foundation",
+      "community": 27,
+      "community_name": "Testing",
       "norm_label": "trackorganizationservicetests.swift"
     },
     {
@@ -16328,8 +16272,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_trackorganizationservicetests",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "trackorganizationservicetests"
     },
     {
@@ -16340,8 +16284,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_trackorganizationservicetests_ordersclickfirst",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".ordersclickfirst()"
     },
     {
@@ -16352,8 +16296,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_trackorganizationservicetests_mergesmatchingtrackssidebyside",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".mergesmatchingtrackssidebyside()"
     },
     {
@@ -16364,8 +16308,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_trackorganizationservicetests_addsunknowntrackbelow",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".addsunknowntrackbelow()"
     },
     {
@@ -16376,8 +16320,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_trackorganizationservicetests_insertsintoactivegroupbelowexistingtracks",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".insertsintoactivegroupbelowexistingtracks()"
     },
     {
@@ -16388,8 +16332,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_trackorganizationservicetests_assignsdistinctcolorsforduplicateroles",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".assignsdistinctcolorsforduplicateroles()"
     },
     {
@@ -16400,8 +16344,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_trackorganizationservicetests_stem",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": ".stem()"
     },
     {
@@ -16411,8 +16355,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_swift_string",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "string"
     },
     {
@@ -16422,8 +16366,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "simpleplaytests_trackorganizationservicetests_swift_timeinterval",
-      "community": 60,
-      "community_name": ".stem",
+      "community": 31,
+      "community_name": "AudioTrack",
       "norm_label": "timeinterval"
     },
     {
@@ -17759,7 +17703,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L367",
+      "source_location": "L339",
       "weight": 1.0,
       "_origin": "ast",
       "context": "field",
@@ -17771,7 +17715,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L409",
+      "source_location": "L381",
       "weight": 1.0,
       "context": "return_type",
       "_origin": "ast",
@@ -19441,7 +19385,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L409",
+      "source_location": "L381",
       "weight": 1.0,
       "context": "parameter_type",
       "_origin": "ast",
@@ -22345,7 +22289,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L287",
+      "source_location": "L259",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopassignmentlabel",
@@ -22357,7 +22301,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L370",
+      "source_location": "L342",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopmappingcard",
@@ -22369,7 +22313,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L411",
+      "source_location": "L383",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_sectionmappingcard",
@@ -37939,7 +37883,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L255",
+      "source_location": "L227",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -41047,6 +40991,18 @@
     },
     {
       "relation": "references",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
+      "source_location": "L74",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_collapsedbarcontent",
+      "target": "simpleplay_features_workspace_viewmodels_workspaceviewmodel_workspaceviewmodel"
+    },
+    {
+      "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MixerPanelView.swift",
       "source_location": "L9",
@@ -43143,7 +43099,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L140",
+      "source_location": "L112",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_collapsedbarcontent",
@@ -43155,7 +43111,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L153",
+      "source_location": "L125",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_devicepicker",
@@ -45819,7 +45775,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L163",
+      "source_location": "L135",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_devicepicker",
@@ -45831,7 +45787,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L46",
+      "source_location": "L35",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_body",
@@ -45843,7 +45799,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L395",
+      "source_location": "L367",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopmappingcard",
@@ -45855,7 +45811,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L436",
+      "source_location": "L408",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_sectionmappingcard",
@@ -45891,7 +45847,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L341",
+      "source_location": "L313",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_learnbanner",
@@ -45903,7 +45859,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L393",
+      "source_location": "L365",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopmappingcard",
@@ -45915,7 +45871,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L434",
+      "source_location": "L406",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_sectionmappingcard",
@@ -46245,34 +46201,10 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L23",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
-      "target": "animation",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L63",
-      "weight": 1.0,
-      "context": "field",
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
-      "target": "anytransition",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L30",
+      "source_location": "L22",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46283,7 +46215,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L82",
+      "source_location": "L52",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46294,7 +46226,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L100",
+      "source_location": "L70",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46305,7 +46237,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L149",
+      "source_location": "L121",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46316,7 +46248,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L226",
+      "source_location": "L198",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46327,7 +46259,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L251",
+      "source_location": "L223",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46338,7 +46270,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L255",
+      "source_location": "L227",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46349,7 +46281,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L293",
+      "source_location": "L265",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46360,18 +46292,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L63",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
-      "target": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_expandedpaneltransition",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L19",
+      "source_location": "L18",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46382,7 +46303,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L327",
+      "source_location": "L299",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46393,7 +46314,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L286",
+      "source_location": "L258",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46404,7 +46325,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L367",
+      "source_location": "L339",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46415,7 +46336,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L259",
+      "source_location": "L231",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46426,18 +46347,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L23",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
-      "target": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_mappingpanelanimation",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L409",
+      "source_location": "L381",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
@@ -46445,21 +46355,10 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "method",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L78",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview",
-      "target": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_setmappingexpanded",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L19",
+      "source_location": "L18",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -46471,7 +46370,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L286",
+      "source_location": "L258",
       "weight": 1.0,
       "context": "field",
       "_origin": "ast",
@@ -46492,60 +46391,12 @@
       "target": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview"
     },
     {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L78",
-      "weight": 1.0,
-      "context": "parameter_type",
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_setmappingexpanded",
-      "target": "simpleplay_features_workspace_views_midimappingbarview_swift_bool",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L48",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_body",
-      "target": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_setmappingexpanded",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L103",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_collapsedbarcontent",
-      "target": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_setmappingexpanded",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L263",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopquickbutton",
-      "target": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_setmappingexpanded",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L144",
+      "source_location": "L116",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_collapsedbarcontent",
@@ -46557,7 +46408,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L122",
+      "source_location": "L94",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_collapsedbarcontent",
@@ -46569,7 +46420,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L273",
+      "source_location": "L245",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopquickbutton",
@@ -46580,7 +46431,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L313",
+      "source_location": "L285",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_expandedpanel",
@@ -46593,7 +46444,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L343",
+      "source_location": "L315",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_learnbanner",
@@ -46605,7 +46456,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L359",
+      "source_location": "L331",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_learnbanner",
@@ -46617,7 +46468,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L398",
+      "source_location": "L370",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopmappingcard",
@@ -46629,7 +46480,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L401",
+      "source_location": "L373",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_loopmappingcard",
@@ -46641,7 +46492,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.8,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L439",
+      "source_location": "L411",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_sectionmappingcard",
@@ -46653,7 +46504,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift",
-      "source_location": "L444",
+      "source_location": "L416",
       "weight": 1.0,
       "_origin": "ast",
       "source": "simpleplay_features_workspace_views_midimappingbarview_midimappingbarview_sectionmappingcard",

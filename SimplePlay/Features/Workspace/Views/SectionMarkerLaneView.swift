@@ -5,13 +5,17 @@
 
 import SwiftUI
 
-private struct SectionDragSession {
+private struct SectionDragSession: Equatable {
     let sectionID: UUID
     let kind: WorkspaceViewModel.SectionDragKind
     let anchorStart: TimeInterval
     let anchorEnd: TimeInterval
-    var translation: CGFloat
+    /// Offset from the section start edge to the finger at drag begin (move only).
+    let grabOffsetX: CGFloat
+    var laneLocationX: CGFloat
 }
+
+private let sectionLaneCoordinateSpace = "sectionLane"
 
 struct SectionMarkerLaneView: View {
     @Bindable var viewModel: WorkspaceViewModel
@@ -21,10 +25,6 @@ struct SectionMarkerLaneView: View {
 
     private var creationDragMinimumDistance: CGFloat {
         2
-    }
-
-    private var minimumSectionDuration: TimeInterval {
-        max(viewModel.project.snapInterval, 0.25)
     }
 
     private var creationHint: String {
@@ -103,32 +103,37 @@ struct SectionMarkerLaneView: View {
         }
         .frame(width: contentWidth, height: DAWTheme.markerLaneHeight - 8)
         .padding(.vertical, 4)
+        .coordinateSpace(name: sectionLaneCoordinateSpace)
+        .onChange(of: dragSession) { _, newValue in
+            if newValue == nil {
+                if viewModel.draggingSectionID != nil {
+                    viewModel.cancelSectionDrag()
+                }
+                if viewModel.sectionMovePreviewSectionID != nil {
+                    viewModel.clearSectionMovePreview()
+                }
+            }
+        }
     }
 
     private func ghostStartTime(for session: SectionDragSession) -> TimeInterval {
-        let delta = TimeInterval(session.translation / viewModel.pixelsPerSecond)
-
-        switch session.kind {
-        case .move:
-            return max(0, session.anchorStart + delta)
-        case .resizeStart:
-            return max(0, min(session.anchorEnd - minimumSectionDuration, session.anchorStart + delta))
-        case .resizeEnd:
-            return session.anchorStart
-        }
+        viewModel.previewRangeForSectionDrag(
+            kind: session.kind,
+            anchorStart: session.anchorStart,
+            anchorEnd: session.anchorEnd,
+            laneLocationX: session.laneLocationX,
+            grabOffsetX: session.grabOffsetX
+        ).lowerBound
     }
 
     private func ghostEndTime(for session: SectionDragSession) -> TimeInterval {
-        let delta = TimeInterval(session.translation / viewModel.pixelsPerSecond)
-
-        switch session.kind {
-        case .move:
-            return ghostStartTime(for: session) + (session.anchorEnd - session.anchorStart)
-        case .resizeStart:
-            return session.anchorEnd
-        case .resizeEnd:
-            return max(session.anchorStart + minimumSectionDuration, session.anchorEnd + delta)
-        }
+        viewModel.previewRangeForSectionDrag(
+            kind: session.kind,
+            anchorStart: session.anchorStart,
+            anchorEnd: session.anchorEnd,
+            laneLocationX: session.laneLocationX,
+            grabOffsetX: session.grabOffsetX
+        ).upperBound
     }
 
     private var sectionCreationGesture: some Gesture {
@@ -306,42 +311,56 @@ fileprivate struct SectionMarkerChipView: View {
             }
         }
 #if os(macOS)
-        .help("Drag to move · Double-click to trigger · Tap to delete")
+        .help("Drag to move · Drag edges to resize · Double-click to trigger · Tap to delete")
 #endif
     }
 
     private var chipMoveOrTapGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(sectionLaneCoordinateSpace))
             .onChanged { value in
-                guard dragSession == nil || dragSession?.sectionID == section.id else { return }
+                guard dragSession == nil
+                    || (dragSession?.sectionID == section.id && dragSession?.kind == .move) else {
+                    return
+                }
 
                 let distance = hypot(value.translation.width, value.translation.height)
                 guard distance >= chipMoveThreshold else { return }
 
                 if dragSession == nil {
+                    let grabOffsetX = value.startLocation.x - CGFloat(liveSection.startTime) * viewModel.pixelsPerSecond
                     dragSession = SectionDragSession(
                         sectionID: section.id,
                         kind: .move,
                         anchorStart: liveSection.startTime,
                         anchorEnd: liveSection.endTime,
-                        translation: value.translation.width
+                        grabOffsetX: grabOffsetX,
+                        laneLocationX: value.location.x
                     )
-                    viewModel.beginSectionDrag(sectionID: section.id, kind: .move)
                 } else if var session = dragSession,
                           session.sectionID == section.id,
                           session.kind == .move {
-                    session.translation = value.translation.width
+                    session.laneLocationX = value.location.x
                     dragSession = session
+                }
+
+                if let session = dragSession,
+                   session.sectionID == section.id,
+                   session.kind == .move {
+                    viewModel.updateSectionMovePreview(
+                        sectionID: section.id,
+                        anchorStart: session.anchorStart,
+                        anchorEnd: session.anchorEnd,
+                        laneLocationX: session.laneLocationX,
+                        grabOffsetX: session.grabOffsetX
+                    )
                 }
             }
             .onEnded { value in
-                if dragSession?.sectionID == section.id, dragSession?.kind == .move {
-                    viewModel.commitSectionDrag(
-                        sectionID: section.id,
-                        kind: .move,
-                        translation: value.translation.width
-                    )
-                    dragSession = nil
+                let shouldCommitMove = dragSession?.sectionID == section.id && dragSession?.kind == .move
+                defer { dragSession = nil }
+
+                if shouldCommitMove {
+                    viewModel.commitSectionDragPreview(sectionID: section.id, kind: .move)
                     return
                 }
 
@@ -357,48 +376,142 @@ fileprivate struct SectionMarkerChipView: View {
         case end
     }
 
+    private var resizeHandleVisualWidth: CGFloat {
+#if os(iOS)
+        10
+#else
+        8
+#endif
+    }
+
+    private var resizeHandleHitWidth: CGFloat {
+#if os(iOS)
+        36
+#else
+        24
+#endif
+    }
+
     private func resizeHandle(edge: ResizeEdge) -> some View {
-        RoundedRectangle(cornerRadius: 2)
+        RoundedRectangle(cornerRadius: 3)
             .fill(Color.white.opacity(isDimmed ? 0.2 : 0.35))
-            .frame(width: 6)
-            .padding(.vertical, 10)
-            .padding(edge == .start ? .leading : .trailing, 4)
-            .contentShape(Rectangle().size(width: 14, height: DAWTheme.markerLaneHeight - 14))
-            .gesture(sectionDragGesture(kind: edge == .start ? .resizeStart : .resizeEnd))
+            .frame(width: resizeHandleVisualWidth)
+            .padding(.vertical, 8)
+            .padding(edge == .start ? .leading : .trailing, 2)
+            .contentShape(
+                Rectangle().size(
+                    width: resizeHandleHitWidth,
+                    height: DAWTheme.markerLaneHeight - 14
+                )
+            )
+            .highPriorityGesture(sectionDragGesture(kind: edge == .start ? .resizeStart : .resizeEnd))
 #if os(macOS)
             .cursor(.resizeLeftRight)
 #endif
     }
 
     private func sectionDragGesture(kind: WorkspaceViewModel.SectionDragKind) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(minimumDistance: 2, coordinateSpace: .named(sectionLaneCoordinateSpace))
             .onChanged { value in
+                guard dragSession == nil
+                    || (dragSession?.sectionID == section.id && dragSession?.kind == kind) else {
+                    return
+                }
+
                 if dragSession == nil {
+                    let grabOffsetX: CGFloat
+                    if kind == .resizeStart {
+                        let edgeX = CGFloat(liveSection.startTime) * viewModel.pixelsPerSecond
+                        grabOffsetX = value.startLocation.x - edgeX
+                    } else {
+                        let edgeX = CGFloat(liveSection.endTime) * viewModel.pixelsPerSecond
+                        grabOffsetX = value.startLocation.x - edgeX
+                    }
                     dragSession = SectionDragSession(
                         sectionID: section.id,
                         kind: kind,
                         anchorStart: liveSection.startTime,
                         anchorEnd: liveSection.endTime,
-                        translation: value.translation.width
+                        grabOffsetX: grabOffsetX,
+                        laneLocationX: value.location.x
                     )
                     viewModel.beginSectionDrag(sectionID: section.id, kind: kind)
                 } else if var session = dragSession,
                           session.sectionID == section.id,
                           session.kind == kind {
-                    session.translation = value.translation.width
+                    session.laneLocationX = value.location.x
                     dragSession = session
                 }
-            }
-            .onEnded { value in
-                guard dragSession?.sectionID == section.id, dragSession?.kind == kind else { return }
 
-                viewModel.commitSectionDrag(
-                    sectionID: section.id,
-                    kind: kind,
-                    translation: value.translation.width
-                )
-                dragSession = nil
+                if let session = dragSession,
+                   session.sectionID == section.id,
+                   session.kind == kind {
+                    viewModel.updateSectionDragPreview(
+                        kind: kind,
+                        anchorStart: session.anchorStart,
+                        anchorEnd: session.anchorEnd,
+                        laneLocationX: session.laneLocationX,
+                        grabOffsetX: session.grabOffsetX
+                    )
+                }
             }
+            .onEnded { _ in
+                let shouldCommit = dragSession?.sectionID == section.id && dragSession?.kind == kind
+                defer { dragSession = nil }
+
+                guard shouldCommit else {
+                    viewModel.cancelSectionDrag()
+                    return
+                }
+
+                viewModel.commitSectionDragPreview(sectionID: section.id, kind: kind)
+            }
+    }
+}
+
+struct SectionEdgeGuideOverlay: View {
+    let startTime: TimeInterval
+    let endTime: TimeInterval
+    let showStartEdge: Bool
+    let showEndEdge: Bool
+    let color: Color
+    let pixelsPerSecond: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if showStartEdge {
+                edgeGuide(at: startTime)
+            }
+            if showEndEdge {
+                edgeGuide(at: endTime)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func edgeGuide(at time: TimeInterval) -> some View {
+        ZStack(alignment: .top) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            color.opacity(0.18),
+                            color.opacity(0.85),
+                            color.opacity(0.18),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 1, height: height)
+
+            Circle()
+                .fill(color.opacity(0.95))
+                .frame(width: 6, height: 6)
+                .offset(y: -3)
+        }
+        .offset(x: CGFloat(time) * pixelsPerSecond)
     }
 }
 

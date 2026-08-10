@@ -56,6 +56,12 @@ final class AudioEngineService {
 
     private(set) var isEngineRunning = false
     private(set) var playbackStartTime: TimeInterval = 0
+    private var activeSectionLoop: SectionLoopContext?
+    private var scheduledLoopCycleCount = 0
+
+    var primaryClipSampleRate: Double? {
+        scheduledClips.values.first?.file.processingFormat.sampleRate
+    }
     private(set) var trackMeterLevels: [UUID: Float] = [:]
     private(set) var groupMeterLevels: [UUID: Float] = [:]
     private(set) var masterMeterLevel: Float = 0
@@ -253,8 +259,14 @@ final class AudioEngineService {
 
     /// Starts playback from the given timeline position (playhead).
     @discardableResult
-    func play(from time: TimeInterval, project: DAWProject) -> Bool {
+    func play(
+        from time: TimeInterval,
+        project: DAWProject,
+        sectionLoop: SectionLoopContext? = nil
+    ) -> Bool {
         lastPlaybackError = nil
+        activeSectionLoop = sectionLoop
+        scheduledLoopCycleCount = 0
 
         guard !scheduledClips.isEmpty else {
             lastPlaybackError = AudioEngineError.playbackUnavailable.errorDescription
@@ -267,7 +279,19 @@ final class AudioEngineService {
         }
 
         playbackStartTime = max(0, time)
-        var startedAnyPlayer = false
+        let clipRate = primaryClipSampleRate ?? project.audioSettings.sampleRate.rawValue
+        if abs(clipRate - project.audioSettings.sampleRate.rawValue) > 1 {
+            SectionLoopDiagnostics.log(String(
+                format: "sample-rate note: project %.0f Hz, clips %.0f Hz — section loop uses clip rate",
+                project.audioSettings.sampleRate.rawValue,
+                clipRate
+            ))
+        }
+        SectionLoopDiagnostics.logPlaybackStart(
+            from: playbackStartTime,
+            loop: sectionLoop,
+            sampleRate: clipRate
+        )
 
         for scheduled in scheduledClips.values {
             safelyStopPlayer(scheduled.player)
@@ -275,25 +299,74 @@ final class AudioEngineService {
 
         for scheduled in scheduledClips.values {
             safelyResetPlayer(scheduled.player)
-            guard shouldPlayClip(scheduled.clip, at: playbackStartTime) else { continue }
-            guard scheduleClip(scheduled, from: playbackStartTime) else { continue }
-            if safelyPlayPlayer(scheduled.player) {
-                startedAnyPlayer = true
+
+            if let sectionLoop {
+                let queued = scheduleClipWithSectionLoop(
+                    scheduled,
+                    from: playbackStartTime,
+                    loop: sectionLoop,
+                    initialCycles: 4,
+                    labelPrefix: "initial"
+                )
+                if queued, safelyPlayPlayer(scheduled.player) {
+                    continue
+                }
+            } else {
+                guard shouldPlayClip(scheduled.clip, at: playbackStartTime) else { continue }
+                guard scheduleClip(scheduled, from: playbackStartTime) else { continue }
+                _ = safelyPlayPlayer(scheduled.player)
             }
         }
 
-        if !startedAnyPlayer, playbackStartTime < project.duration {
-            // Clips may start later on the timeline; still keep the engine running.
+        if playbackStartTime < project.duration {
             return true
         }
 
         return true
     }
 
+    /// Queues additional loop cycles without stopping active players (seamless section repeat).
+    @discardableResult
+    func appendSectionLoopCycles(project: DAWProject, loop: SectionLoopContext, cycles: Int = 3) -> Bool {
+        if activeSectionLoop == nil {
+            activeSectionLoop = loop
+        } else if activeSectionLoop != loop {
+            SectionLoopDiagnostics.log("append skipped: active loop context mismatch")
+            return false
+        }
+
+        var appended = false
+        for scheduled in scheduledClips.values {
+            if scheduleLoopBody(
+                scheduled,
+                loop: loop,
+                cycles: cycles,
+                labelPrefix: "append"
+            ) {
+                appended = true
+            }
+        }
+
+        if appended {
+            scheduledLoopCycleCount += cycles
+            SectionLoopDiagnostics.log(
+                "appended \(cycles) loop cycle(s); total queued batches=\(scheduledLoopCycleCount)"
+            )
+        }
+
+        return appended
+    }
+
+    func clearSectionLoopState() {
+        activeSectionLoop = nil
+        scheduledLoopCycleCount = 0
+    }
+
     func pause() {
         for scheduled in scheduledClips.values {
             safelyPausePlayer(scheduled.player)
         }
+        clearSectionLoopState()
         resetMeters()
 #if !os(macOS)
         stopEngineIfRunning()
@@ -302,6 +375,7 @@ final class AudioEngineService {
 
     func stop() {
         playbackStartTime = 0
+        clearSectionLoopState()
         for scheduled in scheduledClips.values {
             safelyStopPlayer(scheduled.player)
         }
@@ -318,41 +392,167 @@ final class AudioEngineService {
         let file = scheduled.file
         let player = scheduled.player
         let sampleRate = file.processingFormat.sampleRate
+        guard sampleRate > 0 else { return false }
 
-        if playheadTime <= clip.startTime {
-            let startFrame = AVAudioFramePosition(clip.sourceOffset * sampleRate)
-            let frameCount = AVAudioFrameCount(clip.duration * sampleRate)
-            guard frameCount > 0 else { return false }
+        let clipStartFrame = TimelineSampleGrid.frames(at: clip.startTime, sampleRate: sampleRate)
+        let clipEndFrame = TimelineSampleGrid.frames(at: clip.endTime, sampleRate: sampleRate)
+        let playheadFrame = TimelineSampleGrid.frames(at: playheadTime, sampleRate: sampleRate)
+        let sourceOffsetFrame = TimelineSampleGrid.frames(at: clip.sourceOffset, sampleRate: sampleRate)
 
-            let delaySeconds = clip.startTime - playheadTime
-            let when = AVAudioTime(
-                sampleTime: AVAudioFramePosition(delaySeconds * sampleRate),
+        guard playheadFrame < clipEndFrame, clipEndFrame > clipStartFrame else { return false }
+
+        let playbackStartFrame = max(clipStartFrame, playheadFrame)
+        let sourceStartFrame = sourceOffsetFrame + (playbackStartFrame - clipStartFrame)
+        let frameCount = AVAudioFrameCount(clipEndFrame - playbackStartFrame)
+        guard frameCount > 0, sourceStartFrame >= 0, sourceStartFrame < file.length else { return false }
+
+        let when: AVAudioTime? = playbackStartFrame > playheadFrame
+            ? AVAudioTime(
+                sampleTime: AVAudioFramePosition(playbackStartFrame - playheadFrame),
                 atRate: sampleRate
             )
-
-            player.scheduleSegment(
-                file,
-                startingFrame: startFrame,
-                frameCount: frameCount,
-                at: when
-            )
-            return true
-        }
-
-        let elapsedInClip = playheadTime - clip.startTime
-        guard elapsedInClip < clip.duration else { return false }
-
-        let sourceStart = clip.sourceOffset + elapsedInClip
-        let remainingDuration = clip.duration - elapsedInClip
-        let startFrame = AVAudioFramePosition(sourceStart * sampleRate)
-        let frameCount = AVAudioFrameCount(remainingDuration * sampleRate)
-        guard frameCount > 0 else { return false }
+            : nil
 
         player.scheduleSegment(
             file,
-            startingFrame: startFrame,
+            startingFrame: sourceStartFrame,
             frameCount: frameCount,
-            at: nil
+            at: when
+        )
+        return true
+    }
+
+    @discardableResult
+    private func scheduleClipWithSectionLoop(
+        _ scheduled: ScheduledClip,
+        from playheadTime: TimeInterval,
+        loop: SectionLoopContext,
+        initialCycles: Int,
+        labelPrefix: String
+    ) -> Bool {
+        let sampleRate = scheduled.file.processingFormat.sampleRate
+        guard sampleRate > 0 else { return false }
+
+        let clipStartFrame = TimelineSampleGrid.frames(at: scheduled.clip.startTime, sampleRate: sampleRate)
+        let clipEndFrame = TimelineSampleGrid.frames(at: scheduled.clip.endTime, sampleRate: sampleRate)
+        let loopStartFrame = TimelineSampleGrid.frames(at: loop.startTime, sampleRate: sampleRate)
+        let loopEndFrame = TimelineSampleGrid.frames(at: loop.endTime, sampleRate: sampleRate)
+        let playheadFrame = TimelineSampleGrid.frames(at: playheadTime, sampleRate: sampleRate)
+
+        guard clipEndFrame > clipStartFrame,
+              loopEndFrame > loopStartFrame,
+              clipStartFrame < loopEndFrame,
+              clipEndFrame > loopStartFrame else {
+            return false
+        }
+
+        var scheduledAny = false
+
+        if playheadFrame > loopStartFrame && playheadFrame < loopEndFrame {
+            let segmentStart = max(playheadFrame, clipStartFrame)
+            let segmentEnd = min(loopEndFrame, clipEndFrame)
+            if segmentEnd > segmentStart,
+               scheduleTimelineSegment(
+                   scheduled,
+                   timelineStartFrame: segmentStart,
+                   timelineEndFrame: segmentEnd,
+                   at: nil,
+                   label: "\(labelPrefix)-lead-in"
+               ) {
+                scheduledAny = true
+            }
+        }
+
+        if scheduleLoopBody(
+            scheduled,
+            loop: loop,
+            cycles: initialCycles,
+            labelPrefix: labelPrefix
+        ) {
+            scheduledAny = true
+        }
+
+        if scheduledAny {
+            scheduledLoopCycleCount += initialCycles
+        }
+
+        return scheduledAny
+    }
+
+    @discardableResult
+    private func scheduleLoopBody(
+        _ scheduled: ScheduledClip,
+        loop: SectionLoopContext,
+        cycles: Int,
+        labelPrefix: String
+    ) -> Bool {
+        let sampleRate = scheduled.file.processingFormat.sampleRate
+        guard sampleRate > 0, cycles > 0 else { return false }
+
+        let clipStartFrame = TimelineSampleGrid.frames(at: scheduled.clip.startTime, sampleRate: sampleRate)
+        let clipEndFrame = TimelineSampleGrid.frames(at: scheduled.clip.endTime, sampleRate: sampleRate)
+        let loopStartFrame = TimelineSampleGrid.frames(at: loop.startTime, sampleRate: sampleRate)
+        let loopEndFrame = TimelineSampleGrid.frames(at: loop.endTime, sampleRate: sampleRate)
+
+        let bodyStart = max(loopStartFrame, clipStartFrame)
+        let bodyEnd = min(loopEndFrame, clipEndFrame)
+        guard bodyEnd > bodyStart else { return false }
+
+        var scheduledAny = false
+        for cycle in 0..<cycles {
+            if scheduleTimelineSegment(
+                scheduled,
+                timelineStartFrame: bodyStart,
+                timelineEndFrame: bodyEnd,
+                at: nil,
+                label: "\(labelPrefix)-cycle-\(cycle + 1)"
+            ) {
+                scheduledAny = true
+            }
+        }
+        return scheduledAny
+    }
+
+    @discardableResult
+    private func scheduleTimelineSegment(
+        _ scheduled: ScheduledClip,
+        timelineStartFrame: Int64,
+        timelineEndFrame: Int64,
+        at: AVAudioTime?,
+        label: String
+    ) -> Bool {
+        let clip = scheduled.clip
+        let file = scheduled.file
+        let player = scheduled.player
+        let sampleRate = file.processingFormat.sampleRate
+        guard sampleRate > 0 else { return false }
+
+        let clipStartFrame = TimelineSampleGrid.frames(at: clip.startTime, sampleRate: sampleRate)
+        let sourceOffsetFrame = TimelineSampleGrid.frames(at: clip.sourceOffset, sampleRate: sampleRate)
+        let sourceStartFrame = sourceOffsetFrame + (timelineStartFrame - clipStartFrame)
+        let frameCount = AVAudioFrameCount(timelineEndFrame - timelineStartFrame)
+
+        guard frameCount > 0,
+              sourceStartFrame >= 0,
+              sourceStartFrame < file.length else {
+            return false
+        }
+
+        player.scheduleSegment(
+            file,
+            startingFrame: sourceStartFrame,
+            frameCount: frameCount,
+            at: at
+        )
+
+        SectionLoopDiagnostics.logScheduledSegment(
+            clipName: clip.name,
+            timelineStart: TimelineSampleGrid.timeFromFrame(timelineStartFrame, sampleRate: sampleRate),
+            timelineEnd: TimelineSampleGrid.timeFromFrame(timelineEndFrame, sampleRate: sampleRate),
+            sourceStartFrame: sourceStartFrame,
+            frameCount: frameCount,
+            sampleRate: sampleRate,
+            label: label
         )
         return true
     }

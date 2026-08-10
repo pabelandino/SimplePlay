@@ -11,6 +11,7 @@ import UIKit
 struct MIDIMappingBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 #if os(iOS)
     @State private var showsDevicePicker = false
 #endif
@@ -19,14 +20,24 @@ struct MIDIMappingBarView: View {
         horizontalSizeClass == .compact
     }
 
+    private var mappingPanelAnimation: Animation {
+        if reduceMotion {
+            return .linear(duration: 0.2)
+        }
+        return .smooth(duration: 0.32, extraBounce: 0.05)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             collapsedBar
 
             if viewModel.isMIDIMappingExpanded {
                 expandedPanel
+                    .transition(expandedPanelTransition)
             }
         }
+        .clipped()
+        .animation(mappingPanelAnimation, value: viewModel.isMIDIMappingExpanded)
         .background(DAWTheme.surface)
         .overlay(alignment: .bottom) {
             Rectangle().fill(DAWTheme.border).frame(height: 1)
@@ -34,12 +45,12 @@ struct MIDIMappingBarView: View {
         .onAppear {
             viewModel.applySavedMIDIDeviceConnection()
             if !viewModel.project.sections.isEmpty {
-                viewModel.isMIDIMappingExpanded = true
+                setMappingExpanded(true)
             }
         }
         .onChange(of: viewModel.project.sections.count) { _, count in
             if count > 0 {
-                viewModel.isMIDIMappingExpanded = true
+                setMappingExpanded(true)
             }
         }
 #if os(iOS)
@@ -47,6 +58,25 @@ struct MIDIMappingBarView: View {
             viewModel.applySavedMIDIDeviceConnection()
         }
 #endif
+    }
+
+    private var expandedPanelTransition: AnyTransition {
+        if reduceMotion {
+            return .opacity
+        }
+
+        return .asymmetric(
+            insertion: .opacity
+                .combined(with: .offset(y: -8))
+                .combined(with: .scale(scale: 0.985, anchor: .top)),
+            removal: .opacity
+                .combined(with: .offset(y: -6))
+                .combined(with: .scale(scale: 0.99, anchor: .top))
+        )
+    }
+
+    private func setMappingExpanded(_ expanded: Bool) {
+        viewModel.isMIDIMappingExpanded = expanded
     }
 
     private var collapsedBar: some View {
@@ -70,9 +100,7 @@ struct MIDIMappingBarView: View {
     private var collapsedBarContent: some View {
         HStack(spacing: 12) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    viewModel.isMIDIMappingExpanded.toggle()
-                }
+                setMappingExpanded(!viewModel.isMIDIMappingExpanded)
             } label: {
                 Label(
                     viewModel.isMIDIMappingExpanded ? "Hide Mapping" : "Show Mapping",
@@ -232,7 +260,7 @@ struct MIDIMappingBarView: View {
         let isLearning = viewModel.midiLearnTarget == .loopToggle
 
         return Button {
-            viewModel.isMIDIMappingExpanded = true
+            setMappingExpanded(true)
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: viewModel.isSectionRepeatEnabled ? "repeat.circle.fill" : "repeat.circle")

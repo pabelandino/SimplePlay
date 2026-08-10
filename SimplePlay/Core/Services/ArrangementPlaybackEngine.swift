@@ -144,20 +144,34 @@ final class ArrangementPlaybackEngine {
 
     func tick(delta: TimeInterval, projectDuration: TimeInterval) {
         guard isPlaying else { return }
-        currentTime += delta
+        let proposedTime = currentTime + delta
 
         switch state {
         case .playingSection(let section), .repeatingSectionAtEnd(let section):
-            handleSectionPlayback(section, projectDuration: projectDuration)
+            if proposedTime >= section.endTime {
+                currentTime = section.endTime
+                handleSectionPlayback(section, projectDuration: projectDuration)
+            } else {
+                currentTime = proposedTime
+            }
         case .waitingToJump:
             if let current = activeSection {
-                handleSectionPlayback(current, projectDuration: projectDuration)
+                if proposedTime >= current.endTime {
+                    currentTime = current.endTime
+                    handleSectionPlayback(current, projectDuration: projectDuration)
+                } else {
+                    currentTime = proposedTime
+                }
+            } else {
+                currentTime = proposedTime
             }
         case .continuingTimeline:
+            currentTime = proposedTime
             if currentTime >= projectDuration {
                 stop()
             }
         case .idle:
+            currentTime = proposedTime
             if currentTime >= projectDuration {
                 stop()
             }
@@ -273,12 +287,22 @@ final class ArrangementPlaybackEngine {
         }
 
         if case .repeatingSectionAtEnd = state {
+            SectionLoopDiagnostics.log(String(
+                format: "engine repeat-once wrap at end %.6fs -> start %.6fs",
+                section.endTime,
+                section.startTime
+            ))
             currentTime = section.startTime
             state = .playingSection(section)
             return
         }
 
         if isRepeatEnabled {
+            SectionLoopDiagnostics.log(String(
+                format: "engine global loop wrap at end %.6fs -> start %.6fs",
+                section.endTime,
+                section.startTime
+            ))
             currentTime = section.startTime
             return
         }

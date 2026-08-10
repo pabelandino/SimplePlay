@@ -12,6 +12,8 @@ struct TimelineWorkspacePanel: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isDropTargeted = false
     @State private var magnificationAnchor: Double?
+    @State private var zoomAnchorTime: TimeInterval?
+    @State private var zoomAnchorViewportX: CGFloat?
     @State private var horizontalScrollOffset: CGFloat = 0
     @State private var timelineScrollPosition = ScrollPosition(x: 0)
 
@@ -214,6 +216,7 @@ struct TimelineWorkspacePanel: View {
             ZStack(alignment: .topLeading) {
                 trackLaneBackground
                 trackLanes
+                sectionEdgeGuides
                 playhead
 
                 if viewModel.project.tracks.isEmpty {
@@ -230,13 +233,17 @@ struct TimelineWorkspacePanel: View {
             .modifier(TimelineAudioDropModifier(viewModel: viewModel, isDropTargeted: $isDropTargeted))
         }
         .scrollPosition($timelineScrollPosition)
-        .scrollDisabled(viewModel.isSectionInteractionActive)
+        .scrollDisabled(viewModel.isSectionResizeActive)
         .simultaneousGesture(magnificationGesture)
         .onScrollGeometryChange(for: CGFloat.self) { geometry in
             geometry.contentOffset.x + geometry.contentInsets.leading
         } action: { _, newValue in
             horizontalScrollOffset = max(0, newValue)
             viewModel.updateTimelineVisibleOffset(horizontalScrollOffset)
+        }
+        .onChange(of: viewModel.zoom) { oldZoom, newZoom in
+            guard oldZoom != newZoom, magnificationAnchor == nil else { return }
+            preserveTimelineScrollAfterZoom(from: oldZoom, focalViewportX: viewModel.timelineViewportWidth * 0.5)
         }
         .onChange(of: viewModel.timelineScrollRequest) { _, request in
             guard let request else { return }
@@ -288,21 +295,61 @@ struct TimelineWorkspacePanel: View {
     }
 
     private func applyTimelineScroll(offsetX: CGFloat) {
-        horizontalScrollOffset = offsetX
-        timelineScrollPosition = ScrollPosition(x: offsetX)
-        viewModel.updateTimelineVisibleOffset(offsetX)
+        let viewport = max(1, viewModel.timelineViewportWidth)
+        let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
+        let clampedOffset = min(max(0, offsetX), maxOffset)
+
+        horizontalScrollOffset = clampedOffset
+        timelineScrollPosition = ScrollPosition(x: clampedOffset)
+        viewModel.updateTimelineVisibleOffset(clampedOffset)
+    }
+
+    private func preserveTimelineScrollAfterZoom(from oldZoom: Double, focalViewportX: CGFloat) {
+        if viewModel.zoom <= viewModel.minimumTimelineZoom + 0.001 {
+            applyTimelineScroll(offsetX: 0)
+            return
+        }
+
+        let oldPixelsPerSecond = DAWTheme.pixelsPerSecond * oldZoom
+        let anchorTime = TimeInterval((horizontalScrollOffset + focalViewportX) / oldPixelsPerSecond)
+        applyTimelineScrollPreservingTime(anchorTime, focalViewportX: focalViewportX)
+    }
+
+    private func applyTimelineScrollPreservingTime(_ anchorTime: TimeInterval, focalViewportX: CGFloat) {
+        if viewModel.zoom <= viewModel.minimumTimelineZoom + 0.001 {
+            applyTimelineScroll(offsetX: 0)
+            return
+        }
+
+        let targetOffset = CGFloat(anchorTime) * viewModel.pixelsPerSecond - focalViewportX
+        applyTimelineScroll(offsetX: targetOffset)
     }
 
     private var magnificationGesture: some Gesture {
-        MagnificationGesture()
-            .onChanged { scale in
+        MagnifyGesture()
+            .onChanged { value in
                 if magnificationAnchor == nil {
                     magnificationAnchor = viewModel.zoom
+                    zoomAnchorViewportX = value.startLocation.x
+                    let oldPixelsPerSecond = DAWTheme.pixelsPerSecond * viewModel.zoom
+                    zoomAnchorTime = TimeInterval(
+                        (horizontalScrollOffset + value.startLocation.x) / oldPixelsPerSecond
+                    )
                 }
-                viewModel.setZoom((magnificationAnchor ?? 1) * scale)
+
+                viewModel.setZoom((magnificationAnchor ?? 1) * value.magnification)
+
+                if let anchorTime = zoomAnchorTime {
+                    applyTimelineScrollPreservingTime(
+                        anchorTime,
+                        focalViewportX: zoomAnchorViewportX ?? value.startLocation.x
+                    )
+                }
             }
             .onEnded { _ in
                 magnificationAnchor = nil
+                zoomAnchorTime = nil
+                zoomAnchorViewportX = nil
             }
     }
 
@@ -363,6 +410,23 @@ struct TimelineWorkspacePanel: View {
             }
             .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
             .frame(width: viewModel.timelineContentWidth, height: trackRowHeight, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private var sectionEdgeGuides: some View {
+        if let guides = viewModel.activeSectionEdgeGuides {
+            SectionEdgeGuideOverlay(
+                startTime: guides.startTime,
+                endTime: guides.endTime,
+                showStartEdge: guides.showStartEdge,
+                showEndEdge: guides.showEndEdge,
+                color: Color(hex: guides.colorHex) ?? DAWTheme.accent,
+                pixelsPerSecond: viewModel.pixelsPerSecond,
+                height: laneAreaHeight
+            )
+            .zIndex(40)
+            .allowsHitTesting(false)
         }
     }
 

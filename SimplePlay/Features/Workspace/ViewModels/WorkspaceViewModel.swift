@@ -75,6 +75,11 @@ final class WorkspaceViewModel {
         draggingSectionID != nil
     }
 
+    var isSectionResizeActive: Bool {
+        draggingSectionID != nil
+            && (sectionDragKind == .resizeStart || sectionDragKind == .resizeEnd)
+    }
+
     var isSectionRepeatEnabled: Bool {
         arrangementEngine.isRepeatEnabled
     }
@@ -93,8 +98,61 @@ final class WorkspaceViewModel {
     }
 
     var sectionCreationPreview: ClosedRange<TimeInterval>?
+    private(set) var sectionDragPreviewRange: ClosedRange<TimeInterval>?
+    private(set) var sectionMovePreviewRange: ClosedRange<TimeInterval>?
+    private(set) var sectionMovePreviewSectionID: UUID?
     var preferredMarkerPreset: String = "Verse"
     private var sectionCreationStartTime: TimeInterval?
+
+    struct SectionEdgeGuides: Equatable {
+        let startTime: TimeInterval
+        let endTime: TimeInterval
+        let colorHex: String
+        let showStartEdge: Bool
+        let showEndEdge: Bool
+    }
+
+    var activeSectionEdgeGuides: SectionEdgeGuides? {
+        if sectionDragKind == .resizeStart,
+           let preview = sectionDragPreviewRange,
+           let sectionID = draggingSectionID,
+           let section = project.sections.first(where: { $0.id == sectionID }) {
+            return SectionEdgeGuides(
+                startTime: preview.lowerBound,
+                endTime: section.endTime,
+                colorHex: section.colorHex,
+                showStartEdge: true,
+                showEndEdge: false
+            )
+        }
+
+        if sectionDragKind == .resizeEnd,
+           let preview = sectionDragPreviewRange,
+           let sectionID = draggingSectionID,
+           let section = project.sections.first(where: { $0.id == sectionID }) {
+            return SectionEdgeGuides(
+                startTime: section.startTime,
+                endTime: preview.upperBound,
+                colorHex: section.colorHex,
+                showStartEdge: false,
+                showEndEdge: true
+            )
+        }
+
+        if let preview = sectionMovePreviewRange,
+           let sectionID = sectionMovePreviewSectionID,
+           let section = project.sections.first(where: { $0.id == sectionID }) {
+            return SectionEdgeGuides(
+                startTime: preview.lowerBound,
+                endTime: preview.upperBound,
+                colorHex: section.colorHex,
+                showStartEdge: true,
+                showEndEdge: true
+            )
+        }
+
+        return nil
+    }
 
     var midiLearnTarget: MIDILearnTarget?
     var midiLearnStatusMessage: String?
@@ -112,8 +170,9 @@ final class WorkspaceViewModel {
     private let projectPersistence = ProjectPersistenceService()
     private var playbackTimer: Timer?
     private var playheadPublishAccumulator: TimeInterval = 0
-    private let playbackTickInterval: TimeInterval = 1.0 / 30.0
+    private let playbackTickInterval: TimeInterval = 1.0 / 60.0
     private let playheadPublishInterval: TimeInterval = 1.0 / 15.0
+    private var loopPrebufferTriggered = false
 
     init() {
         MIDIInputService.shared.onEvent = { [weak self] event in
@@ -474,25 +533,82 @@ final class WorkspaceViewModel {
             guard configureAudioEngine() else { return false }
         }
 
-        if attemptAudioPlayback(from: time) {
+        let loop = currentSectionLoopContext(at: time)
+
+        if attemptAudioPlayback(from: time, sectionLoop: loop) {
             return true
         }
 
-        guard configureAudioEngine(), attemptAudioPlayback(from: time) else {
+        guard configureAudioEngine(), attemptAudioPlayback(from: time, sectionLoop: loop) else {
             return false
         }
 
         return true
     }
 
-    private func attemptAudioPlayback(from time: TimeInterval) -> Bool {
-        let started = audioEngine.play(from: time, project: project)
+    private func attemptAudioPlayback(from time: TimeInterval, sectionLoop: SectionLoopContext?) -> Bool {
+        let started = audioEngine.play(from: time, project: project, sectionLoop: sectionLoop)
         if !started, let playbackError = audioEngine.lastPlaybackError {
             reportError(playbackError)
         } else if !started {
             reportError("Could not start audio playback.")
         }
         return started
+    }
+
+    private func currentSectionLoopContext(at time: TimeInterval) -> SectionLoopContext? {
+        let section: ArrangementSection?
+        switch arrangementEngine.state {
+        case .playingSection(let active), .repeatingSectionAtEnd(let active):
+            section = active
+        case .waitingToJump:
+            section = arrangementEngine.activeSection
+        default:
+            if let match = project.sections.first(where: { $0.contains(time: time) }) {
+                section = match
+            } else {
+                section = nil
+            }
+        }
+
+        guard let section else { return nil }
+
+        let repeatsAtEnd: Bool = {
+            if case .repeatingSectionAtEnd = arrangementEngine.state { return true }
+            return false
+        }()
+
+        let globalLoop = project.sectionRepeatMIDIMapped && arrangementEngine.isRepeatEnabled
+        guard repeatsAtEnd || globalLoop else { return nil }
+
+        let aligned = sampleAlignedSectionBounds(section)
+        return SectionLoopContext(
+            sectionID: section.id,
+            startTime: aligned.start,
+            endTime: aligned.end
+        )
+    }
+
+    private func isSectionLoopWrap(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
+        guard newTime + 0.001 < previousTime,
+              let loop = currentSectionLoopContext(at: previousTime) else {
+            return false
+        }
+        return abs(previousTime - loop.endTime) <= playbackTickInterval * 2
+            || previousTime >= loop.endTime - 0.001
+    }
+
+    private func appendSectionLoopAudioIfNeeded(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
+        guard let loop = currentSectionLoopContext(at: newTime) else { return false }
+
+        SectionLoopDiagnostics.logTimelineWrap(
+            previousTime: previousTime,
+            newTime: newTime,
+            loop: loop,
+            action: "append audio cycles (no restart)"
+        )
+
+        return audioEngine.appendSectionLoopCycles(project: project, loop: loop)
     }
 
     private func resolvedImportGroupName(explicit groupName: String?) -> String {
@@ -1048,13 +1164,14 @@ final class WorkspaceViewModel {
     }
 
     func addSection(name: String, range: ClosedRange<TimeInterval>, mode: SectionPlaybackMode) {
-        guard range.upperBound > range.lowerBound else { return }
+        let normalized = normalizedSectionRange(start: range.lowerBound, end: range.upperBound)
+        guard normalized.end > normalized.start else { return }
 
         let note = UInt8(min(127, 60 + project.sections.count))
         let section = ArrangementSection(
             name: name,
-            startTime: range.lowerBound,
-            endTime: range.upperBound,
+            startTime: normalized.start,
+            endTime: normalized.end,
             colorHex: SectionMarkerPalette.nextDistinctHex(sections: project.sections, name: name),
             midiNote: note,
             playbackMode: mode
@@ -1087,16 +1204,8 @@ final class WorkspaceViewModel {
         let minimumDuration = max(project.snapInterval, 0.25)
         guard preview.upperBound - preview.lowerBound >= minimumDuration else { return }
 
-        let snappedLower = SnapGrid.snap(
-            preview.lowerBound,
-            interval: project.snapInterval,
-            enabled: project.isSnapEnabled
-        )
-        let snappedUpper = SnapGrid.snap(
-            preview.upperBound,
-            interval: project.snapInterval,
-            enabled: project.isSnapEnabled
-        )
+        let snappedLower = normalizedSectionBoundary(preview.lowerBound)
+        let snappedUpper = normalizedSectionBoundary(preview.upperBound)
         guard snappedUpper > snappedLower else { return }
 
         addSection(
@@ -1112,7 +1221,46 @@ final class WorkspaceViewModel {
     }
 
     private func timeFromTimelineX(_ x: CGFloat) -> TimeInterval {
-        max(0, TimeInterval(x / pixelsPerSecond))
+        normalizedSectionBoundary(max(0, TimeInterval(x / pixelsPerSecond)))
+    }
+
+    private func normalizedSectionBoundary(_ time: TimeInterval) -> TimeInterval {
+        TimelineSampleGrid.snapSectionBoundary(
+            time,
+            snapInterval: project.snapInterval,
+            snapEnabled: project.isSnapEnabled,
+            sampleRate: timelineSampleRate
+        )
+    }
+
+    private func normalizedSectionRange(start: TimeInterval, end: TimeInterval) -> (start: TimeInterval, end: TimeInterval) {
+        let normalizedStart = normalizedSectionBoundary(start)
+        let normalizedEnd = normalizedSectionBoundary(end)
+        return (
+            normalizedStart,
+            max(normalizedStart + TimelineSampleGrid.sampleDuration(sampleRate: timelineSampleRate), normalizedEnd)
+        )
+    }
+
+    /// Prefer the sample rate of loaded clips so section edges align with audible content.
+    private var timelineSampleRate: Double {
+        if let clipRate = audioEngine.primaryClipSampleRate {
+            return clipRate
+        }
+        return project.audioSettings.sampleRate.rawValue
+    }
+
+    private func sampleAlignedSectionBounds(_ section: ArrangementSection) -> (start: TimeInterval, end: TimeInterval) {
+        let sampleRate = timelineSampleRate
+        let start = TimelineSampleGrid.timeFromFrame(
+            TimelineSampleGrid.frames(at: section.startTime, sampleRate: sampleRate),
+            sampleRate: sampleRate
+        )
+        let end = TimelineSampleGrid.timeFromFrame(
+            TimelineSampleGrid.frames(at: section.endTime, sampleRate: sampleRate),
+            sampleRate: sampleRate
+        )
+        return (start, end)
     }
 
     private func nextSectionMarkerName() -> String {
@@ -1138,65 +1286,136 @@ final class WorkspaceViewModel {
         arrangementEngine.configure(sections: project.sections)
     }
 
+    func updateSectionMovePreview(
+        sectionID: UUID,
+        anchorStart: TimeInterval,
+        anchorEnd: TimeInterval,
+        laneLocationX: CGFloat,
+        grabOffsetX: CGFloat
+    ) {
+        sectionMovePreviewSectionID = sectionID
+        sectionMovePreviewRange = previewRangeForSectionDrag(
+            kind: .move,
+            anchorStart: anchorStart,
+            anchorEnd: anchorEnd,
+            laneLocationX: laneLocationX,
+            grabOffsetX: grabOffsetX
+        )
+    }
+
+    func clearSectionMovePreview() {
+        sectionMovePreviewSectionID = nil
+        sectionMovePreviewRange = nil
+    }
+
     func beginSectionDrag(sectionID: UUID, kind: SectionDragKind) {
+        guard kind == .resizeStart || kind == .resizeEnd else { return }
         guard draggingSectionID == nil else { return }
 
         draggingSectionID = sectionID
         sectionDragKind = kind
         selectedSectionID = sectionID
+        clearSectionMovePreview()
+
+        if let section = project.sections.first(where: { $0.id == sectionID }) {
+            updateSectionDragPreview(start: section.startTime, end: section.endTime)
+        }
     }
 
-    func commitSectionDrag(sectionID: UUID, kind: SectionDragKind, translation: CGFloat) {
-        defer { clearSectionDragState() }
+    func cancelSectionDrag() {
+        clearSectionDragState()
+    }
 
-        guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
+    func updateSectionDragPreview(start: TimeInterval, end: TimeInterval) {
+        sectionDragPreviewRange = min(start, end)...max(start, end)
+    }
 
-        let anchorStart = project.sections[index].startTime
-        let anchorEnd = project.sections[index].endTime
-        let delta = TimeInterval(translation / pixelsPerSecond)
-        let minimumDuration: TimeInterval = max(project.snapInterval, 0.25)
+    func updateSectionDragPreview(
+        kind: SectionDragKind,
+        anchorStart: TimeInterval,
+        anchorEnd: TimeInterval,
+        laneLocationX: CGFloat,
+        grabOffsetX: CGFloat = 0
+    ) {
+        let range = previewRangeForSectionDrag(
+            kind: kind,
+            anchorStart: anchorStart,
+            anchorEnd: anchorEnd,
+            laneLocationX: laneLocationX,
+            grabOffsetX: grabOffsetX
+        )
+        updateSectionDragPreview(start: range.lowerBound, end: range.upperBound)
+    }
 
-        let finalStart: TimeInterval
-        let finalEnd: TimeInterval
+    func rawTimeFromTimelineX(_ x: CGFloat) -> TimeInterval {
+        max(0, TimeInterval(x / pixelsPerSecond))
+    }
+
+    func previewRangeForSectionDrag(
+        kind: SectionDragKind,
+        anchorStart: TimeInterval,
+        anchorEnd: TimeInterval,
+        laneLocationX: CGFloat,
+        grabOffsetX: CGFloat = 0
+    ) -> ClosedRange<TimeInterval> {
+        let minimumDuration = max(project.snapInterval, 0.25)
 
         switch kind {
         case .move:
             let duration = anchorEnd - anchorStart
-            let rawStart = max(0, anchorStart + delta)
-            finalStart = SnapGrid.snap(
-                rawStart,
-                interval: project.snapInterval,
-                enabled: project.isSnapEnabled
-            )
-            finalEnd = finalStart + duration
+            let startTime = max(0, rawTimeFromTimelineX(laneLocationX - grabOffsetX))
+            let endTime = startTime + duration
+            return startTime...endTime
 
         case .resizeStart:
-            let rawStart = max(0, min(anchorEnd - minimumDuration, anchorStart + delta))
-            finalStart = SnapGrid.snap(
-                rawStart,
-                interval: project.snapInterval,
-                enabled: project.isSnapEnabled
+            let startTime = max(
+                0,
+                min(
+                    anchorEnd - minimumDuration,
+                    rawTimeFromTimelineX(laneLocationX - grabOffsetX)
+                )
             )
-            finalEnd = anchorEnd
+            return startTime...anchorEnd
 
         case .resizeEnd:
-            let rawEnd = max(anchorStart + minimumDuration, anchorEnd + delta)
-            finalStart = anchorStart
-            finalEnd = SnapGrid.snap(
-                rawEnd,
-                interval: project.snapInterval,
-                enabled: project.isSnapEnabled
+            let endTime = max(
+                anchorStart + minimumDuration,
+                rawTimeFromTimelineX(laneLocationX - grabOffsetX)
             )
+            return anchorStart...endTime
+        }
+    }
+
+    /// Commits the live drag preview exactly as shown (no snap or recomputation).
+    func commitSectionDragPreview(sectionID: UUID, kind: SectionDragKind) {
+        guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else {
+            clearSectionDragState()
+            clearSectionMovePreview()
+            return
         }
 
-        project.sections[index].startTime = finalStart
-        project.sections[index].endTime = finalEnd
-        arrangementEngine.configure(sections: project.sections)
+        let previewRange: ClosedRange<TimeInterval>?
+        switch kind {
+        case .move:
+            previewRange = sectionMovePreviewRange
+        case .resizeStart, .resizeEnd:
+            previewRange = sectionDragPreviewRange
+        }
+
+        if let previewRange {
+            project.sections[index].startTime = previewRange.lowerBound
+            project.sections[index].endTime = previewRange.upperBound
+            arrangementEngine.configure(sections: project.sections)
+        }
+
+        clearSectionDragState()
+        clearSectionMovePreview()
     }
 
     private func clearSectionDragState() {
         draggingSectionID = nil
         sectionDragKind = .move
+        sectionDragPreviewRange = nil
     }
 
     func updateSectionMIDI(
@@ -1277,6 +1496,7 @@ final class WorkspaceViewModel {
         }
 
         isPlaying = true
+        loopPrebufferTriggered = false
         startPlaybackTimer()
     }
 
@@ -1451,6 +1671,7 @@ final class WorkspaceViewModel {
         }
 
         isPlaying = true
+        loopPrebufferTriggered = false
         startPlaybackTimer()
     }
 
@@ -1560,10 +1781,45 @@ final class WorkspaceViewModel {
         )
         publishPlayheadTime(newTime, force: didJumpTimeline)
 
+        if isPlaying, let loop = currentSectionLoopContext(at: newTime) {
+            let remaining = loop.endTime - newTime
+            if remaining > 0, remaining <= 0.12, !loopPrebufferTriggered {
+                loopPrebufferTriggered = true
+                SectionLoopDiagnostics.log(String(
+                    format: "prebuffer loop %.1f ms before end %.6fs",
+                    remaining * 1000,
+                    loop.endTime
+                ))
+                _ = audioEngine.appendSectionLoopCycles(project: project, loop: loop)
+            }
+        } else if !isPlaying {
+            loopPrebufferTriggered = false
+        }
+
         if isPlaying, didJumpTimeline {
-            if !startAudioPlayback(from: newTime) {
-                pause()
-                return
+            if isSectionLoopWrap(from: previousTime, to: newTime) {
+                loopPrebufferTriggered = false
+                if !appendSectionLoopAudioIfNeeded(from: previousTime, to: newTime) {
+                    SectionLoopDiagnostics.log(String(
+                        format: "loop wrap fallback restart %.6fs -> %.6fs",
+                        previousTime,
+                        newTime
+                    ))
+                    if !startAudioPlayback(from: newTime) {
+                        pause()
+                        return
+                    }
+                }
+            } else {
+                SectionLoopDiagnostics.log(String(
+                    format: "timeline jump restart %.6fs -> %.6fs",
+                    previousTime,
+                    newTime
+                ))
+                if !startAudioPlayback(from: newTime) {
+                    pause()
+                    return
+                }
             }
         }
 
