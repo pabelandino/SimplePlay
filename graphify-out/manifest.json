@@ -160,8 +160,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786344706.2824264,
-    "ast_hash": "f998c9a3c783a9a0ce67e8f4088b63b3",
+    "mtime": 1786373405.137796,
+    "ast_hash": "61e969e0c715a72115120b8c8ecd9222",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
-    "mtime": 1786344944.7068222,
-    "ast_hash": "fccaa5888d97db81856799e0499d6556",
+    "mtime": 1786373414.1609552,
+    "ast_hash": "77aa729661be611d666a3d67a696cf00",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {

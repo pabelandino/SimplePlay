@@ -1504,9 +1504,10 @@ final class WorkspaceViewModel {
         lastMIDIInputDebugMessage = midiDebugDescription(for: event)
 
         if let target = midiLearnTarget {
-            applyMIDILearn(event: event, target: target)
-            midiLearnTarget = nil
-            MIDIInputService.shared.acceptAllSources = false
+            if applyMIDILearn(event: event, target: target) {
+                midiLearnTarget = nil
+                MIDIInputService.shared.acceptAllSources = false
+            }
             return
         }
 
@@ -1540,7 +1541,8 @@ final class WorkspaceViewModel {
         return assignment.displayName
     }
 
-    private func applyMIDILearn(event: MIDIInputEvent, target: MIDILearnTarget) {
+    @discardableResult
+    private func applyMIDILearn(event: MIDIInputEvent, target: MIDILearnTarget) -> Bool {
         let assignment = MIDINoteAssignment(
             note: event.number,
             channel: event.channel,
@@ -1558,15 +1560,17 @@ final class WorkspaceViewModel {
             if let section = project.sections.first(where: { $0.id == sectionID }) {
                 midiLearnStatusMessage = "Mapped “\(section.name)” → \(assignment.displayName)"
             }
+            return true
         case .loopToggle:
             guard event.kind == .noteOn else {
                 midiLearnStatusMessage = "Loop Repeat needs a note message. Try another pad."
-                return
+                return false
             }
             project.sectionRepeatMIDINote = event.number
             project.sectionRepeatMIDIChannel = event.channel
             project.sectionRepeatMIDIMapped = true
             midiLearnStatusMessage = "Loop Repeat → \(assignment.displayName)"
+            return true
         }
     }
 
@@ -1616,7 +1620,7 @@ final class WorkspaceViewModel {
 
     func startMIDILearn(for target: MIDILearnTarget) {
         isMIDIMappingExpanded = true
-        prepareMIDIInput()
+        applySavedMIDIDeviceConnection()
         MIDIInputService.shared.acceptAllSources = true
         lastMIDIInputDebugMessage = nil
         midiLearnTarget = target

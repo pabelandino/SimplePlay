@@ -6,15 +6,15 @@
 import SwiftUI
 #if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
 #endif
 
 struct MIDIMappingBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-#if os(iOS)
     @State private var showsDevicePicker = false
-#endif
 
     private var isCompact: Bool {
         horizontalSizeClass == .compact
@@ -55,6 +55,10 @@ struct MIDIMappingBarView: View {
         }
 #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            viewModel.applySavedMIDIDeviceConnection()
+        }
+#elseif os(macOS)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             viewModel.applySavedMIDIDeviceConnection()
         }
 #endif
@@ -148,7 +152,6 @@ struct MIDIMappingBarView: View {
 
     @ViewBuilder
     private var devicePicker: some View {
-#if os(iOS)
         Button {
             viewModel.prepareMIDIInput()
             showsDevicePicker = true
@@ -191,7 +194,9 @@ struct MIDIMappingBarView: View {
                     }
                 }
                 .navigationTitle("MIDI Input")
+#if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+#endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Done") {
@@ -200,27 +205,13 @@ struct MIDIMappingBarView: View {
                     }
                 }
             }
+#if os(iOS)
             .presentationDetents([.medium, .large])
-        }
-#else
-        Menu {
-            Button("All Inputs") {
-                viewModel.selectMIDIDevice(nil)
-            }
-
-            if !viewModel.availableMIDISources.isEmpty {
-                Divider()
-                ForEach(viewModel.availableMIDISources) { source in
-                    Button(source.name) {
-                        viewModel.selectMIDIDevice(source)
-                    }
-                }
-            }
-        } label: {
-            devicePickerLabel
-        }
-        .buttonStyle(.plain)
 #endif
+#if os(macOS)
+            .frame(minWidth: 360, minHeight: 320)
+#endif
+        }
     }
 
     private var devicePickerLabel: some View {
