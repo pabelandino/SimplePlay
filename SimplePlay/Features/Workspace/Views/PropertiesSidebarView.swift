@@ -12,65 +12,63 @@ struct PropertiesSidebarView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                audioSettings
-                trackPitch
-                sectionEditor
-                selectedMarkerEditor
-                selectionInfo
-                playbackSettings
-                volumeControls
-                sessionManagement
+            GlassEffectContainer(spacing: 14) {
+                VStack(alignment: .leading, spacing: 14) {
+                    audioSettings
+                    trackPitch
+                    sectionEditor
+                    selectedMarkerEditor
+                    selectionInfo
+                    playbackSettings
+                    volumeControls
+                    sessionManagement
+                }
             }
-            .padding(16)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
+        .scrollContentBackground(.hidden)
+        .background(.clear)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DAWTheme.surface)
     }
 
     private var audioSettings: some View {
-        SidebarPanel(title: "Audio Output") {
-            SidebarLabeledRow(title: "Interface") {
-                Picker("Interface", selection: selectedDeviceID) {
-                    ForEach(viewModel.availableOutputDevices) { device in
-                        Text(device.name).tag(device.id)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-            }
+        SidebarPanel(title: "Audio Output", icon: "speaker.wave.2.fill") {
+            SettingsMenuRow(
+                title: "Interface",
+                options: viewModel.availableOutputDevices.map { ($0.id, $0.name) },
+                selection: selectedDeviceID
+            )
 
             if selectedDevice.outputChannelCount > 2 {
-                SidebarLabeledRow(title: "Output Pair") {
-                    Picker("Output Pair", selection: $viewModel.project.audioSettings.outputChannelPair) {
-                        ForEach(AudioDeviceService.channelPairOptions(for: selectedDevice), id: \.self) { pair in
-                            Text(AudioDeviceService.channelPairLabel(pairIndex: pair)).tag(pair)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
+                SettingsMenuRow(
+                    title: "Output Pair",
+                    options: AudioDeviceService.channelPairOptions(for: selectedDevice).map {
+                        ($0, AudioDeviceService.channelPairLabel(pairIndex: $0))
+                    },
+                    selection: $viewModel.project.audioSettings.outputChannelPair
+                )
+            }
+
+            SettingsMenuRow(
+                title: "Sample Rate",
+                options: AudioSampleRate.allCases.map { ($0, $0.displayName) },
+                selection: $viewModel.project.audioSettings.sampleRate
+            )
+
+            HStack(spacing: 8) {
+                Button("Apply Audio Settings") {
+                    viewModel.applyAudioSettings()
                 }
-            }
+                .buttonStyle(DAWPrimaryButtonStyle())
+                .frame(maxWidth: .infinity)
 
-            SidebarLabeledRow(title: "Sample Rate") {
-                Picker("Sample Rate", selection: $viewModel.project.audioSettings.sampleRate) {
-                    ForEach(AudioSampleRate.allCases) { rate in
-                        Text(rate.displayName).tag(rate)
-                    }
+                Button("Refresh Devices") {
+                    viewModel.refreshAudioDevices()
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
+                .buttonStyle(DAWSecondaryButtonStyle())
+                .frame(maxWidth: .infinity)
             }
-
-            Button("Apply Audio Settings") {
-                viewModel.applyAudioSettings()
-            }
-            .buttonStyle(DAWSecondaryButtonStyle())
-
-            Button("Refresh Devices") {
-                viewModel.refreshAudioDevices()
-            }
-            .buttonStyle(DAWSecondaryButtonStyle())
         }
     }
 
@@ -103,38 +101,30 @@ struct PropertiesSidebarView: View {
     }
 
     private var trackPitch: some View {
-        SidebarPanel(title: "Track Pitch") {
+        SidebarPanel(title: "Track Pitch", icon: "tuningfork") {
             if viewModel.project.tracks.isEmpty {
-                Text("Import tracks to adjust pitch per lane without changing speed.")
-                    .font(.caption)
-                    .foregroundStyle(DAWTheme.textSecondary)
+                SettingsFootnote(text: "Import tracks to adjust pitch per lane without changing speed.")
             } else {
-                Text("Shift pitch for one track at a time. Original files are unchanged — set to 0 to restore.")
-                    .font(.caption)
-                    .foregroundStyle(DAWTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                SettingsFootnote(
+                    text: "Shift pitch for one track at a time. Original files are unchanged — set to 0 to restore."
+                )
 
                 if viewModel.project.tracks.count > 1 {
-                    SidebarLabeledRow(title: "Track") {
-                        Picker("Track", selection: selectedTrackIDBinding) {
-                            ForEach(viewModel.project.tracks) { track in
-                                Text(track.displayName).tag(track.id)
-                            }
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                    }
+                    SettingsMenuRow(
+                        title: "Track",
+                        options: viewModel.project.tracks.map { ($0.id, $0.displayName) },
+                        selection: selectedTrackIDBinding
+                    )
                 } else if let track = viewModel.activePitchTrack {
-                    LabeledContent("Track") {
-                        Text(track.displayName)
-                            .foregroundStyle(DAWTheme.textSecondary)
-                    }
+                    SettingsValueRow(title: "Track", value: track.displayName)
                 }
 
-                SidebarLabeledRow(title: "Pitch") {
-                    Text(pitchLabel)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(pitchIsOriginal ? DAWTheme.textSecondary : DAWTheme.accent)
+                HStack {
+                    Text("Pitch")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(DAWTheme.textSecondary)
+                    Spacer(minLength: 8)
+                    SettingsBadge(text: pitchLabel, isHighlighted: !pitchIsOriginal)
                 }
 
                 Slider(
@@ -142,6 +132,7 @@ struct PropertiesSidebarView: View {
                     in: PitchShiftSettings.minSemitones...PitchShiftSettings.maxSemitones,
                     step: 0.5
                 )
+                .tint(DAWTheme.accent)
 
                 HStack {
                     Text("-5 st")
@@ -150,7 +141,7 @@ struct PropertiesSidebarView: View {
                     Spacer()
                     Text("+5 st")
                 }
-                .font(.caption2)
+                .font(.caption2.weight(.medium))
                 .foregroundStyle(DAWTheme.textSecondary)
 
                 Button("Reset to Original") {
@@ -213,74 +204,74 @@ struct PropertiesSidebarView: View {
     }
 
     private var sectionEditor: some View {
-        SidebarPanel(title: "Section Markers") {
-            Text(sectionCreationHint)
-                .font(.caption)
-                .foregroundStyle(DAWTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+        SidebarPanel(title: "Section Markers", icon: "flag.fill") {
+            SettingsFootnote(text: sectionCreationHint)
 
-            SidebarLabeledRow(title: "Default Name") {
-                Picker("Default Name", selection: $viewModel.preferredMarkerPreset) {
-                    ForEach(sectionPresets, id: \.self) { preset in
-                        Text(preset).tag(preset)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            SettingsMenuRow(
+                title: "Default Name",
+                options: sectionPresets.map { ($0, $0) },
+                selection: $viewModel.preferredMarkerPreset
+            )
         }
     }
 
     @ViewBuilder
     private var selectedMarkerEditor: some View {
         if let section = selectedSection {
-            SidebarPanel(title: "Selected Marker") {
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(section.color)
-                        .frame(width: 12, height: 12)
-                    TextField("Marker name", text: selectedSectionNameBinding)
-                        .textFieldStyle(.roundedBorder)
+            SidebarPanel(title: "Selected Marker", icon: "mappin.and.ellipse") {
+                SettingsFieldLabel(title: "Name") {
+                    HStack(spacing: 10) {
+                        Circle()
+                            .fill(section.color)
+                            .frame(width: 10, height: 10)
+
+                        TextField("Marker name", text: selectedSectionNameBinding)
+                            .textFieldStyle(.plain)
+                            .font(.subheadline)
+                            .foregroundStyle(DAWTheme.textPrimary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .dawSettingsControlGlass()
                 }
 
-                LabeledContent("Pad Mapping") {
-                    Text(
-                        MIDINoteAssignment(
-                            note: section.midiNote,
-                            channel: section.midiChannel,
-                            usesControlChange: section.midiUsesControlChange
-                        ).displayName
-                    )
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(DAWTheme.textSecondary)
-                }
+                SettingsValueRow(
+                    title: "Pad Mapping",
+                    value: MIDINoteAssignment(
+                        note: section.midiNote,
+                        channel: section.midiChannel,
+                        usesControlChange: section.midiUsesControlChange
+                    ).displayName,
+                    monospaced: true
+                )
 
                 Button("Assign Pad") {
                     viewModel.startMIDILearn(for: .section(section.id))
                 }
                 .buttonStyle(DAWSecondaryButtonStyle())
 
-                Text("While playing, another pad queues a jump at the current section end. Press the same section pad again during playback to repeat it once.")
-                    .font(.caption2)
-                    .foregroundStyle(DAWTheme.textSecondary)
+                SettingsFootnote(
+                    text: "While playing, another pad queues a jump at the current section end. Press the same section pad again during playback to repeat it once."
+                )
 
-                LabeledContent("Range") {
-                    Text("\(TimeFormatting.format(section.startTime)) – \(TimeFormatting.format(section.endTime))")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(DAWTheme.textSecondary)
-                }
+                SettingsValueRow(
+                    title: "Range",
+                    value: "\(TimeFormatting.format(section.startTime)) – \(TimeFormatting.format(section.endTime))",
+                    monospaced: true
+                )
 
                 HStack(spacing: 8) {
                     Button("Trigger") {
                         viewModel.triggerSection(section)
                     }
                     .buttonStyle(DAWPrimaryButtonStyle())
+                    .frame(maxWidth: .infinity)
 
                     Button("Delete Marker", role: .destructive) {
                         viewModel.requestDeleteSection(section.id)
                     }
                     .buttonStyle(DAWSecondaryButtonStyle())
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
@@ -297,53 +288,59 @@ struct PropertiesSidebarView: View {
     }
 
     private var selectionInfo: some View {
-        SidebarPanel(title: "Selection Duration") {
+        SidebarPanel(title: "Selection Duration", icon: "arrow.left.and.right.square") {
             if let range = viewModel.selectionRange {
-                LabeledContent("Start") {
-                    Text(TimeFormatting.format(range.lowerBound))
-                        .font(.system(.body, design: .monospaced))
-                }
-                LabeledContent("End") {
-                    Text(TimeFormatting.format(range.upperBound))
-                        .font(.system(.body, design: .monospaced))
-                }
+                SettingsValueRow(
+                    title: "Start",
+                    value: TimeFormatting.format(range.lowerBound),
+                    monospaced: true
+                )
+                SettingsValueRow(
+                    title: "End",
+                    value: TimeFormatting.format(range.upperBound),
+                    monospaced: true
+                )
 
-                Toggle("Loop Selection", isOn: $viewModel.isSelectionLoopEnabled)
+                SettingsToggleRow(title: "Loop Selection", isOn: $viewModel.isSelectionLoopEnabled)
             } else {
-                Text("Use the arrow tool and drag horizontally on the timeline to select a range.")
-                    .font(.caption)
-                    .foregroundStyle(DAWTheme.textSecondary)
-            }
-        }
-    }
-
-    private var playbackSettings: some View {
-        SidebarPanel(title: "Snap Grid") {
-            Toggle("Enable Snap", isOn: $viewModel.project.isSnapEnabled)
-
-            SidebarLabeledRow(title: "Interval (seconds)") {
-                TextField("Interval", value: $viewModel.project.snapInterval, format: .number)
-                    .textFieldStyle(.roundedBorder)
-            }
-        }
-    }
-
-    private var volumeControls: some View {
-        SidebarPanel(title: "Sound Levels") {
-            SidebarLabeledRow(title: "Master Volume") {
-                DAWVerticalFaderView(
-                    value: masterVolumeBinding,
-                    accentColor: DAWTheme.faderFill,
-                    width: 32,
-                    height: 140,
-                    showsValueLabel: false
+                SettingsFootnote(
+                    text: "Use the arrow tool and drag horizontally on the timeline to select a range."
                 )
             }
         }
     }
 
+    private var playbackSettings: some View {
+        SidebarPanel(title: "Snap Grid", icon: "square.grid.3x3") {
+            SettingsToggleRow(title: "Enable Snap", isOn: $viewModel.project.isSnapEnabled)
+
+            SettingsNumberInput(
+                title: "Interval (seconds)",
+                value: $viewModel.project.snapInterval
+            )
+        }
+    }
+
+    private var volumeControls: some View {
+        SidebarPanel(title: "Sound Levels", icon: "speaker.wave.3.fill") {
+            SettingsFieldLabel(title: "Master Volume") {
+                HStack {
+                    Spacer(minLength: 0)
+                    DAWVerticalFaderView(
+                        value: masterVolumeBinding,
+                        accentColor: DAWTheme.faderFill,
+                        width: 32,
+                        height: 140,
+                        showsValueLabel: false
+                    )
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
     private var sessionManagement: some View {
-        SidebarPanel(title: "Project Session") {
+        SidebarPanel(title: "Project Session", icon: "folder.fill") {
             Button("New Project…") {
                 viewModel.requestNewProject()
             }
@@ -354,9 +351,9 @@ struct PropertiesSidebarView: View {
             }
             .buttonStyle(DAWSecondaryButtonStyle())
 
-            Text("New Project can save your current work before starting blank. Reset Session clears everything immediately after confirmation.")
-                .font(.caption)
-                .foregroundStyle(DAWTheme.textSecondary)
+            SettingsFootnote(
+                text: "New Project can save your current work before starting blank. Reset Session clears everything immediately after confirmation."
+            )
         }
     }
 

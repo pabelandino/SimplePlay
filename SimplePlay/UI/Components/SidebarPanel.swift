@@ -7,20 +7,24 @@ import SwiftUI
 
 struct SidebarPanel<Content: View>: View {
     let title: String
+    var icon: String? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(DAWTheme.textPrimary)
+        VStack(alignment: .leading, spacing: 14) {
+            if let icon {
+                SettingsSectionHeader(title: title, icon: icon)
+            } else {
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(DAWTheme.textPrimary)
+            }
 
             content()
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DAWTheme.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .dawSettingsPanelGlass()
     }
 }
 

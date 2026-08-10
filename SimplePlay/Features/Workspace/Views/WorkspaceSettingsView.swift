@@ -10,37 +10,60 @@ struct WorkspaceSettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            settingsHeader
+                .zIndex(1)
+
             PropertiesSidebarView(viewModel: viewModel)
-                .navigationTitle("Settings")
-#if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-#endif
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            dismiss()
-                        }
-                    }
-                }
-                .confirmationDialog(
-                    deleteSectionDialogTitle,
-                    isPresented: sectionDeletionDialogBinding,
-                    titleVisibility: .visible
-                ) {
-                    Button("Delete", role: .destructive) {
-                        viewModel.confirmPendingSectionDeletion()
-                    }
-                    Button("Cancel", role: .cancel) {
-                        viewModel.cancelSectionDeletion()
-                    }
-                } message: {
-                    Text("This section marker will be removed from the timeline.")
-                }
         }
-#if os(macOS)
-        .frame(minWidth: 360, minHeight: 520)
+        .dawGlassBorder(cornerRadius: DAWGlassChrome.windowCornerRadius, lineWidth: 1.25)
+        .preferredColorScheme(.dark)
+        .confirmationDialog(
+            deleteSectionDialogTitle,
+            isPresented: sectionDeletionDialogBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                viewModel.confirmPendingSectionDeletion()
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.cancelSectionDeletion()
+            }
+        } message: {
+            Text("This section marker will be removed from the timeline.")
+        }
+#if os(iOS)
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(DAWGlassChrome.windowCornerRadius)
 #endif
+#if os(macOS)
+        .frame(minWidth: 420, idealWidth: 460, minHeight: 580, idealHeight: 680)
+        .background(.clear)
+#endif
+    }
+
+    private var settingsHeader: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Settings")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(DAWTheme.textPrimary)
+
+                Text("Audio, sections, and project preferences")
+                    .font(.caption)
+                    .foregroundStyle(DAWTheme.textSecondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Button("Done") {
+                dismiss()
+            }
+            .buttonStyle(DAWPrimaryButtonStyle())
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .dawSettingsHeaderChrome()
     }
 
     private var deleteSectionDialogTitle: String {

@@ -1828,23 +1828,52 @@ final class WorkspaceViewModel {
         playbackTimer = nil
     }
 
+    private func computePlaybackDelta(previousTime: TimeInterval) -> TimeInterval {
+        guard isPlaying else { return 0 }
+
+        guard let audioTime = audioEngine.currentTimelineTime() else {
+            return playbackTickInterval
+        }
+
+        let rawDelta = audioTime - previousTime
+
+        if let loop = currentSectionLoopContext(at: previousTime) {
+            let loopDuration = loop.endTime - loop.startTime
+
+            if rawDelta < 0 {
+                audioEngine.reanchorPlaybackTimeline(at: previousTime)
+                return playbackTickInterval
+            }
+
+            if loopDuration > 0, rawDelta > loopDuration * 0.45 {
+                audioEngine.reanchorPlaybackTimeline(at: previousTime)
+                return min(rawDelta, playbackTickInterval * 2)
+            }
+
+            if rawDelta <= 0.5 {
+                return rawDelta
+            }
+
+            audioEngine.reanchorPlaybackTimeline(at: previousTime)
+            return playbackTickInterval
+        }
+
+        if rawDelta >= 0, rawDelta <= 0.5 {
+            return rawDelta
+        }
+
+        if rawDelta > 0.5 {
+            arrangementEngine.seek(to: audioTime)
+            return 0
+        }
+
+        return 0
+    }
+
     private func tickPlayback() {
         let previousTime = arrangementEngine.currentTime
-
-        let delta: TimeInterval
-        if isPlaying, let audioTime = audioEngine.currentTimelineTime() {
-            let rawDelta = audioTime - previousTime
-            if rawDelta >= 0, rawDelta <= 0.5 {
-                delta = rawDelta
-            } else if rawDelta > 0.5 {
-                arrangementEngine.seek(to: audioTime)
-                delta = 0
-            } else {
-                delta = 0
-            }
-        } else {
-            delta = 0
-        }
+        let delta = computePlaybackDelta(previousTime: previousTime)
+        let inSectionLoop = currentSectionLoopContext(at: previousTime) != nil
 
         if isSelectionLoopEnabled,
            let range = selectionRange,
@@ -1871,7 +1900,7 @@ final class WorkspaceViewModel {
             to: newTime,
             delta: delta
         )
-        publishPlayheadTime(newTime, force: didJumpTimeline)
+        publishPlayheadTime(newTime, force: didJumpTimeline || inSectionLoop)
 
         if didJumpTimeline, newTime + 0.5 < previousTime {
             scrollTimelineToPlayhead(alignment: .center)
@@ -1879,6 +1908,7 @@ final class WorkspaceViewModel {
 
         if isPlaying, didJumpTimeline {
             if isSectionLoopWrap(from: previousTime, to: newTime) {
+                audioEngine.reanchorPlaybackTimeline(at: newTime)
                 loopPrebufferTriggered = false
                 let canAppend = audioEngine.isSectionLoopPlaybackActive
                     && appendSectionLoopAudioIfNeeded(from: previousTime, to: newTime)

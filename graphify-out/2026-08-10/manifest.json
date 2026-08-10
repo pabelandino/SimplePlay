@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioEngineService.swift": {
-    "mtime": 1786382619.585005,
-    "ast_hash": "b245bf1764b04a916054454ca2260e8d",
+    "mtime": 1786383668.2844667,
+    "ast_hash": "1f83f210ee46b7423c24d900ad595ee9",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioImportService.swift": {
@@ -160,13 +160,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786382611.6085844,
-    "ast_hash": "e748a1a69a301448386777a08b76657f",
+    "mtime": 1786383669.459624,
+    "ast_hash": "590a6f80a5485b9e3c77ab18d001d605",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
-    "mtime": 1786335314.2146478,
-    "ast_hash": "cfa14b16afb4ddca5b5749f9b8e1ba9f",
+    "mtime": 1786386492.7568758,
+    "ast_hash": "e512190337aac6d95f5e9716ffd0d11b",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/SidebarPanel.swift": {
-    "mtime": 1786249801.8490148,
-    "ast_hash": "f13196cb41fe2a2d1261e25222334990",
+    "mtime": 1786386489.1094344,
+    "ast_hash": "50b1b251df42025239089138f4299ab4",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/ResizablePropertiesSidebar.swift": {
@@ -365,8 +365,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceSettingsView.swift": {
-    "mtime": 1786320878.4413655,
-    "ast_hash": "25c7f01e39775b60fd85078e406b1d4a",
+    "mtime": 1786386488.6019049,
+    "ast_hash": "6e4731f81cd3a3891265f63e3fba7aa6",
     "semantic_hash": ""
   },
   "SimplePlayTests/SectionMarkerPaletteTests.swift": {
@@ -457,6 +457,16 @@
   "SimplePlay/Core/Utils/SectionLoopDiagnostics.swift": {
     "mtime": 1786379791.4455795,
     "ast_hash": "782df0f66144f2a621a54fdfacfecc6d",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/SettingsFormStyle.swift": {
+    "mtime": 1786386494.8521972,
+    "ast_hash": "fdbbc0767782c074bf95c565e74435a6",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/DAWGlassChrome.swift": {
+    "mtime": 1786386486.8718433,
+    "ast_hash": "9a6a49ed74902fd141d811a5167cb9b6",
     "semantic_hash": ""
   }
 }

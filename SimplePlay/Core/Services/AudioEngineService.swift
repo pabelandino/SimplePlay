@@ -422,6 +422,16 @@ final class AudioEngineService {
         scheduledLoopCycleCount = 0
     }
 
+    /// Re-syncs the host playback clock to a timeline position (e.g. after a seamless section loop wrap).
+    func reanchorPlaybackTimeline(at time: TimeInterval) {
+        playbackStartTime = max(0, time)
+        if engine.isRunning, let hostTime = engine.outputNode.lastRenderTime?.hostTime {
+            playbackReferenceHostTime = hostTime
+        } else {
+            playbackReferenceHostTime = mach_absolute_time()
+        }
+    }
+
     func pause() {
         for scheduled in scheduledClips.values {
             safelyPausePlayer(scheduled.player)
