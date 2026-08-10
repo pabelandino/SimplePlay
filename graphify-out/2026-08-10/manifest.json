@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
-    "mtime": 1786375737.4638612,
-    "ast_hash": "71092426d2f0f8312c6279f7fe3c9596",
+    "mtime": 1786383290.5785081,
+    "ast_hash": "7d0f0940a2bdaeeba93a3e38ad1cf73a",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/PanKnobView.swift": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
-    "mtime": 1786383049.6333787,
-    "ast_hash": "dbc604cc45cd5f19e25db0fa3fa4b474",
+    "mtime": 1786383289.6918175,
+    "ast_hash": "0e8042b3831f59c65e0c1c3c5319c2b5",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {
