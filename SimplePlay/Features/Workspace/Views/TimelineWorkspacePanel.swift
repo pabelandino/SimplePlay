@@ -308,8 +308,12 @@ struct TimelineWorkspacePanel: View {
                     }
             }
         }
-        .contentShape(Rectangle())
-        .gesture(timelineSeekGesture)
+        .allowsHitTesting(false)
+        .overlay {
+            Color.clear
+                .contentShape(Rectangle())
+                .gesture(timelineSeekGesture)
+        }
     }
 
     private var timelineSeekGesture: some Gesture {

@@ -265,6 +265,11 @@ struct PropertiesSidebarView: View {
                         viewModel.triggerSection(section)
                     }
                     .buttonStyle(DAWPrimaryButtonStyle())
+
+                    Button("Delete Marker", role: .destructive) {
+                        viewModel.requestDeleteSection(section.id)
+                    }
+                    .buttonStyle(DAWSecondaryButtonStyle())
                 }
             }
         }

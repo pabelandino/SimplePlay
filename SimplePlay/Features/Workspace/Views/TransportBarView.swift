@@ -5,15 +5,44 @@
 
 import SwiftUI
 
+enum TransportBarStyle {
+    case standard
+    case phoneBottomDock
+}
+
 struct TransportBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
+    var style: TransportBarStyle = .standard
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var isCompact: Bool {
         horizontalSizeClass == .compact
     }
 
+    private var usesPhoneDock: Bool {
+        style == .phoneBottomDock
+    }
+
+    private var phoneTapTarget: CGFloat { 44 }
+    private var phoneSecondaryTapTarget: CGFloat { 40 }
+
     var body: some View {
+        Group {
+            if usesPhoneDock {
+                phoneBottomDock
+            } else {
+                standardTransportBar
+            }
+        }
+        .background(DAWTheme.surface)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(DAWTheme.border)
+                .frame(height: 1)
+        }
+    }
+
+    private var standardTransportBar: some View {
         VStack(spacing: isCompact ? 6 : 8) {
             TimelineOverviewBar(viewModel: viewModel)
                 .padding(.top, isCompact ? 6 : 8)
@@ -30,11 +59,58 @@ struct TransportBarView: View {
             .padding(.horizontal, isCompact ? 12 : 16)
             .padding(.bottom, isCompact ? 8 : 10)
         }
-        .background(DAWTheme.surface)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(DAWTheme.border)
-                .frame(height: 1)
+    }
+
+    private var phoneBottomDock: some View {
+        VStack(spacing: 4) {
+            TimelineOverviewBar(viewModel: viewModel, isPhoneDock: true)
+
+            HStack(spacing: 8) {
+                phoneTimeDisplay
+
+                transportControls
+                    .layoutPriority(1)
+
+                phoneRightControls
+            }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 6)
+        }
+    }
+
+    private var phoneRightControls: some View {
+        HStack(spacing: 6) {
+            mixerButton
+            phoneZoomControls
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(DAWTheme.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(DAWTheme.border, lineWidth: 1)
+        }
+    }
+
+    private var phoneTimeDisplay: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(viewModel.formattedCurrentTime)
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .foregroundStyle(DAWTheme.textPrimary)
+
+            Text(viewModel.formattedDuration)
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(DAWTheme.textSecondary)
+        }
+        .frame(minWidth: 58, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(DAWTheme.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(DAWTheme.border, lineWidth: 1)
         }
     }
 
@@ -85,7 +161,7 @@ struct TransportBarView: View {
     }
 
     private var transportControls: some View {
-        HStack(spacing: isCompact ? 8 : 12) {
+        HStack(spacing: usesPhoneDock ? 10 : (isCompact ? 8 : 12)) {
             transportCircleButton(
                 systemName: "repeat",
                 tint: loopButtonColor,
@@ -95,7 +171,7 @@ struct TransportBarView: View {
                 viewModel.toggleSelectionLoop()
             }
 
-            if !isCompact {
+            if !isCompact && !usesPhoneDock {
                 transportCircleButton(systemName: "backward.fill", tint: DAWTheme.textPrimary) {
                     viewModel.seek(to: max(0, viewModel.playheadTime - 5))
                 }
@@ -107,19 +183,28 @@ struct TransportBarView: View {
                 ZStack {
                     Circle()
                         .fill(Color.green.opacity(0.28))
-                        .frame(width: isCompact ? 50 : 56, height: isCompact ? 50 : 56)
+                        .frame(
+                            width: usesPhoneDock ? 52 : (isCompact ? 50 : 56),
+                            height: usesPhoneDock ? 52 : (isCompact ? 50 : 56)
+                        )
                         .blur(radius: viewModel.isPlaying ? 7 : 0)
                         .opacity(viewModel.isPlaying ? 1 : 0)
 
                     Circle()
                         .stroke(Color.green.opacity(0.9), lineWidth: 2)
-                        .frame(width: isCompact ? 44 : 48, height: isCompact ? 44 : 48)
+                        .frame(
+                            width: usesPhoneDock ? 46 : (isCompact ? 44 : 48),
+                            height: usesPhoneDock ? 46 : (isCompact ? 44 : 48)
+                        )
                         .opacity(viewModel.isPlaying ? 1 : 0)
 
                     Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                        .font(isCompact ? .body.weight(.bold) : .title3.weight(.bold))
+                        .font(usesPhoneDock ? .title3.weight(.bold) : (isCompact ? .body.weight(.bold) : .title3.weight(.bold)))
                         .foregroundStyle(.black)
-                        .frame(width: isCompact ? 38 : 42, height: isCompact ? 38 : 42)
+                        .frame(
+                            width: usesPhoneDock ? 40 : (isCompact ? 38 : 42),
+                            height: usesPhoneDock ? 40 : (isCompact ? 38 : 42)
+                        )
                         .background(Circle().fill(.white))
                 }
             }
@@ -130,19 +215,20 @@ struct TransportBarView: View {
                 viewModel.stop()
             }
 
-            if !isCompact {
+            if !isCompact && !usesPhoneDock {
                 transportCircleButton(systemName: "forward.fill", tint: DAWTheme.textPrimary) {
                     viewModel.seek(to: min(viewModel.project.duration, viewModel.playheadTime + 5))
                 }
             }
         }
-        .padding(.horizontal, isCompact ? 8 : 12)
-        .padding(.vertical, isCompact ? 4 : 6)
+        .padding(.horizontal, usesPhoneDock ? 12 : (isCompact ? 8 : 12))
+        .padding(.vertical, usesPhoneDock ? 4 : (isCompact ? 4 : 6))
         .background(DAWTheme.surfaceElevated.opacity(0.9))
         .clipShape(Capsule())
         .overlay {
             Capsule().stroke(DAWTheme.border, lineWidth: 1)
         }
+        .frame(maxWidth: usesPhoneDock ? .infinity : nil)
     }
 
     private func transportCircleButton(
@@ -154,9 +240,12 @@ struct TransportBarView: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(isCompact ? .caption.weight(.semibold) : .body.weight(.semibold))
+                .font(usesPhoneDock ? .body.weight(.semibold) : (isCompact ? .caption.weight(.semibold) : .body.weight(.semibold)))
                 .foregroundStyle(tint)
-                .frame(width: isCompact ? 30 : 34, height: isCompact ? 30 : 34)
+                .frame(
+                    width: usesPhoneDock ? phoneSecondaryTapTarget : (isCompact ? 30 : 34),
+                    height: usesPhoneDock ? phoneSecondaryTapTarget : (isCompact ? 30 : 34)
+                )
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
@@ -209,14 +298,47 @@ struct TransportBarView: View {
             }
         } label: {
             Image(systemName: "slider.vertical.3")
-                .font(isCompact ? .caption.weight(.semibold) : .body.weight(.semibold))
-                .foregroundStyle(viewModel.showMixerPanel ? DAWTheme.accent : DAWTheme.textSecondary)
-                .frame(width: isCompact ? 30 : 34, height: isCompact ? 30 : 34)
-                .background(viewModel.showMixerPanel ? DAWTheme.accent.opacity(0.15) : DAWTheme.surfaceElevated)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .font(usesPhoneDock ? .body.weight(.semibold) : (isCompact ? .caption.weight(.semibold) : .body.weight(.semibold)))
+                .foregroundStyle(viewModel.showMixerPanel ? DAWTheme.accent : DAWTheme.textPrimary)
+                .frame(
+                    width: usesPhoneDock ? phoneTapTarget : (isCompact ? 30 : 34),
+                    height: usesPhoneDock ? phoneTapTarget : (isCompact ? 30 : 34)
+                )
+                .background {
+                    if usesPhoneDock {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(viewModel.showMixerPanel ? DAWTheme.accent.opacity(0.15) : DAWTheme.background.opacity(0.55))
+                    } else {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(viewModel.showMixerPanel ? DAWTheme.accent.opacity(0.15) : DAWTheme.surfaceElevated)
+                    }
+                }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Mixer")
+    }
+
+    private var phoneZoomControls: some View {
+        HStack(spacing: 4) {
+            phoneZoomButton(systemName: "minus.magnifyingglass") {
+                viewModel.zoomOutOneStep()
+            }
+            phoneZoomButton(systemName: "plus.magnifyingglass") {
+                viewModel.zoomInOneStep()
+            }
+        }
+    }
+
+    private func phoneZoomButton(systemName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(DAWTheme.textPrimary)
+                .frame(width: phoneSecondaryTapTarget, height: phoneSecondaryTapTarget)
+                .background(DAWTheme.background.opacity(0.55))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

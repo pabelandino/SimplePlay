@@ -7,6 +7,7 @@ import SwiftUI
 
 struct TimelineOverviewBar: View {
     @Bindable var viewModel: WorkspaceViewModel
+    var isPhoneDock = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var isCompact: Bool {
@@ -14,15 +15,18 @@ struct TimelineOverviewBar: View {
     }
 
     private var barHeight: CGFloat {
-        isCompact ? 34 : 38
+        if isPhoneDock { return 24 }
+        return isCompact ? 34 : 38
     }
 
     private var thumbSize: CGFloat {
-        isCompact ? 16 : 14
+        if isPhoneDock { return 12 }
+        return isCompact ? 16 : 14
     }
 
     private var touchTarget: CGFloat {
-        isCompact ? 44 : 36
+        if isPhoneDock { return 32 }
+        return isCompact ? 44 : 36
     }
 
     var body: some View {
@@ -91,8 +95,8 @@ struct TimelineOverviewBar: View {
             .gesture(scrubGesture(width: width, duration: duration))
         }
         .frame(height: barHeight)
-        .padding(.horizontal, isCompact ? 10 : 16)
-        .padding(.vertical, isCompact ? 4 : 6)
+        .padding(.horizontal, isPhoneDock ? 8 : (isCompact ? 10 : 16))
+        .padding(.vertical, isPhoneDock ? 2 : (isCompact ? 4 : 6))
     }
 
     @ViewBuilder

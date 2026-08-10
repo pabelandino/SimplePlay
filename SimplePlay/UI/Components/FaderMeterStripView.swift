@@ -45,6 +45,11 @@ struct FaderMeterStripView: View {
             )
             .frame(width: dotSize + 4, height: faderHeight)
         }
-        .frame(height: faderHeight, alignment: .bottom)
+        .padding(.vertical, reservesThumbClearance ? 3 : 0)
+        .frame(height: faderHeight + (reservesThumbClearance ? 6 : 0), alignment: .bottom)
+    }
+
+    private var reservesThumbClearance: Bool {
+        faderHeight >= 110
     }
 }

@@ -4,8 +4,18 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 enum DAWTheme {
+#if os(iOS)
+    static var isPhone: Bool {
+        UIDevice.current.userInterfaceIdiom == .phone
+    }
+#else
+    static var isPhone: Bool { false }
+#endif
     static let background = Color(hex: "#0D0D0F")!
     static let surface = Color(hex: "#151518")!
     static let surfaceElevated = Color(hex: "#1C1C21")!
@@ -32,6 +42,8 @@ enum DAWTheme {
     static let compactTrackRowHeight: CGFloat = 56
     static let compactToolbarHeight: CGFloat = 44
     static let compactTransportHeight: CGFloat = 96
+    static let phoneTransportDockHeight: CGFloat = 82
+    static let phoneMixerStripHeight: CGFloat = 206
     static let transportHeight: CGFloat = 96
     static let toolbarHeight: CGFloat = 52
 #if os(macOS)

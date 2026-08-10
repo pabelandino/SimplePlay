@@ -160,8 +160,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786317222.381061,
-    "ast_hash": "49d5c3b8da02de4f2f5822d9a329e838",
+    "mtime": 1786318129.7416012,
+    "ast_hash": "3986c30a61f095282289900a7311d683",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
@@ -170,8 +170,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
-    "mtime": 1786317848.8432808,
-    "ast_hash": "3d5ff7e75bb789e7c1a17e000fc9e0ce",
+    "mtime": 1786320586.9018528,
+    "ast_hash": "016574def2710e2e0b94cf4410ef561c",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TopToolbarView.swift": {
@@ -185,8 +185,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TransportBarView.swift": {
-    "mtime": 1786316841.4066215,
-    "ast_hash": "246e0a50a671fe4eb54f376169d5bf9d",
+    "mtime": 1786320577.6051974,
+    "ast_hash": "acf78d0346e9af7a8cfb717f0729bc04",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WaveformClipView.swift": {
@@ -195,13 +195,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/WorkspaceView.swift": {
-    "mtime": 1786316841.2973337,
-    "ast_hash": "dd84d6a5a7e8105076792fe2ef844027",
+    "mtime": 1786318554.7815063,
+    "ast_hash": "7383b8e8c6b7e87f1b20537b85774809",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Theme/DAWTheme.swift": {
-    "mtime": 1786317221.055366,
-    "ast_hash": "f25ffb7381addefa2261662d7e7edbc5",
+    "mtime": 1786320577.840986,
+    "ast_hash": "0e82480b4c82bcc0fb1af1199407d367",
     "semantic_hash": ""
   },
   "SimplePlayTests/ArrangementPlaybackEngineTests.swift": {
@@ -265,13 +265,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineOverviewBar.swift": {
-    "mtime": 1786317231.7838552,
-    "ast_hash": "473387558a918eea3d5fcc5b951dc55c",
+    "mtime": 1786318563.9232252,
+    "ast_hash": "044140b890f1f17c59b121784ea315c4",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
-    "mtime": 1786317229.001887,
-    "ast_hash": "b7fdd0e90120070397ca93e680499e7f",
+    "mtime": 1786320586.9018674,
+    "ast_hash": "bb8178c24acd274541831c79cab54576",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/PanKnobView.swift": {
@@ -400,8 +400,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MixerPanelView.swift": {
-    "mtime": 1786316841.7376747,
-    "ast_hash": "bcef2571c828a6a8f893ef02bc53ac49",
+    "mtime": 1786319277.7418308,
+    "ast_hash": "d165adafb8558b42905f0d30f56e8a3e",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/DAWVerticalFaderView.swift": {
@@ -420,8 +420,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/FaderMeterStripView.swift": {
-    "mtime": 1786316841.7590787,
-    "ast_hash": "271140b21009b398ffad992691b89277",
+    "mtime": 1786319071.1214917,
+    "ast_hash": "25d885587d235760f6f6a2d438593844",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Utils/TimelineRulerScale.swift": {
@@ -430,8 +430,8 @@
     "semantic_hash": ""
   },
   "SimplePlayTests/TimelineRulerScaleTests.swift": {
-    "mtime": 1786317850.5607972,
-    "ast_hash": "0487abdd4a4110f84bf660730ec66a17",
+    "mtime": 1786317889.475,
+    "ast_hash": "1ee971850322594ab1287025c8a00417",
     "semantic_hash": ""
   }
 }

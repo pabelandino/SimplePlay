@@ -15,13 +15,12 @@ struct WorkspaceView: View {
             MIDIMappingBarView(viewModel: viewModel)
                 .layoutPriority(1)
             TimelineWorkspacePanel(viewModel: viewModel)
-            TransportBarView(viewModel: viewModel)
+            if !DAWTheme.isPhone {
+                TransportBarView(viewModel: viewModel)
+            }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if viewModel.showMixerPanel {
-                MixerPanelView(viewModel: viewModel)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+            phoneBottomChrome
         }
         .animation(.easeInOut(duration: 0.22), value: viewModel.showMixerPanel)
         .contentShape(Rectangle())
@@ -120,6 +119,54 @@ struct WorkspaceView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Start a blank project? You can save your current work first, including tracks, sections, markers, mixer settings, and MIDI mappings.")
+        }
+        .confirmationDialog(
+            deleteSectionDialogTitle,
+            isPresented: sectionDeletionDialogBinding,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                viewModel.confirmPendingSectionDeletion()
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.cancelSectionDeletion()
+            }
+        } message: {
+            Text("This section marker will be removed from the timeline.")
+        }
+    }
+
+    private var deleteSectionDialogTitle: String {
+        if let name = viewModel.pendingSectionDeletionName {
+            return "Delete \"\(name)\"?"
+        }
+        return "Delete Section?"
+    }
+
+    private var sectionDeletionDialogBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.sectionIDPendingDeletion != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.cancelSectionDeletion()
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var phoneBottomChrome: some View {
+        if DAWTheme.isPhone {
+            VStack(spacing: 0) {
+                if viewModel.showMixerPanel {
+                    MixerPanelView(viewModel: viewModel)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                TransportBarView(viewModel: viewModel, style: .phoneBottomDock)
+            }
+        } else if viewModel.showMixerPanel {
+            MixerPanelView(viewModel: viewModel)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 }

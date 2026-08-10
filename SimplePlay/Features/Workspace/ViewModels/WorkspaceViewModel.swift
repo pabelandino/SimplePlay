@@ -37,6 +37,7 @@ final class WorkspaceViewModel {
     var showMixerPanel = false
     var showResetSessionConfirmation = false
     var showNewProjectConfirmation = false
+    var sectionIDPendingDeletion: UUID?
     var pendingNewProjectAfterSave = false
     var pendingImportPlacement: TrackOrganizationService.ImportPlacement = .appendNewGroup(startTime: nil)
     var propertiesSidebarWidth: CGFloat = DAWTheme.propertiesDefaultWidth
@@ -1175,6 +1176,26 @@ final class WorkspaceViewModel {
             selectedSectionID = project.sections.first?.id
         }
         arrangementEngine.configure(sections: project.sections)
+    }
+
+    func requestDeleteSection(_ sectionID: UUID) {
+        selectSection(sectionID)
+        sectionIDPendingDeletion = sectionID
+    }
+
+    func cancelSectionDeletion() {
+        sectionIDPendingDeletion = nil
+    }
+
+    func confirmPendingSectionDeletion() {
+        guard let sectionID = sectionIDPendingDeletion else { return }
+        deleteSection(sectionID)
+        sectionIDPendingDeletion = nil
+    }
+
+    var pendingSectionDeletionName: String? {
+        guard let sectionID = sectionIDPendingDeletion else { return nil }
+        return project.sections.first(where: { $0.id == sectionID })?.name
     }
 
     func toggleSectionRepeat() {

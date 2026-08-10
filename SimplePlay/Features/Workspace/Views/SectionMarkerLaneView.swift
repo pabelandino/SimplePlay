@@ -233,7 +233,8 @@ fileprivate struct SectionMarkerChipView: View {
     let isDimmed: Bool
     @Binding var dragSession: SectionDragSession?
 
-    @State private var showDeleteConfirmation = false
+    private let chipTapThreshold: CGFloat = 8
+    private let chipMoveThreshold: CGFloat = 10
 
     private var liveSection: ArrangementSection {
         viewModel.project.sections.first(where: { $0.id == section.id }) ?? section
@@ -264,7 +265,7 @@ fileprivate struct SectionMarkerChipView: View {
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .gesture(sectionDragGesture(kind: .move))
+            .gesture(chipMoveOrTapGesture)
 
             resizeHandle(edge: .end)
         }
@@ -291,31 +292,61 @@ fileprivate struct SectionMarkerChipView: View {
                 )
         }
         .shadow(color: liveSection.color.opacity(0.25), radius: 5, y: 2)
-        .onTapGesture {
-            guard dragSession == nil else { return }
-            viewModel.selectSection(section.id)
-            showDeleteConfirmation = true
-        }
         .simultaneousGesture(
             TapGesture(count: 2).onEnded {
                 viewModel.triggerSection(liveSection)
             }
         )
-        .confirmationDialog(
-            "Delete \"\(liveSection.name)\"?",
-            isPresented: $showDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                viewModel.deleteSection(section.id)
+        .contextMenu {
+            Button("Delete Marker", role: .destructive) {
+                viewModel.requestDeleteSection(section.id)
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This section marker will be removed from the timeline.")
         }
 #if os(macOS)
         .help("Drag to move · Double-click to trigger · Tap to delete")
 #endif
+    }
+
+    private var chipMoveOrTapGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                guard dragSession == nil || dragSession?.sectionID == section.id else { return }
+
+                let distance = hypot(value.translation.width, value.translation.height)
+                guard distance >= chipMoveThreshold else { return }
+
+                if dragSession == nil {
+                    dragSession = SectionDragSession(
+                        sectionID: section.id,
+                        kind: .move,
+                        anchorStart: liveSection.startTime,
+                        anchorEnd: liveSection.endTime,
+                        translation: value.translation.width
+                    )
+                    viewModel.beginSectionDrag(sectionID: section.id, kind: .move)
+                } else if var session = dragSession,
+                          session.sectionID == section.id,
+                          session.kind == .move {
+                    session.translation = value.translation.width
+                    dragSession = session
+                }
+            }
+            .onEnded { value in
+                if dragSession?.sectionID == section.id, dragSession?.kind == .move {
+                    viewModel.commitSectionDrag(
+                        sectionID: section.id,
+                        kind: .move,
+                        translation: value.translation.width
+                    )
+                    dragSession = nil
+                    return
+                }
+
+                let distance = hypot(value.translation.width, value.translation.height)
+                if distance < chipTapThreshold {
+                    viewModel.requestDeleteSection(section.id)
+                }
+            }
     }
 
     private enum ResizeEdge {

@@ -19,30 +19,37 @@ struct TrackLaneView: View {
     var body: some View {
         let displayColor = viewModel.project.displayColor(for: liveTrack)
 
-        ZStack(alignment: .leading) {
-            ForEach(liveTrack.clips) { clip in
-                WaveformClipView(
-                    clip: clip,
-                    trackID: track.id,
-                    trackColor: displayColor,
-                    pixelsPerSecond: viewModel.pixelsPerSecond,
-                    isSelected: viewModel.isClipSelected(clip.id)
-                )
-                .offset(x: CGFloat(clip.startTime) * viewModel.pixelsPerSecond)
-                .highPriorityGesture(clipDragGesture(clip: clip))
-                .simultaneousGesture(
-                    TapGesture().onEnded {
-                        viewModel.handleClipTap(clip.id, extendSelection: ClipSelectionModifiers.isExtending)
+        Color.clear
+            .allowsHitTesting(false)
+            .frame(width: contentWidth, height: rowHeight - 8)
+            .overlay(alignment: .leading) {
+                ZStack(alignment: .leading) {
+                    ForEach(liveTrack.clips) { clip in
+                        WaveformClipView(
+                            clip: clip,
+                            trackID: track.id,
+                            trackColor: displayColor,
+                            pixelsPerSecond: viewModel.pixelsPerSecond,
+                            isSelected: viewModel.isClipSelected(clip.id)
+                        )
+                        .offset(x: CGFloat(clip.startTime) * viewModel.pixelsPerSecond)
+                        .modifier(ClipDragInteractionModifier(
+                            isEnabled: viewModel.timelineTool == .hand,
+                            gesture: clipDragGesture(clip: clip)
+                        ))
+                        .simultaneousGesture(
+                            TapGesture().onEnded {
+                                viewModel.handleClipTap(clip.id, extendSelection: ClipSelectionModifiers.isExtending)
+                            }
+                        )
                     }
-                )
+                }
             }
-        }
-        .frame(width: contentWidth, height: rowHeight - 8, alignment: .leading)
-        .padding(.vertical, 4)
+            .padding(.vertical, 4)
     }
 
     private func clipDragGesture(clip: AudioClip) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(minimumDistance: 10)
             .onChanged { value in
                 guard viewModel.timelineTool == .hand else { return }
 
@@ -76,6 +83,19 @@ struct TrackLaneView: View {
             }
         }
         return anchors
+    }
+}
+
+private struct ClipDragInteractionModifier<G: Gesture>: ViewModifier {
+    let isEnabled: Bool
+    let gesture: G
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.gesture(gesture)
+        } else {
+            content
+        }
     }
 }
 
