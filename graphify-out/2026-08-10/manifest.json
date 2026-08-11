@@ -105,8 +105,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/ArrangementPlaybackEngine.swift": {
-    "mtime": 1786422415.7961836,
-    "ast_hash": "70f21e5a0dac03ad90aadb0da9d31f5c",
+    "mtime": 1786423106.448393,
+    "ast_hash": "57fee8aa267c174a2e20373ce170a8f2",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioEngineService.swift": {
@@ -160,8 +160,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786422824.9102545,
-    "ast_hash": "d7b736edba5351df0656906b4c9400ca",
+    "mtime": 1786423139.9743652,
+    "ast_hash": "2f40add438541d3a527685495fa64051",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
@@ -205,8 +205,8 @@
     "semantic_hash": ""
   },
   "SimplePlayTests/ArrangementPlaybackEngineTests.swift": {
-    "mtime": 1786422431.51657,
-    "ast_hash": "b829592ae4277e92fcfb31e2931fcb5b",
+    "mtime": 1786423135.610302,
+    "ast_hash": "42e31a54edc2dd52ca5249694314d8d2",
     "semantic_hash": ""
   },
   "SimplePlayTests/TrackNameStandardizerTests.swift": {
@@ -265,13 +265,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineOverviewBar.swift": {
-    "mtime": 1786374641.3364992,
-    "ast_hash": "bf9a2ea6dd1ea3b93e36ad1290009a5a",
+    "mtime": 1786423127.0078368,
+    "ast_hash": "c445810890328fe43bb56cc6571d3c6a",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
-    "mtime": 1786383290.5785081,
-    "ast_hash": "7d0f0940a2bdaeeba93a3e38ad1cf73a",
+    "mtime": 1786423127.014689,
+    "ast_hash": "f9e8dab544615cb2ac6a21b6941b71a2",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/PanKnobView.swift": {
@@ -375,13 +375,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Models/MIDILearnTarget.swift": {
-    "mtime": 1786335314.2750287,
-    "ast_hash": "5694d593c54b43920ce3def3b51985f5",
+    "mtime": 1786423106.1644084,
+    "ast_hash": "30fbd73781bf57edb7720bcc9664311d",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
-    "mtime": 1786401787.9955869,
-    "ast_hash": "53ae2bb2b609fd453e115ae471a6f2a1",
+    "mtime": 1786423133.3901246,
+    "ast_hash": "cd861869efb6ca6bcb495963008f15d6",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {
