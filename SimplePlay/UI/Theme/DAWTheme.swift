@@ -23,10 +23,20 @@ enum DAWTheme {
     static let textPrimary = Color.white
     static let textSecondary = Color(hex: "#8E8E93")!
     static let accent = Color(hex: "#FF9500")!
+    /// Overview mini-timeline (bottom playhead scrubber) — Pro Tools–style graphite palette.
+    static let transportBarHighlight = Color(hex: "#4A4A50")!
+    static let overviewRecessTop = Color(hex: "#161618")!
+    static let overviewRecessBottom = Color(hex: "#242428")!
+    static let overviewClipFill = Color(hex: "#4E5E6C")!
+    static let overviewClipHighlight = Color(hex: "#728595")!
+    static let overviewViewportFill = Color(hex: "#3A3A40")!.opacity(0.72)
+    static let overviewViewportStroke = Color(hex: "#5C5C64")!
+    static let overviewLoopFill = Color(hex: "#5A7A94")!.opacity(0.28)
+    static let overviewLoopStroke = Color(hex: "#7A9BB4")!.opacity(0.55)
     static let faderFill = Color(white: 0.78)
     static let playhead = Color(hex: "#7EB8FF")!
     static let playheadGlow = Color(hex: "#7EB8FF")!.opacity(0.35)
-    static let overviewViewport = Color(hex: "#FF9500")!.opacity(0.22)
+    static let overviewViewport = Color(hex: "#3A3A40")!.opacity(0.72)
     static let timelineRuler = Color(hex: "#3A3A40")!
     static let selection = Color.white.opacity(0.15)
     static let mutedTrack = Color(hex: "#5A5A62")!

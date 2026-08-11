@@ -51,10 +51,10 @@ struct TimelineOverviewBar: View {
                     let loopW = max(6, CGFloat((loopRange.upperBound - loopRange.lowerBound) / duration) * width)
 
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(DAWTheme.accent.opacity(0.22))
+                        .fill(DAWTheme.overviewLoopFill)
                         .overlay {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .stroke(DAWTheme.accent.opacity(0.55), lineWidth: 1)
+                                .stroke(DAWTheme.overviewLoopStroke, lineWidth: 1)
                         }
                         .frame(width: loopW, height: barHeight - 8)
                         .offset(x: loopX, y: 4)
@@ -62,12 +62,7 @@ struct TimelineOverviewBar: View {
                 }
 
                 if showsViewport {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(DAWTheme.overviewViewport)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .stroke(DAWTheme.accent.opacity(0.65), lineWidth: 1)
-                        }
+                    DAWTransportChrome.overviewViewportFill()
                         .frame(width: overviewViewportW, height: barHeight - 10)
                         .offset(x: min(max(0, overviewViewportX), width - overviewViewportW), y: 5)
                         .allowsHitTesting(false)
@@ -102,21 +97,7 @@ struct TimelineOverviewBar: View {
     }
 
     private var overviewBackground: some View {
-        RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Color(hex: "1A1A22") ?? DAWTheme.background,
-                        Color(hex: "121218") ?? DAWTheme.surfaceElevated,
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(DAWTheme.border.opacity(0.9), lineWidth: 1)
-            }
+        DAWTransportChrome.overviewRecessBackground(cornerRadius: 10)
     }
 
     @ViewBuilder
@@ -131,19 +112,23 @@ struct TimelineOverviewBar: View {
             let clipWidth = max(2, CGFloat(clip.duration / duration) * size.width)
 
             RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(DAWTheme.accent.opacity(0.42))
+                .fill(DAWTransportChrome.overviewClipFill())
                 .overlay {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(0.14),
-                                    Color.white.opacity(0.02),
+                                    Color.white.opacity(0.16),
+                                    Color.clear,
                                 ],
                                 startPoint: .top,
-                                endPoint: .bottom
+                                endPoint: .center
                             )
                         )
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .stroke(Color.black.opacity(0.28), lineWidth: 0.5)
                 }
                 .frame(width: clipWidth, height: laneHeight)
                 .offset(x: x, y: laneY)
