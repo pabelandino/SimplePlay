@@ -10,7 +10,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class WorkspaceViewModel {
-    var project = DAWProject(name: "Designing to Digital")
+    var project = DAWProject()
     var playheadTime: TimeInterval = 0
     var zoom: Double = 1.0
     var selectedClipID: UUID?
@@ -78,10 +78,6 @@ final class WorkspaceViewModel {
     var isSectionResizeActive: Bool {
         draggingSectionID != nil
             && (sectionDragKind == .resizeStart || sectionDragKind == .resizeEnd)
-    }
-
-    var isSectionRepeatEnabled: Bool {
-        arrangementEngine.isRepeatEnabled
     }
 
     var queuedSectionName: String? {
@@ -593,26 +589,31 @@ final class WorkspaceViewModel {
 
         let loop = currentSectionLoopContext(at: time)
 
-        if attemptAudioPlayback(from: time, sectionLoop: loop) {
-            return true
-        }
-
-        if loop != nil, attemptAudioPlayback(from: time, sectionLoop: nil) {
-            return true
-        }
-
-        guard configureAudioEngine(), attemptAudioPlayback(from: time, sectionLoop: loop) else {
-            if loop != nil, attemptAudioPlayback(from: time, sectionLoop: nil) {
+        if let loop {
+            if attemptAudioPlayback(from: time, sectionLoop: loop) {
                 return true
             }
-            return false
+            return configureAudioEngine() && attemptAudioPlayback(from: time, sectionLoop: loop)
         }
 
-        return true
+        if attemptAudioPlayback(from: time, sectionLoop: nil) {
+            return true
+        }
+
+        return configureAudioEngine() && attemptAudioPlayback(from: time, sectionLoop: nil)
     }
 
-    private func attemptAudioPlayback(from time: TimeInterval, sectionLoop: SectionLoopContext?) -> Bool {
-        let started = audioEngine.play(from: time, project: project, sectionLoop: sectionLoop)
+    private func attemptAudioPlayback(
+        from time: TimeInterval,
+        sectionLoop: SectionLoopContext?,
+        scheduleUntil: TimeInterval? = nil
+    ) -> Bool {
+        let started = audioEngine.play(
+            from: time,
+            project: project,
+            sectionLoop: sectionLoop,
+            scheduleUntil: scheduleUntil
+        )
         if !started, let playbackError = audioEngine.lastPlaybackError {
             reportError(playbackError)
         } else if !started {
@@ -642,17 +643,7 @@ final class WorkspaceViewModel {
             if case .repeatingSectionAtEnd = arrangementEngine.state { return true }
             return false
         }()
-
-        let globalLoop: Bool = {
-            guard arrangementEngine.isRepeatEnabled, arrangementEngine.isPlaying else { return false }
-            switch arrangementEngine.state {
-            case .playingSection, .repeatingSectionAtEnd, .waitingToJump:
-                return true
-            case .idle, .continuingTimeline:
-                return false
-            }
-        }()
-        guard repeatsAtEnd || globalLoop else { return nil }
+        guard repeatsAtEnd else { return nil }
 
         let aligned = sampleAlignedSectionBounds(section)
         return SectionLoopContext(
@@ -663,10 +654,12 @@ final class WorkspaceViewModel {
     }
 
     private func isSectionLoopWrap(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
-        guard newTime + 0.001 < previousTime,
-              let loop = currentSectionLoopContext(at: previousTime) else {
-            return false
-        }
+        guard newTime + 0.001 < previousTime else { return false }
+
+        let loop = currentSectionLoopContext(at: newTime)
+            ?? currentSectionLoopContext(at: previousTime)
+        guard let loop else { return false }
+
         let nearEnd = abs(previousTime - loop.endTime) <= playbackTickInterval * 3
             || previousTime >= loop.endTime - 0.001
         guard nearEnd else { return false }
@@ -684,6 +677,25 @@ final class WorkspaceViewModel {
         )
 
         return audioEngine.appendSectionLoopCycles(project: project, loop: loop)
+    }
+
+    /// True when the playhead jumps between arrangement sections (pad trigger, continue-to-next, pending jump).
+    private func isArrangementSectionTransition(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
+        guard abs(newTime - previousTime) > 0.05 else { return false }
+
+        let previousSection = project.sections.first(where: { $0.contains(time: previousTime) })
+        let newSection = project.sections.first(where: { $0.contains(time: newTime) })
+
+        if let previousSection, let newSection {
+            return previousSection.id != newSection.id
+        }
+
+        switch arrangementEngine.state {
+        case .playingSection(let section):
+            return abs(newTime - section.startTime) <= playbackTickInterval * 2
+        default:
+            return previousSection != nil && newSection == nil
+        }
     }
 
     @discardableResult
@@ -1561,10 +1573,6 @@ final class WorkspaceViewModel {
         return project.sections.first(where: { $0.id == sectionID })?.name
     }
 
-    func toggleSectionRepeat() {
-        setSectionRepeatEnabled(!arrangementEngine.isRepeatEnabled)
-    }
-
     @discardableResult
     private func restartAudioPlayback(from time: TimeInterval) -> Bool {
         let shouldResumeTimer = playbackTimer != nil
@@ -1590,6 +1598,7 @@ final class WorkspaceViewModel {
         arrangementEngine.seek(to: playheadTime)
         arrangementEngine.play()
         arrangementEngine.ensureSectionPlaybackContext(at: playheadTime)
+        audioEngine.clearSectionLoopState()
 
         guard restartAudioPlayback(from: playheadTime) else {
             return false
@@ -1597,17 +1606,37 @@ final class WorkspaceViewModel {
 
         isPlaying = true
         loopPrebufferTriggered = false
+        if playbackTimer == nil {
+            startPlaybackTimer()
+        }
         return true
     }
 
-    func setSectionRepeatEnabled(_ enabled: Bool) {
-        arrangementEngine.setRepeatEnabled(enabled)
+    /// True when triggering another section should jump immediately instead of waiting for the current one to finish.
+    private func preparesImmediateSectionJump(to section: ArrangementSection) -> Bool {
+        guard isPlaying, !section.waitForCurrentToFinish else { return false }
 
-        guard enabled, isPlaying else { return }
-        arrangementEngine.ensureSectionPlaybackContext(at: arrangementEngine.currentTime)
-        guard currentSectionLoopContext(at: arrangementEngine.currentTime) != nil else { return }
-        if !restartAudioPlayback(from: arrangementEngine.currentTime) {
-            pause()
+        if let current = currentPlaybackSection(), current.id != section.id {
+            return true
+        }
+
+        if case .waitingToJump = arrangementEngine.state,
+           let active = arrangementEngine.activeSection,
+           active.id != section.id {
+            return true
+        }
+
+        return false
+    }
+
+    private func currentPlaybackSection() -> ArrangementSection? {
+        switch arrangementEngine.state {
+        case .playingSection(let section), .repeatingSectionAtEnd(let section):
+            return section
+        case .waitingToJump:
+            return arrangementEngine.activeSection
+        case .idle, .continuingTimeline:
+            return project.sections.first(where: { $0.contains(time: arrangementEngine.currentTime) })
         }
     }
 
@@ -1617,6 +1646,10 @@ final class WorkspaceViewModel {
 
         if isPlaying {
             arrangementEngine.ensureSectionPlaybackContext(at: arrangementEngine.currentTime)
+        }
+
+        if preparesImmediateSectionJump(to: section) {
+            suppressTimelineJumpRestartUntil = Date().addingTimeInterval(0.5)
         }
 
         let result = arrangementEngine.triggerSection(section)
@@ -1664,14 +1697,6 @@ final class WorkspaceViewModel {
             return
         }
 
-        if project.sectionRepeatMIDIMapped,
-           event.kind == .noteOn,
-           event.number == project.sectionRepeatMIDINote,
-           event.channel == project.sectionRepeatMIDIChannel {
-            toggleSectionRepeat()
-            return
-        }
-
         guard let section = project.sections.first(where: { section in
             section.midiChannel == event.channel &&
             section.midiNote == event.number &&
@@ -1715,16 +1740,6 @@ final class WorkspaceViewModel {
             if let section = project.sections.first(where: { $0.id == sectionID }) {
                 midiLearnStatusMessage = "Mapped “\(section.name)” → \(assignment.displayName)"
             }
-            return true
-        case .loopToggle:
-            guard event.kind == .noteOn else {
-                midiLearnStatusMessage = "Loop Repeat needs a note message. Try another pad."
-                return false
-            }
-            project.sectionRepeatMIDINote = event.number
-            project.sectionRepeatMIDIChannel = event.channel
-            project.sectionRepeatMIDIMapped = true
-            midiLearnStatusMessage = "Loop Repeat → \(assignment.displayName)"
             return true
         }
     }
@@ -1775,6 +1790,7 @@ final class WorkspaceViewModel {
 
     func setMIDIMappingAssignModeEnabled(_ enabled: Bool) {
         isMIDIMappingAssignModeEnabled = enabled
+        isMIDIMappingExpanded = enabled
         if !enabled {
             cancelMIDILearn()
         }
@@ -1793,8 +1809,6 @@ final class WorkspaceViewModel {
                 selectedSectionID = id
                 midiLearnStatusMessage = "Press a pad/key for “\(section.name)”…"
             }
-        case .loopToggle:
-            midiLearnStatusMessage = "Press the controller button for Loop Repeat…"
         }
     }
 
@@ -1987,32 +2001,36 @@ final class WorkspaceViewModel {
 
         if isPlaying,
            didJumpTimeline,
-           !arrangementSyncedToAudioThisTick,
-           suppressTimelineJumpRestartUntil.map({ Date() >= $0 }) ?? true {
+           !arrangementSyncedToAudioThisTick {
             if isSectionLoopWrap(from: previousTime, to: newTime) {
                 audioEngine.reanchorPlaybackTimeline(at: newTime)
                 loopPrebufferTriggered = false
                 let canAppend = audioEngine.isSectionLoopPlaybackActive
                     && appendSectionLoopAudioIfNeeded(from: previousTime, to: newTime)
                 if !canAppend {
-                    SectionLoopDiagnostics.log(String(
-                        format: "loop wrap audio restart %.6fs -> %.6fs",
-                        previousTime,
-                        newTime
-                    ))
-                    if !startAudioPlayback(from: newTime) {
+                    if !restartAudioPlayback(from: newTime) {
                         pause()
                         return
                     }
                 }
-            } else {
+            } else if isArrangementSectionTransition(from: previousTime, to: newTime) {
                 loopPrebufferTriggered = false
+                SectionLoopDiagnostics.log(String(
+                    format: "section transition restart %.6fs -> %.6fs",
+                    previousTime,
+                    newTime
+                ))
+                if !restartAudioPlayback(from: newTime) {
+                    pause()
+                    return
+                }
+            } else if suppressTimelineJumpRestartUntil.map({ Date() >= $0 }) ?? true {
                 SectionLoopDiagnostics.log(String(
                     format: "timeline jump restart %.6fs -> %.6fs",
                     previousTime,
                     newTime
                 ))
-                if !startAudioPlayback(from: newTime) {
+                if !restartAudioPlayback(from: newTime) {
                     pause()
                     return
                 }
@@ -2025,11 +2043,6 @@ final class WorkspaceViewModel {
             let remaining = loop.endTime - newTime
             if remaining > 0, remaining <= 0.12, !loopPrebufferTriggered {
                 loopPrebufferTriggered = true
-                SectionLoopDiagnostics.log(String(
-                    format: "prebuffer loop %.1f ms before end %.6fs",
-                    remaining * 1000,
-                    loop.endTime
-                ))
                 _ = audioEngine.appendSectionLoopCycles(project: project, loop: loop)
             }
         } else if !isPlaying {

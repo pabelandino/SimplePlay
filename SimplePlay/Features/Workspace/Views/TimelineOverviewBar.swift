@@ -155,11 +155,6 @@ struct TimelineOverviewBar: View {
             return range
         }
 
-        if viewModel.isSectionRepeatEnabled,
-           let section = viewModel.project.sections.first(where: { $0.contains(time: viewModel.playheadTime) }) {
-            return section.startTime...section.endTime
-        }
-
         return nil
     }
 

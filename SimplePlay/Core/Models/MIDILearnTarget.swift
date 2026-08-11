@@ -7,7 +7,6 @@ import Foundation
 
 enum MIDILearnTarget: Equatable, Sendable {
     case section(UUID)
-    case loopToggle
 }
 
 struct MIDINoteAssignment: Equatable, Sendable {

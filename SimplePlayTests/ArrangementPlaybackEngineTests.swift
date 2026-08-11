@@ -9,26 +9,7 @@ import Testing
 
 @MainActor
 struct ArrangementPlaybackEngineTests {
-    @Test func globalLoopRepeatsSectionWhenEnabled() async {
-        let engine = ArrangementPlaybackEngine()
-        let chorus = makeSection(
-            name: "Chorus",
-            start: 10,
-            end: 20,
-            note: 62
-        )
-        engine.configure(sections: [chorus])
-        engine.setRepeatEnabled(true)
-        engine.triggerSection(chorus)
-        engine.play()
-
-        engine.currentTime = 19.9
-        engine.tick(delta: 0.2, projectDuration: 60)
-
-        #expect(engine.currentTime == 10)
-    }
-
-    @Test func doesNotRepeatWithoutSamePadOrLoopMode() async {
+    @Test func doesNotRepeatWithoutSamePadPress() async {
         let engine = ArrangementPlaybackEngine()
         let chorus = makeSection(name: "Chorus", start: 10, end: 20, note: 62)
 
@@ -67,22 +48,21 @@ struct ArrangementPlaybackEngineTests {
         #expect(engine.currentTime == 0)
     }
 
-    @Test func queuesNextSectionWhileRepeatEnabled() async {
+    @Test func queuesNextSectionWhileRepeatingAtEnd() async {
         let engine = ArrangementPlaybackEngine()
         let verse = makeSection(name: "Verse", start: 0, end: 10, note: 60)
         let chorus = makeSection(name: "Chorus", start: 10, end: 20, note: 62)
 
         engine.configure(sections: [verse, chorus])
-        engine.setRepeatEnabled(true)
         engine.triggerSection(verse)
         engine.play()
         engine.currentTime = 5
+        _ = engine.triggerSection(verse)
         _ = engine.triggerSection(chorus)
 
         #expect(engine.pendingSection?.id == chorus.id)
         #expect(engine.currentTime == 5)
 
-        engine.setRepeatEnabled(false)
         engine.currentTime = 9.9
         engine.tick(delta: 0.2, projectDuration: 60)
 

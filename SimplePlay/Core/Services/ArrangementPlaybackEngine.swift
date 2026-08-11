@@ -24,7 +24,6 @@ final class ArrangementPlaybackEngine {
 
     var currentTime: TimeInterval = 0
     var isPlaying = false
-    var isRepeatEnabled = false
 
     private var sections: [ArrangementSection] = []
     private var lastExitedSectionID: UUID?
@@ -136,10 +135,6 @@ final class ArrangementPlaybackEngine {
         }) else { return }
 
         _ = triggerSection(section)
-    }
-
-    func setRepeatEnabled(_ enabled: Bool) {
-        isRepeatEnabled = enabled
     }
 
     func tick(delta: TimeInterval, projectDuration: TimeInterval) {
@@ -287,23 +282,8 @@ final class ArrangementPlaybackEngine {
         }
 
         if case .repeatingSectionAtEnd = state {
-            SectionLoopDiagnostics.log(String(
-                format: "engine repeat-once wrap at end %.6fs -> start %.6fs",
-                section.endTime,
-                section.startTime
-            ))
             currentTime = section.startTime
             state = .playingSection(section)
-            return
-        }
-
-        if isRepeatEnabled {
-            SectionLoopDiagnostics.log(String(
-                format: "engine global loop wrap at end %.6fs -> start %.6fs",
-                section.endTime,
-                section.startTime
-            ))
-            currentTime = section.startTime
             return
         }
 

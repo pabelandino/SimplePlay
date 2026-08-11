@@ -158,7 +158,7 @@ struct TimelineWorkspacePanel: View {
             Image(systemName: "flag.fill")
                 .font(.caption2)
                 .foregroundStyle(
-                    viewModel.isSectionRepeatEnabled
+                    viewModel.repeatingSectionName != nil
                         ? DAWTheme.accent
                         : DAWTheme.textSecondary
                 )
@@ -175,11 +175,6 @@ struct TimelineWorkspacePanel: View {
                         .lineLimit(1)
                 } else if let repeating = viewModel.repeatingSectionName {
                     Text("Repeat once · \(repeating)")
-                        .font(.caption2)
-                        .foregroundStyle(DAWTheme.accent)
-                        .lineLimit(1)
-                } else if viewModel.isSectionRepeatEnabled {
-                    Text("Loop On")
                         .font(.caption2)
                         .foregroundStyle(DAWTheme.accent)
                         .lineLimit(1)

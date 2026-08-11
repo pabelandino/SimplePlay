@@ -39,31 +39,20 @@ struct MIDIMappingBarView: View {
         VStack(spacing: 0) {
             collapsedBar
 
-            if viewModel.isMIDIMappingExpanded {
+            if viewModel.isMIDIMappingAssignModeEnabled || viewModel.isMIDILearnActive {
                 expandedPanel
                     .transition(expandedPanelTransition)
             }
         }
         .clipped()
-        .animation(mappingPanelAnimation, value: viewModel.isMIDIMappingExpanded)
+        .animation(mappingPanelAnimation, value: viewModel.isMIDIMappingAssignModeEnabled)
+        .animation(mappingPanelAnimation, value: viewModel.isMIDILearnActive)
         .background(DAWTheme.surface)
         .overlay(alignment: .bottom) {
             Rectangle().fill(DAWTheme.border).frame(height: 1)
         }
         .onAppear {
             viewModel.applySavedMIDIDeviceConnection()
-#if os(macOS)
-            if !viewModel.project.sections.isEmpty {
-                setMappingExpanded(true)
-            }
-#endif
-        }
-        .onChange(of: viewModel.project.sections.count) { _, count in
-#if os(macOS)
-            if count > 0 {
-                setMappingExpanded(true)
-            }
-#endif
         }
 #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
@@ -141,8 +130,6 @@ struct MIDIMappingBarView: View {
 
             assignModeToggle
 
-            sectionLoopToggle
-
             if viewModel.isMIDILearnActive {
                 Label("Assigning…", systemImage: "dot.radiowaves.left.and.right")
                     .font(.caption2.weight(.semibold))
@@ -178,11 +165,8 @@ struct MIDIMappingBarView: View {
     private var assignModeToggle: some View {
         Button {
             viewModel.setMIDIMappingAssignModeEnabled(!viewModel.isMIDIMappingAssignModeEnabled)
-            if viewModel.isMIDIMappingAssignModeEnabled {
-                setMappingExpanded(true)
-            }
         } label: {
-            Text(viewModel.isMIDIMappingAssignModeEnabled ? "Assign ON" : "Assign")
+            Text(assignModeToggleTitle)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(viewModel.isMIDIMappingAssignModeEnabled ? DAWTheme.accent : DAWTheme.textSecondary)
                 .padding(.horizontal, 8)
@@ -203,37 +187,15 @@ struct MIDIMappingBarView: View {
         }
         .buttonStyle(.plain)
         .help(viewModel.isMIDIMappingAssignModeEnabled
-            ? "Turn off MIDI assign mode"
-            : "Turn on MIDI assign mode to map controller pads")
+            ? "Stop assigning sections to MIDI"
+            : "Show section pads and assign each section to a MIDI control")
     }
 
-    private var sectionLoopToggle: some View {
-        let isLoopOn = viewModel.isSectionRepeatEnabled
-
-        return Button {
-            viewModel.toggleSectionRepeat()
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: isLoopOn ? "repeat.circle.fill" : "repeat.circle")
-                    .font(isCompact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
-
-                Text(isLoopOn ? "Loop ON" : "Loop")
-                    .font(.caption2.weight(.semibold))
-            }
-            .foregroundStyle(isLoopOn ? DAWTheme.accent : DAWTheme.textSecondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, isCompact ? 3 : 4)
-            .background(isLoopOn ? DAWTheme.accent.opacity(0.14) : DAWTheme.background.opacity(0.45))
-            .clipShape(Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(isLoopOn ? DAWTheme.accent.opacity(0.5) : DAWTheme.border, lineWidth: 1)
-            }
+    private var assignModeToggleTitle: String {
+        if viewModel.isMIDIMappingAssignModeEnabled {
+            return "Assigning…"
         }
-        .buttonStyle(.plain)
-        .help(isLoopOn
-            ? "Section loop is on — tap to disable"
-            : "Enable section loop to repeat the active section")
+        return isCompact ? "Assign MIDI" : "Assign Section to MIDI"
     }
 
     private var sectionQuickPads: some View {
@@ -377,13 +339,6 @@ struct MIDIMappingBarView: View {
         viewModel.connectedMIDISourceName != nil ? DAWTheme.textPrimary : DAWTheme.accent
     }
 
-    private var loopAssignmentLabel: String {
-        MIDINoteAssignment(
-            note: viewModel.project.sectionRepeatMIDINote,
-            channel: viewModel.project.sectionRepeatMIDIChannel
-        ).displayName
-    }
-
     private var expandedPanel: some View {
         VStack(alignment: .leading, spacing: isCompact ? 8 : 12) {
             if viewModel.isMIDILearnActive {
@@ -391,15 +346,13 @@ struct MIDIMappingBarView: View {
             }
 
             if !isCompact {
-                Text("Tap a section to play it. Enable Section Loop to repeat the active section.")
+                Text("Press Assign on a section card, then tap a pad or key on your controller.")
                     .font(.caption2)
                     .foregroundStyle(DAWTheme.textSecondary)
             }
 
-            loopMappingCard
-
             if viewModel.project.sections.isEmpty {
-                Text("Create section markers in the timeline, then play them from the pads above.")
+                Text("Create section markers in the timeline, then assign them here.")
                     .font(.caption2)
                     .foregroundStyle(DAWTheme.textSecondary)
             } else if viewModel.isMIDIMappingAssignModeEnabled {
@@ -458,132 +411,6 @@ struct MIDIMappingBarView: View {
                         .stroke(DAWTheme.accent.opacity(0.45), lineWidth: 1)
                 }
         )
-    }
-
-    private var loopMappingCard: some View {
-        let isLearning = viewModel.midiLearnTarget == .loopToggle
-        let isLoopOn = viewModel.isSectionRepeatEnabled
-        let isMapped = viewModel.project.sectionRepeatMIDIMapped
-
-        return VStack(spacing: 0) {
-            Button {
-                viewModel.toggleSectionRepeat()
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(isLoopOn ? DAWTheme.accent.opacity(0.22) : DAWTheme.surfaceElevated)
-                            .frame(width: 38, height: 38)
-
-                        Circle()
-                            .stroke(isLoopOn ? DAWTheme.accent.opacity(0.6) : DAWTheme.border, lineWidth: 1)
-                            .frame(width: 38, height: 38)
-
-                        Image(systemName: isLoopOn ? "repeat.circle.fill" : "repeat.circle")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(isLoopOn ? DAWTheme.accent : DAWTheme.textSecondary)
-                            .symbolEffect(.variableColor.iterative.reversing, options: .repeating, isActive: isLoopOn && !reduceMotion)
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Section Loop")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(DAWTheme.textPrimary)
-
-                        Text(isLoopOn
-                            ? "Repeats the current section until you turn it off"
-                            : "Off — each section plays through once")
-                            .font(.caption2)
-                            .foregroundStyle(DAWTheme.textSecondary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    Text(isLoopOn ? "ON" : "OFF")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(isLoopOn ? DAWTheme.accent : DAWTheme.textSecondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(isLoopOn ? DAWTheme.accent.opacity(0.16) : DAWTheme.background.opacity(0.45))
-                        .clipShape(Capsule())
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, isCompact ? 8 : 12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    isLoopOn
-                        ? LinearGradient(
-                            colors: [DAWTheme.accent.opacity(0.05), DAWTheme.accent.opacity(0.14)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        : LinearGradient(
-                            colors: [DAWTheme.background.opacity(0.35), DAWTheme.background.opacity(0.35)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                )
-            }
-            .buttonStyle(SectionMappingPlayButtonStyle())
-            .accessibilityLabel(isLoopOn ? "Disable section loop" : "Enable section loop")
-
-            if viewModel.isMIDIMappingAssignModeEnabled {
-                Rectangle()
-                    .fill(DAWTheme.border.opacity(0.85))
-                    .frame(height: 1)
-
-                Button {
-                    if isLearning {
-                        viewModel.cancelMIDILearn()
-                    } else {
-                        viewModel.startMIDILearn(for: .loopToggle)
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: isLearning ? "dot.radiowaves.left.and.right" : "pianokeys")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(isLearning ? DAWTheme.accent : DAWTheme.textSecondary)
-
-                        Text(isLearning ? "Listening…" : (isMapped ? loopAssignmentLabel : "No MIDI assigned"))
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(isLearning ? DAWTheme.accent : DAWTheme.textSecondary)
-                            .lineLimit(1)
-
-                        Spacer(minLength: 0)
-
-                        if !isLearning {
-                            Text("Assign")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(DAWTheme.textPrimary.opacity(0.85))
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, isCompact ? 7 : 9)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(isLearning ? DAWTheme.accent.opacity(0.1) : DAWTheme.background.opacity(0.45))
-                }
-                .buttonStyle(SectionMappingAssignButtonStyle(isLearning: isLearning))
-                .accessibilityLabel(isLearning ? "Listening for loop MIDI assignment" : "Assign MIDI for section loop")
-            }
-        }
-        .background(isLearning ? DAWTheme.accent.opacity(0.08) : DAWTheme.surfaceElevated.opacity(0.35))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(
-                    isLearning ? DAWTheme.accent : (isLoopOn ? DAWTheme.accent.opacity(0.55) : DAWTheme.border),
-                    lineWidth: isLearning || isLoopOn ? 1.5 : 1
-                )
-        }
-        .modifier(SectionMappingCardGlow(
-            isActive: isLoopOn,
-            color: DAWTheme.accent,
-            reduceMotion: reduceMotion
-        ))
-        .animation(mappingPanelAnimation, value: isLoopOn)
-        .help(isLoopOn ? "Tap to disable section loop" : "Tap to enable section loop")
     }
 
     private func sectionMappingCard(_ section: ArrangementSection) -> some View {

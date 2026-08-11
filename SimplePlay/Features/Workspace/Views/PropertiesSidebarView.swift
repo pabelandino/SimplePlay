@@ -244,7 +244,7 @@ struct PropertiesSidebarView: View {
                     monospaced: true
                 )
 
-                Button("Assign Pad") {
+                Button("Assign Section to MIDI") {
                     viewModel.startMIDILearn(for: .section(section.id))
                 }
                 .buttonStyle(DAWSecondaryButtonStyle())

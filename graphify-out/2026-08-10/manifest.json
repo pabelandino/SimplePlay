@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/ArrangementPlaybackEngine.swift": {
-    "mtime": 1786343253.6905265,
-    "ast_hash": "46164ee418dec98734d03f1120094df5",
+    "mtime": 1786422415.7961836,
+    "ast_hash": "70f21e5a0dac03ad90aadb0da9d31f5c",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioEngineService.swift": {
-    "mtime": 1786398049.673762,
-    "ast_hash": "4d005cd893786a045e67c3fc88c7c2a4",
+    "mtime": 1786422819.5771124,
+    "ast_hash": "e9a6506549d700c9bf89007c9762b81e",
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioImportService.swift": {
@@ -160,13 +160,13 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786398046.6494994,
-    "ast_hash": "6373ee605c52b9dfb1bd4248129f6be0",
+    "mtime": 1786422824.9102545,
+    "ast_hash": "d7b736edba5351df0656906b4c9400ca",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift": {
-    "mtime": 1786397809.7561269,
-    "ast_hash": "39d115c2c0e6cb7bfd7dc116bf60c1b5",
+    "mtime": 1786401793.7277024,
+    "ast_hash": "7a0d274aa2f33978028cc05a5b7b941a",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineView.swift": {
@@ -205,8 +205,8 @@
     "semantic_hash": ""
   },
   "SimplePlayTests/ArrangementPlaybackEngineTests.swift": {
-    "mtime": 1786335314.225839,
-    "ast_hash": "48f964a65e61de1bb6f4ad4312885b4b",
+    "mtime": 1786422431.51657,
+    "ast_hash": "b829592ae4277e92fcfb31e2931fcb5b",
     "semantic_hash": ""
   },
   "SimplePlayTests/TrackNameStandardizerTests.swift": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/MIDIMappingBarView.swift": {
-    "mtime": 1786397555.2828271,
-    "ast_hash": "d9b3813da1729d96da3970b34a1ff317",
+    "mtime": 1786401787.9955869,
+    "ast_hash": "53ae2bb2b609fd453e115ae471a6f2a1",
     "semantic_hash": ""
   },
   "SimplePlay/UI/Components/MacWindowTitleBarHidden.swift": {
