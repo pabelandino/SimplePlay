@@ -110,7 +110,7 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Services/AudioEngineService.swift": {
-    "mtime": 1786422819.5771124,
+    "mtime": 1786425213.5473938,
     "ast_hash": "e9a6506549d700c9bf89007c9762b81e",
     "semantic_hash": ""
   },
@@ -160,7 +160,7 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift": {
-    "mtime": 1786423139.9743652,
+    "mtime": 1786425213.5485144,
     "ast_hash": "2f40add438541d3a527685495fa64051",
     "semantic_hash": ""
   },
@@ -185,7 +185,7 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TransportBarView.swift": {
-    "mtime": 1786320824.7696762,
+    "mtime": 1786425021.4930537,
     "ast_hash": "6b0fe0e2d5cb8003d3ac3b0dd0908dcc",
     "semantic_hash": ""
   },
@@ -200,8 +200,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/UI/Theme/DAWTheme.swift": {
-    "mtime": 1786321802.5517101,
-    "ast_hash": "af03dd2ad9c78b7c13f146a55be05119",
+    "mtime": 1786425025.5925934,
+    "ast_hash": "26e4471ca60a0b895df242a57d704450",
     "semantic_hash": ""
   },
   "SimplePlayTests/ArrangementPlaybackEngineTests.swift": {
@@ -265,8 +265,8 @@
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineOverviewBar.swift": {
-    "mtime": 1786423127.0078368,
-    "ast_hash": "c445810890328fe43bb56cc6571d3c6a",
+    "mtime": 1786424863.6215186,
+    "ast_hash": "00109060567f34eec44594d4ebf8d067",
     "semantic_hash": ""
   },
   "SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift": {
@@ -335,7 +335,7 @@
     "semantic_hash": ""
   },
   "SimplePlay/Core/Utils/PitchShiftSettings.swift": {
-    "mtime": 1786316841.5731847,
+    "mtime": 1786425213.5477772,
     "ast_hash": "70a9a9f21df917532abcc327eed33325",
     "semantic_hash": ""
   },
@@ -467,6 +467,11 @@
   "SimplePlay/UI/Components/DAWGlassChrome.swift": {
     "mtime": 1786386615.4152231,
     "ast_hash": "fb96ce07f2787d0906e2b43018a97485",
+    "semantic_hash": ""
+  },
+  "SimplePlay/UI/Components/DAWTransportChrome.swift": {
+    "mtime": 1786425024.9119635,
+    "ast_hash": "f4da64a7a09d464314e0bf7b30068256",
     "semantic_hash": ""
   }
 }
