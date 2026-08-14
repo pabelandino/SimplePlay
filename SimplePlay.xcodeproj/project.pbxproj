@@ -398,6 +398,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = LyrioraPlayIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SimplePlay/SimplePlay.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = SimplePlay/SimplePlay-macOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KB3H8VKXAX;
@@ -446,6 +447,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = LyrioraPlayIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = SimplePlay/SimplePlay.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = SimplePlay/SimplePlay-macOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KB3H8VKXAX;

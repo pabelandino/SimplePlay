@@ -13,8 +13,12 @@ struct WaveformClipView: View {
     let isSelected: Bool
     var clipHeight: CGFloat = DAWTheme.trackRowHeight - 16
     var isTimelineScrolling = false
+    var isTrimPreview = false
+    var isGhost = false
+    var loadsWaveform = true
 
-    @State private var peaks: [Float] = []
+    @State private var fullFilePeaks: [Float] = []
+    @State private var fileDuration: TimeInterval?
     @State private var isLoading = false
     @State private var loadedLOD = 0
     @State private var loadGeneration = 0
@@ -24,20 +28,51 @@ struct WaveformClipView: View {
         max(48, CGFloat(clip.duration) * pixelsPerSecond)
     }
 
-    private var requiredLOD: Int {
-        WaveformLOD.loadBucket(for: clipWidth)
+    private var displaySampleCount: Int {
+        WaveformLOD.targetSampleCount(clipWidth: clipWidth)
+    }
+
+    private var resolvedFileDuration: TimeInterval? {
+        if let fileDuration, fileDuration > 0 { return fileDuration }
+        return WaveformClipPeakStore.fileDuration(for: clip.fileURL)
+    }
+
+    private func fileLoadLOD(for duration: TimeInterval) -> Int {
+        max(
+            WaveformLOD.fileLoadBucket(fileDuration: duration, pixelsPerSecond: pixelsPerSecond),
+            WaveformLOD.loadBucket(for: clipWidth)
+        )
+    }
+
+    private var displayPeaks: [Float] {
+        guard !fullFilePeaks.isEmpty else { return [] }
+        guard let duration = resolvedFileDuration, duration > 0 else { return [] }
+
+        return WaveformPeakSlicer.visiblePeaks(
+            from: fullFilePeaks,
+            fileDuration: duration,
+            sourceOffset: clip.sourceOffset,
+            visibleDuration: clip.duration,
+            targetCount: displaySampleCount
+        )
     }
 
     var body: some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 8)
-                .fill(trackColor.opacity(0.18))
+                .fill(trackColor.opacity(isGhost ? 0.34 : (isTrimPreview ? 0.28 : 0.18)))
                 .overlay {
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(trackColor.opacity(isSelected ? 1 : 0.65), lineWidth: isSelected ? 2 : 1)
+                        .stroke(
+                            trackColor.opacity(isGhost ? 0.95 : (isSelected ? 1 : 0.65)),
+                            style: StrokeStyle(
+                                lineWidth: isGhost || isSelected ? 2 : 1,
+                                dash: isGhost || isTrimPreview ? [5, 4] : []
+                            )
+                        )
                 }
 
-            WaveformEnvelopeView(peaks: peaks, color: trackColor, isLoading: isLoading)
+            WaveformEnvelopeView(peaks: displayPeaks, color: trackColor, isLoading: isLoading)
                 .equatable()
                 .padding(.horizontal, 4)
                 .padding(.vertical, 6)
@@ -51,15 +86,29 @@ struct WaveformClipView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(width: clipWidth, height: clipHeight)
-        .id(clip.id)
-        .task(id: clip.fileURL) {
-            startLoadGeneration()
-            peaks = []
-            loadedLOD = 0
-            isLoading = false
-            await fetchPeaks(lod: requiredLOD, reportToMonitor: true)
+        .id(isGhost ? "ghost-\(clip.id.uuidString)" : clip.id.uuidString)
+        .onAppear {
+            hydrateFromPeakStore()
         }
-        .onChange(of: requiredLOD) { _, newLOD in
+        .task(id: clip.fileURL) {
+            guard loadsWaveform else {
+                fullFilePeaks = placeholderPeaks(for: CGSize(width: clipWidth, height: clipHeight))
+                return
+            }
+
+            hydrateFromPeakStore()
+
+            guard let duration = ensureFileDuration() else { return }
+
+            let lod = fileLoadLOD(for: duration)
+            if loadedLOD >= lod, !fullFilePeaks.isEmpty {
+                return
+            }
+
+            startLoadGeneration()
+            await loadFullFilePeaks(lod: lod, reportToMonitor: loadedLOD == 0)
+        }
+        .onChange(of: requiredFileLoadLOD) { _, newLOD in
             guard newLOD > loadedLOD else { return }
             if isTimelineScrolling {
                 deferredLOD = max(deferredLOD ?? 0, newLOD)
@@ -74,11 +123,54 @@ struct WaveformClipView: View {
         }
     }
 
+    private var requiredFileLoadLOD: Int {
+        guard let duration = resolvedFileDuration, duration > 0 else {
+            return WaveformLOD.maxSamples
+        }
+        return fileLoadLOD(for: duration)
+    }
+
+    private func hydrateFromPeakStore() {
+        if fileDuration == nil {
+            fileDuration = WaveformClipPeakStore.fileDuration(for: clip.fileURL)
+        }
+
+        guard fullFilePeaks.isEmpty else { return }
+
+        let minimumLOD = requiredFileLoadLOD
+        if let cached = WaveformClipPeakStore.bestPeaks(for: clip.fileURL, minimumLOD: minimumLOD) {
+            fullFilePeaks = cached.peaks
+            loadedLOD = cached.lod
+        }
+    }
+
+    @discardableResult
+    private func ensureFileDuration() -> TimeInterval? {
+        if let fileDuration, fileDuration > 0 { return fileDuration }
+
+        if let cached = WaveformClipPeakStore.fileDuration(for: clip.fileURL) {
+            fileDuration = cached
+            return cached
+        }
+
+        if let resolved = ClipEditService.fileDuration(for: clip) {
+            fileDuration = resolved
+            WaveformClipPeakStore.setFileDuration(resolved, for: clip.fileURL)
+            return resolved
+        }
+
+        return nil
+    }
+
     private func scheduleLODUpgrade(to newLOD: Int) {
         loadGeneration += 1
         let generation = loadGeneration
         Task {
-            await fetchPeaks(lod: newLOD, reportToMonitor: false, expectedGeneration: generation)
+            await loadFullFilePeaks(
+                lod: newLOD,
+                reportToMonitor: false,
+                expectedGeneration: generation
+            )
         }
     }
 
@@ -87,7 +179,7 @@ struct WaveformClipView: View {
     }
 
     @MainActor
-    private func fetchPeaks(
+    private func loadFullFilePeaks(
         lod: Int,
         reportToMonitor: Bool,
         expectedGeneration: Int? = nil
@@ -96,14 +188,27 @@ struct WaveformClipView: View {
             return
         }
 
-        let generation = expectedGeneration ?? loadGeneration
-        let shouldShowClipSpinner = reportToMonitor
+        if lod <= loadedLOD, !fullFilePeaks.isEmpty {
+            return
+        }
 
-        if reportToMonitor {
+        guard ensureFileDuration() != nil else { return }
+
+        let generation = expectedGeneration ?? loadGeneration
+        let shouldShowClipSpinner = reportToMonitor && !isGhost
+
+        let alreadyCached = await WaveformCache.shared.isCached(
+            for: clip.fileURL,
+            duration: nil,
+            sampleCount: lod
+        )
+        let shouldTrackMonitor = reportToMonitor && !isGhost && !alreadyCached
+
+        if shouldTrackMonitor {
             WaveformLoadMonitor.shared.beginClip(trackID: trackID, clipID: clip.id)
         }
 
-        if shouldShowClipSpinner {
+        if shouldShowClipSpinner, fullFilePeaks.isEmpty, !alreadyCached {
             isLoading = true
         }
 
@@ -111,13 +216,13 @@ struct WaveformClipView: View {
             if shouldShowClipSpinner {
                 isLoading = false
             }
-            if reportToMonitor {
+            if shouldTrackMonitor {
                 WaveformLoadMonitor.shared.completeClip(trackID: trackID, clipID: clip.id)
             }
         }
 
         var onProgress: (@MainActor @Sendable (Double) -> Void)?
-        if reportToMonitor {
+        if shouldTrackMonitor {
             onProgress = { progress in
                 WaveformLoadMonitor.shared.setClipProgress(
                     trackID: trackID,
@@ -130,19 +235,26 @@ struct WaveformClipView: View {
         do {
             let loaded = try await WaveformCache.shared.peaks(
                 for: clip.fileURL,
+                duration: nil,
                 sampleCount: lod,
                 onProgress: onProgress
             )
             guard generation == loadGeneration else { return }
             if lod >= loadedLOD {
-                peaks = loaded
+                fullFilePeaks = loaded
                 loadedLOD = lod
+                WaveformClipPeakStore.store(peaks: loaded, for: clip.fileURL, lod: lod)
             }
         } catch {
             guard generation == loadGeneration else { return }
-            if peaks.isEmpty {
-                peaks = []
-            }
+        }
+    }
+
+    private func placeholderPeaks(for size: CGSize) -> [Float] {
+        let count = max(120, Int(size.width))
+        return (0..<count).map { index in
+            let t = Float(index) / Float(max(count - 1, 1))
+            return abs(sin(t * .pi * 10)) * 0.35 + 0.18
         }
     }
 }

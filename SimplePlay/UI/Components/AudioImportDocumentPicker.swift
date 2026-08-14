@@ -20,7 +20,7 @@ enum ImportDocumentPickerPresenter {
         onCancel: @escaping () -> Void = {}
     ) {
         guard activeSession == nil else { return }
-        guard let host = topViewController() else { return }
+        guard let host = topPresentedViewController() else { return }
 
         let session = ImportDocumentPickerSession(onPick: onPick, onCancel: onCancel)
         activeSession = session
@@ -31,7 +31,8 @@ enum ImportDocumentPickerPresenter {
         )
         picker.delegate = session
         picker.allowsMultipleSelection = allowsMultipleSelection
-        picker.shouldShowFileExtensions = true
+        picker.shouldShowFileExtensions = false
+        picker.modalPresentationStyle = .formSheet
 
         host.present(picker, animated: true)
     }
@@ -40,12 +41,29 @@ enum ImportDocumentPickerPresenter {
         activeSession = nil
     }
 
-    private static func topViewController() -> UIViewController? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
+    private static func topPresentedViewController() -> UIViewController? {
+        guard let root = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
             .flatMap(\.windows)
             .first(where: \.isKeyWindow)?
             .rootViewController
+        else { return nil }
+        return deepestPresentedViewController(from: root)
+    }
+
+    private static func deepestPresentedViewController(from controller: UIViewController) -> UIViewController {
+        if let navigation = controller as? UINavigationController,
+           let visible = navigation.visibleViewController {
+            return deepestPresentedViewController(from: visible)
+        }
+        if let tabBar = controller as? UITabBarController,
+           let selected = tabBar.selectedViewController {
+            return deepestPresentedViewController(from: selected)
+        }
+        if let presented = controller.presentedViewController {
+            return deepestPresentedViewController(from: presented)
+        }
+        return controller
     }
 }
 

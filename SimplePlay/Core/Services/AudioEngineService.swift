@@ -34,7 +34,7 @@ enum AudioEngineError: LocalizedError {
 }
 
 private struct ScheduledClip {
-    let clip: AudioClip
+    var clip: AudioClip
     let trackID: UUID
     let file: AVAudioFile
     let player: AVAudioPlayerNode
@@ -304,6 +304,17 @@ final class AudioEngineService {
         !scheduledClips.isEmpty
     }
 
+    /// Updates timeline placement for already-attached clips without rebuilding the audio graph.
+    func syncClipLayout(from project: DAWProject) {
+        for track in project.tracks {
+            for clip in track.clips {
+                guard var scheduled = scheduledClips[clip.id] else { continue }
+                scheduled.clip = clip
+                scheduledClips[clip.id] = scheduled
+            }
+        }
+    }
+
     private func attachClip(
         _ clip: AudioClip,
         trackID: UUID,
@@ -421,6 +432,7 @@ final class AudioEngineService {
         lastPlaybackError = nil
         activeSectionLoop = sectionLoop
         scheduledLoopCycleCount = 0
+        syncClipLayout(from: project)
 
         guard !scheduledClips.isEmpty else {
             lastPlaybackError = AudioEngineError.playbackUnavailable.errorDescription

@@ -63,7 +63,7 @@ enum DAWTheme {
 #endif
     static let trackRowHeight: CGFloat = 72
     static let minTrackRowZoom: Double = 0.6
-    static let maxTrackRowZoom: Double = 2.5
+    static let maxTrackRowZoom: Double = 3.5
     static let defaultTrackRowZoom: Double = 1.0
     static let minTrackRowHeight: CGFloat = 36
     static let pixelsPerSecond: CGFloat = 80
