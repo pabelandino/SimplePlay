@@ -99,6 +99,7 @@ struct TimelineWorkspacePanel: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(DAWTheme.textSecondary)
                 .frame(minWidth: 36, alignment: .trailing)
+                .accessibilityLabel("Track height \(Int((viewModel.trackRowZoom * 100).rounded())) percent")
         }
         .padding(.horizontal, isCompact ? 10 : 14)
         .padding(.vertical, isCompact ? 6 : 8)
@@ -111,7 +112,7 @@ struct TimelineWorkspacePanel: View {
     private var trackHeaderColumnTracksOnly: some View {
         VStack(spacing: 0) {
             ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
-                TrackHeaderRowView(track: track, viewModel: viewModel)
+                TrackHeaderRowView(track: track, viewModel: viewModel, rowHeight: trackRowHeight)
                     .offset(y: viewModel.trackDragVisualOffset(for: track.id))
                     .overlay(alignment: .top) {
                         if viewModel.showsTrackDropIndicator(at: index) {
@@ -125,9 +126,21 @@ struct TimelineWorkspacePanel: View {
             }
 
             Button {
+                viewModel.addEmptyTrack()
+            } label: {
+                Label(isCompact ? "Empty" : "Empty Track", systemImage: "rectangle.dashed")
+                    .font(isCompact ? .caption : .subheadline)
+                    .foregroundStyle(DAWTheme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, isCompact ? 8 : 12)
+                    .frame(height: isCompact ? 32 : 36)
+            }
+            .buttonStyle(.plain)
+
+            Button {
                 viewModel.presentAddTrackImport()
             } label: {
-                Label(isCompact ? "Add" : "Add Track", systemImage: "plus")
+                Label(isCompact ? "Add" : "Import Track", systemImage: "plus")
                     .font(isCompact ? .caption : .subheadline)
                     .foregroundStyle(DAWTheme.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -417,6 +430,34 @@ private struct TimelineTrackScrollArea: View {
                         height: laneAreaHeight
                     )
                     .zIndex(40)
+                    .allowsHitTesting(false)
+                }
+
+                if let guides = viewModel.activeClipMoveGuides {
+                    SectionEdgeGuideOverlay(
+                        startTime: guides.startTime,
+                        endTime: guides.endTime,
+                        showStartEdge: guides.showStartEdge,
+                        showEndEdge: guides.showEndEdge,
+                        color: Color(hex: guides.colorHex) ?? DAWTheme.accent,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        height: laneAreaHeight
+                    )
+                    .zIndex(41)
+                    .allowsHitTesting(false)
+                }
+
+                if let guides = viewModel.activeClipSplitGuide {
+                    SectionEdgeGuideOverlay(
+                        startTime: guides.startTime,
+                        endTime: guides.endTime,
+                        showStartEdge: guides.showStartEdge,
+                        showEndEdge: guides.showEndEdge,
+                        color: Color(hex: guides.colorHex) ?? DAWTheme.accent,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        height: laneAreaHeight
+                    )
+                    .zIndex(42)
                     .allowsHitTesting(false)
                 }
 

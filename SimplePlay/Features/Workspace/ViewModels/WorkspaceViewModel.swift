@@ -58,6 +58,332 @@ final class WorkspaceViewModel {
     private(set) var trackDragTranslation: CGFloat = 0
     private(set) var trackDropIndicatorIndex: Int?
     private var sectionDragKind: SectionDragKind = .move
+    private(set) var clipTrimPreview: AudioClip?
+    private var clipTrimTrackID: UUID?
+    private var clipTrimClipID: UUID?
+    private var clipTrimEdge: ClipEditService.TrimEdge?
+    private var clipTrimAnchorTime: TimeInterval?
+    private var clipTrimFileDuration: TimeInterval?
+    private(set) var clipSplitPreview: (clipID: UUID, time: TimeInterval)?
+    private var clipSplitTrackID: UUID?
+    private var clipSplitClipID: UUID?
+    private(set) var clipMovePreview: ClipMovePreview?
+
+    struct ClipMovePreview: Equatable {
+        struct Item: Equatable, Identifiable {
+            var id: UUID { clipID }
+            let clipID: UUID
+            let trackID: UUID
+            let anchorStartTime: TimeInterval
+            let clip: AudioClip
+        }
+
+        var items: [Item]
+        var deltaTime: TimeInterval
+    }
+
+    var isClipMoveActive: Bool {
+        clipMovePreview != nil
+    }
+
+    var isClipTrimActive: Bool {
+        clipTrimPreview != nil
+    }
+
+    var isClipSplitActive: Bool {
+        clipSplitPreview != nil
+    }
+
+    func clipSplitPreviewTime(for clipID: UUID) -> TimeInterval? {
+        guard clipSplitPreview?.clipID == clipID else { return nil }
+        return clipSplitPreview?.time
+    }
+
+    var canSplitSelectedClipAtPlayhead: Bool {
+        guard selectedClipIDs.count == 1,
+              let clipID = selectedClipIDs.first,
+              let clip = clip(id: clipID) else {
+            return false
+        }
+        return playheadTime > clip.startTime + ClipEditService.minimumClipDuration
+            && playheadTime < clip.endTime - ClipEditService.minimumClipDuration
+    }
+
+    func displayClip(_ clip: AudioClip) -> AudioClip {
+        if clipTrimPreview?.id == clip.id {
+            return clipTrimPreview ?? clip
+        }
+        return clip
+    }
+
+    func timelineTime(fromLaneX x: CGFloat) -> TimeInterval {
+        SnapGrid.snap(
+            max(0, TimeInterval(x / pixelsPerSecond)),
+            interval: project.snapInterval,
+            enabled: project.isSnapEnabled
+        )
+    }
+
+    func rawTimelineTime(fromLaneX x: CGFloat) -> TimeInterval {
+        rawTimeFromTimelineX(x)
+    }
+
+    func beginClipTrim(trackID: UUID, clipID: UUID, edge: ClipEditService.TrimEdge) {
+        guard timelineTool == .trim,
+              let clip = clip(id: clipID),
+              project.tracks.first(where: { $0.id == trackID }) != nil else {
+            return
+        }
+
+        selectedClipIDs = [clipID]
+        syncSelectedTrackFromClipSelection()
+        clipTrimTrackID = trackID
+        clipTrimClipID = clipID
+        clipTrimEdge = edge
+        clipTrimAnchorTime = edge == .start ? clip.startTime : clip.endTime
+        clipTrimFileDuration = ClipEditService.fileDuration(for: clip)
+        clipTrimPreview = clip
+    }
+
+    func updateClipTrim(laneLocationX: CGFloat) {
+        guard let trackID = clipTrimTrackID,
+              let clipID = clipTrimClipID,
+              let edge = clipTrimEdge,
+              let anchorTime = clipTrimAnchorTime,
+              let original = clip(id: clipID) else {
+            return
+        }
+
+        let targetTime = rawTimelineTime(fromLaneX: laneLocationX)
+        let fileDuration = clipTrimFileDuration
+
+        let preview: AudioClip?
+        switch edge {
+        case .start:
+            preview = ClipEditService.trimStart(clip: original, to: min(targetTime, original.endTime - ClipEditService.minimumClipDuration), fileDuration: fileDuration)
+        case .end:
+            preview = ClipEditService.trimEnd(clip: original, to: max(targetTime, original.startTime + ClipEditService.minimumClipDuration), fileDuration: fileDuration)
+        }
+
+        if let preview {
+            clipTrimPreview = preview
+        } else {
+            clipTrimPreview = original
+        }
+
+        _ = trackID
+        _ = anchorTime
+    }
+
+    func commitClipTrim() {
+        defer { cancelClipTrim() }
+
+        guard let trackID = clipTrimTrackID,
+              let clipID = clipTrimClipID,
+              let preview = clipTrimPreview,
+              preview.id == clipID,
+              let original = clip(id: clipID),
+              preview != original else {
+            return
+        }
+
+        applyClipReplacement(trackID: trackID, clipID: clipID, updated: preview)
+    }
+
+    func cancelClipTrim() {
+        clipTrimPreview = nil
+        clipTrimTrackID = nil
+        clipTrimClipID = nil
+        clipTrimEdge = nil
+        clipTrimAnchorTime = nil
+        clipTrimFileDuration = nil
+    }
+
+    func cancelClipSplitPreview() {
+        clipSplitPreview = nil
+        clipSplitTrackID = nil
+        clipSplitClipID = nil
+    }
+
+    func cancelClipMovePreview() {
+        clipMovePreview = nil
+    }
+
+    func cancelClipEditing() {
+        cancelClipTrim()
+        cancelClipSplitPreview()
+        cancelClipMovePreview()
+    }
+
+    func beginClipSplit(trackID: UUID, clipID: UUID) {
+        guard timelineTool == .split,
+              project.tracks.first(where: { $0.id == trackID }) != nil,
+              clip(id: clipID) != nil else {
+            return
+        }
+
+        clipSplitTrackID = trackID
+        clipSplitClipID = clipID
+        selectedClipIDs = [clipID]
+        syncSelectedTrackFromClipSelection()
+    }
+
+    func updateClipSplitPreview(trackID: UUID, clipID: UUID, laneLocationX: CGFloat) {
+        guard timelineTool == .split,
+              project.tracks.first(where: { $0.id == trackID }) != nil,
+              let clip = clip(id: clipID) else {
+            return
+        }
+
+        if clipSplitClipID != clipID {
+            beginClipSplit(trackID: trackID, clipID: clipID)
+        }
+
+        let targetTime = rawTimelineTime(fromLaneX: laneLocationX)
+        let minimum = ClipEditService.minimumClipDuration
+        let clamped = min(
+            max(targetTime, clip.startTime + minimum),
+            clip.endTime - minimum
+        )
+        clipSplitPreview = (clipID, clamped)
+    }
+
+    func commitClipSplit(trackID: UUID, clipID: UUID) {
+        defer { cancelClipSplitPreview() }
+
+        guard let preview = clipSplitPreview,
+              preview.clipID == clipID else {
+            return
+        }
+
+        performSplit(trackID: trackID, clipID: clipID, at: preview.time)
+    }
+
+    func beginClipMove(primaryClipID: UUID) {
+        guard timelineTool == .hand, clipMovePreview == nil else { return }
+
+        var items: [ClipMovePreview.Item] = []
+
+        if selectedClipIDs.contains(primaryClipID), selectedClipIDs.count > 1 {
+            for track in project.tracks {
+                for clip in track.clips where selectedClipIDs.contains(clip.id) {
+                    items.append(
+                        ClipMovePreview.Item(
+                            clipID: clip.id,
+                            trackID: track.id,
+                            anchorStartTime: clip.startTime,
+                            clip: clip
+                        )
+                    )
+                }
+            }
+        } else if let track = project.track(containing: primaryClipID),
+                  let clip = clip(id: primaryClipID) {
+            selectedClipIDs = [primaryClipID]
+            syncSelectedTrackFromClipSelection()
+            items = [
+                ClipMovePreview.Item(
+                    clipID: clip.id,
+                    trackID: track.id,
+                    anchorStartTime: clip.startTime,
+                    clip: clip
+                ),
+            ]
+        }
+
+        guard !items.isEmpty else { return }
+        clipMovePreview = ClipMovePreview(items: items, deltaTime: 0)
+    }
+
+    func updateClipMovePreview(translationWidth: CGFloat) {
+        guard clipMovePreview != nil else { return }
+        clipMovePreview?.deltaTime = TimeInterval(translationWidth / pixelsPerSecond)
+    }
+
+    func commitClipMovePreview() {
+        guard let preview = clipMovePreview else { return }
+
+        for item in preview.items {
+            guard let trackIndex = project.tracks.firstIndex(where: { $0.id == item.trackID }),
+                  let clipIndex = project.tracks[trackIndex].clips.firstIndex(where: { $0.id == item.clipID }) else {
+                continue
+            }
+
+            project.tracks[trackIndex].clips[clipIndex].startTime = max(
+                0,
+                item.anchorStartTime + preview.deltaTime
+            )
+        }
+
+        clipMovePreview = nil
+        updateSelectionRangeFromClips()
+        audioEngine.syncClipLayout(from: project)
+        resyncPlaybackIfNeeded()
+    }
+
+    func clipMovePreviewItems(for trackID: UUID) -> [ClipMovePreview.Item] {
+        clipMovePreview?.items.filter { $0.trackID == trackID } ?? []
+    }
+
+    func previewStartTime(for clipID: UUID) -> TimeInterval? {
+        guard let preview = clipMovePreview,
+              let item = preview.items.first(where: { $0.clipID == clipID }) else {
+            return nil
+        }
+        return max(0, item.anchorStartTime + preview.deltaTime)
+    }
+
+    func isClipBeingMoved(_ clipID: UUID) -> Bool {
+        clipMovePreview?.items.contains(where: { $0.clipID == clipID }) ?? false
+    }
+
+    func splitClip(trackID: UUID, clipID: UUID, at timelineTime: TimeInterval) {
+        guard timelineTool == .split else { return }
+        performSplit(trackID: trackID, clipID: clipID, at: timelineTime)
+    }
+
+    func splitSelectedClipAtPlayhead() {
+        guard canSplitSelectedClipAtPlayhead,
+              let clipID = selectedClipIDs.first,
+              let track = project.track(containing: clipID) else {
+            return
+        }
+
+        performSplit(trackID: track.id, clipID: clipID, at: playheadTime)
+    }
+
+    private func performSplit(trackID: UUID, clipID: UUID, at timelineTime: TimeInterval) {
+        guard let trackIndex = project.tracks.firstIndex(where: { $0.id == trackID }),
+              let clipIndex = project.tracks[trackIndex].clips.firstIndex(where: { $0.id == clipID }),
+              let split = ClipEditService.split(
+                clip: project.tracks[trackIndex].clips[clipIndex],
+                at: timelineTime
+              ) else {
+            return
+        }
+
+        project.tracks[trackIndex].clips[clipIndex] = split.left
+        project.tracks[trackIndex].clips.insert(split.right, at: clipIndex + 1)
+        finishClipStructureChange(selectClipID: split.right.id)
+    }
+
+    private func applyClipReplacement(trackID: UUID, clipID: UUID, updated: AudioClip) {
+        guard let trackIndex = project.tracks.firstIndex(where: { $0.id == trackID }),
+              let clipIndex = project.tracks[trackIndex].clips.firstIndex(where: { $0.id == clipID }) else {
+            return
+        }
+
+        project.tracks[trackIndex].clips[clipIndex] = updated
+        finishClipStructureChange(selectClipID: updated.id)
+    }
+
+    private func finishClipStructureChange(selectClipID: UUID) {
+        selectedClipIDs = [selectClipID]
+        syncSelectedTrackFromClipSelection()
+        updateSelectionRangeFromClips()
+        _ = configureAudioEngine()
+        resyncPlaybackIfNeeded()
+    }
 
     enum SectionDragKind {
         case move
@@ -184,6 +510,50 @@ final class WorkspaceViewModel {
         }
 
         return nil
+    }
+
+    var activeClipMoveGuides: SectionEdgeGuides? {
+        guard let preview = clipMovePreview, !preview.items.isEmpty else { return nil }
+
+        var minStart = TimeInterval.greatestFiniteMagnitude
+        var maxEnd: TimeInterval = 0
+        var colorHex = project.tracks.first?.colorHex ?? "#FF9500"
+
+        for item in preview.items {
+            let start = max(0, item.anchorStartTime + preview.deltaTime)
+            let end = start + item.clip.duration
+            minStart = min(minStart, start)
+            maxEnd = max(maxEnd, end)
+            if let track = project.tracks.first(where: { $0.id == item.trackID }) {
+                colorHex = track.colorHex
+            }
+        }
+
+        guard minStart <= maxEnd else { return nil }
+
+        return SectionEdgeGuides(
+            startTime: minStart,
+            endTime: maxEnd,
+            colorHex: colorHex,
+            showStartEdge: true,
+            showEndEdge: true
+        )
+    }
+
+    var activeClipSplitGuide: SectionEdgeGuides? {
+        guard let preview = clipSplitPreview,
+              let clip = clip(id: preview.clipID),
+              let track = project.track(containing: preview.clipID) else {
+            return nil
+        }
+
+        return SectionEdgeGuides(
+            startTime: preview.time,
+            endTime: preview.time,
+            colorHex: track.colorHex,
+            showStartEdge: true,
+            showEndEdge: false
+        )
     }
 
     var midiLearnTarget: MIDILearnTarget?
@@ -513,8 +883,7 @@ final class WorkspaceViewModel {
         let contentTypes = kind == .folder
             ? SupportedAudioFormats.folderPickerTypes
             : SupportedAudioFormats.filePickerTypes
-        let delay = afterMenuDismiss ? 0.45 : 0.1
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [self] in
+        let presentPicker = { [self] in
             ImportDocumentPickerPresenter.present(
                 contentTypes: contentTypes,
                 allowsMultipleSelection: kind != .folder,
@@ -524,8 +893,22 @@ final class WorkspaceViewModel {
                 }
             )
         }
+        if afterMenuDismiss {
+            DispatchQueue.main.async {
+                presentPicker()
+            }
+        } else {
+            presentPicker()
+        }
 #else
-        showImportPanel = true
+        switch kind {
+        case .audioFiles:
+            guard let urls = ProjectFilePanel.chooseAudioFilesForImport() else { return }
+            handleImportPickerResults(urls)
+        case .folder:
+            guard let url = ProjectFilePanel.chooseFolderForImport() else { return }
+            handleImportPickerResults([url])
+        }
 #endif
     }
 
@@ -537,6 +920,116 @@ final class WorkspaceViewModel {
                 startTime: resolvedAddTrackStartTime()
             )
         )
+    }
+
+    func addEmptyTrack() {
+        let nextIndex = project.tracks.count + 1
+        var track = AudioTrack(
+            originalName: "Track \(nextIndex)",
+            standardCode: "TR\(nextIndex)",
+            role: .unknown,
+            colorHex: TrackColorPalette.hex(for: .unknown),
+            clips: []
+        )
+        project.tracks.append(track)
+        TrackColorPalette.ensureDistinctColors(on: &project.tracks)
+        selectedClipIDs.removeAll()
+        selectedTrackIDForPitch = track.id
+        syncSelectedTrackFromClipSelection()
+    }
+
+    func importDroppedItems(urls: [URL], startTime: TimeInterval? = nil, targetTrackID: UUID? = nil) {
+        var fileURLs: [URL] = []
+        let resolvedStart = startTime.map {
+            SnapGrid.snap($0, interval: project.snapInterval, enabled: project.isSnapEnabled)
+        }
+
+        for url in urls {
+            beginAccessIfNeeded(for: url)
+
+            if url.hasDirectoryPath || isDirectoryURL(url) {
+                importMultitrackFolder(
+                    url,
+                    startTime: resolvedStart,
+                    groupName: url.lastPathComponent,
+                    placement: .appendNewGroup(startTime: resolvedStart)
+                )
+            } else if SupportedAudioFormats.isSupported(url: url) {
+                fileURLs.append(url)
+            }
+        }
+
+        if !fileURLs.isEmpty {
+            if let targetTrackID {
+                importAudioFiles(to: targetTrackID, urls: fileURLs, startTime: resolvedStart ?? playheadTime)
+            } else {
+                importMultitrack(
+                    urls: fileURLs,
+                    startTime: resolvedStart,
+                    groupName: "Dropped Files",
+                    placement: .appendNewGroup(startTime: resolvedStart)
+                )
+            }
+        }
+    }
+
+    func importAudioFiles(to trackID: UUID, urls: [URL], startTime: TimeInterval) {
+        guard let trackIndex = project.tracks.firstIndex(where: { $0.id == trackID }) else { return }
+
+        do {
+            let result = try importService.loadStems(from: urls, projectID: project.id)
+            if let notice = result.notice {
+                importNoticeMessage = notice
+            }
+            guard !result.stems.isEmpty else { return }
+
+            if isPlaying {
+                pause()
+            }
+
+            let resolvedStart = SnapGrid.snap(
+                startTime,
+                interval: project.snapInterval,
+                enabled: project.isSnapEnabled
+            )
+            let groupIndex = project.tracks[trackIndex].clips.first?.groupIndex ?? activeGroupIndex()
+            var lastClipID: UUID?
+
+            for stem in result.stems {
+                let clip = AudioClip(
+                    name: stem.name,
+                    fileURL: stem.url,
+                    startTime: resolvedStart,
+                    duration: stem.duration,
+                    groupIndex: groupIndex
+                )
+                project.tracks[trackIndex].clips.append(clip)
+                lastClipID = clip.id
+            }
+
+            project.tracks[trackIndex].clips.sort { $0.startTime < $1.startTime }
+
+            if project.tracks[trackIndex].clips.isEmpty == false,
+               project.tracks[trackIndex].originalName.hasPrefix("Track "),
+               project.tracks[trackIndex].role == .unknown,
+               let firstStem = result.stems.first {
+                let standardized = TrackNameStandardizer.standardize(firstStem.name)
+                project.tracks[trackIndex].originalName = standardized.originalName
+                project.tracks[trackIndex].standardCode = standardized.standardCode
+                project.tracks[trackIndex].role = standardized.role
+                TrackColorPalette.ensureDistinctColors(on: &project.tracks)
+            }
+
+            alignProjectSampleRateToImportedStems(result.stems)
+
+            if let lastClipID {
+                finishClipStructureChange(selectClipID: lastClipID)
+            } else {
+                _ = configureAudioEngine()
+            }
+        } catch {
+            reportError(error)
+        }
     }
 
     private func isDirectoryURL(_ url: URL) -> Bool {
@@ -604,6 +1097,7 @@ final class WorkspaceViewModel {
         arrangementEngine.configure(sections: project.sections)
         configureAudioEngine()
         WaveformLoadMonitor.shared.reset()
+        WaveformClipPeakStore.reset()
         clampZoomToTimelineLimits()
     }
 
@@ -675,6 +1169,7 @@ final class WorkspaceViewModel {
     private func replaceProject(with newProject: DAWProject) {
         stop()
         WaveformLoadMonitor.shared.reset()
+        WaveformClipPeakStore.reset()
 
         project = newProject
         playheadTime = 0
@@ -1056,6 +1551,7 @@ final class WorkspaceViewModel {
     private func applyLoadedProject(_ document: SavedProjectDocument) {
         stop()
         WaveformLoadMonitor.shared.reset()
+        WaveformClipPeakStore.reset()
 
         project = document.project
         SectionMarkerPalette.ensureDistinctColors(on: &project.sections)
@@ -1103,37 +1599,6 @@ final class WorkspaceViewModel {
             )
         } catch {
             reportError(error)
-        }
-    }
-
-    func importDroppedItems(urls: [URL], startTime: TimeInterval? = nil) {
-        var fileURLs: [URL] = []
-        let resolvedStart = startTime.map {
-            SnapGrid.snap($0, interval: project.snapInterval, enabled: project.isSnapEnabled)
-        }
-
-        for url in urls {
-            beginAccessIfNeeded(for: url)
-
-            if url.hasDirectoryPath || isDirectoryURL(url) {
-                importMultitrackFolder(
-                    url,
-                    startTime: resolvedStart,
-                    groupName: url.lastPathComponent,
-                    placement: .appendNewGroup(startTime: resolvedStart)
-                )
-            } else if SupportedAudioFormats.isSupported(url: url) {
-                fileURLs.append(url)
-            }
-        }
-
-        if !fileURLs.isEmpty {
-            importMultitrack(
-                urls: fileURLs,
-                startTime: resolvedStart,
-                groupName: "Dropped Files",
-                placement: .appendNewGroup(startTime: resolvedStart)
-            )
         }
     }
 
@@ -1409,14 +1874,23 @@ final class WorkspaceViewModel {
     }
 
     func handleClipTap(_ clipID: UUID, extendSelection: Bool) {
-        if extendSelection {
-            if selectedClipIDs.contains(clipID) {
-                selectedClipIDs.remove(clipID)
-            } else {
-                selectedClipIDs.insert(clipID)
-            }
-        } else {
+        switch timelineTool {
+        case .trim:
+            guard selectedClipIDs != [clipID] else { return }
+            cancelClipTrim()
             selectedClipIDs = [clipID]
+        case .arrow:
+            if extendSelection {
+                if selectedClipIDs.contains(clipID) {
+                    selectedClipIDs.remove(clipID)
+                } else {
+                    selectedClipIDs.insert(clipID)
+                }
+            } else {
+                selectedClipIDs = [clipID]
+            }
+        default:
+            return
         }
         syncSelectedTrackFromClipSelection()
         updateSelectionRangeFromClips()
@@ -1539,20 +2013,21 @@ final class WorkspaceViewModel {
         }
     }
 
-    func moveClips(anchorTimes: [UUID: TimeInterval], delta: TimeInterval) {
+    func moveClips(anchorTimes: [UUID: TimeInterval], delta: TimeInterval, snap: Bool = true) {
         for trackIndex in project.tracks.indices {
             for clipIndex in project.tracks[trackIndex].clips.indices {
                 let clipID = project.tracks[trackIndex].clips[clipIndex].id
                 guard let anchor = anchorTimes[clipID] else { continue }
 
-                let snapped = SnapGrid.snap(
-                    anchor + delta,
-                    interval: project.snapInterval,
-                    enabled: project.isSnapEnabled
-                )
-                project.tracks[trackIndex].clips[clipIndex].startTime = max(0, snapped)
+                let rawTime = max(0, anchor + delta)
+                let resolvedTime = snap
+                    ? SnapGrid.snap(rawTime, interval: project.snapInterval, enabled: project.isSnapEnabled)
+                    : rawTime
+                project.tracks[trackIndex].clips[clipIndex].startTime = resolvedTime
             }
         }
+        audioEngine.syncClipLayout(from: project)
+        resyncPlaybackIfNeeded()
     }
 
     func moveClip(trackID: UUID, clipID: UUID, newStartTime: TimeInterval) {

@@ -9,4 +9,6 @@ import Foundation
 enum TimelineEditTool: String, CaseIterable, Sendable {
     case hand
     case arrow
+    case split
+    case trim
 }

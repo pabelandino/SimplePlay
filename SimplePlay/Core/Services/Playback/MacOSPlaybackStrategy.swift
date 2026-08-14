@@ -60,15 +60,9 @@ final class MacOSPlaybackStrategy: PlatformPlaybackStrategy {
     }
 
     func resolvePlaybackStartAnchor(in engine: AudioEngineService) -> AVAudioTime {
-        if engine.playbackRenderClockIsLive(),
-           let anchor = engine.playbackMakeSynchronizedAnchor() {
-            return anchor
-        }
-
-        let sampleRate = engine.playbackEngine.outputNode.outputFormat(forBus: 0).sampleRate
-        let resolvedRate = sampleRate > 0 ? sampleRate : (engine.playbackPrimaryClipSampleRate ?? 48_000)
-        let leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: AudioEngineService.playbackLeadInSeconds)
-        return AVAudioTime(hostTime: leadHost, sampleTime: 0, atRate: resolvedRate)
+        // Segment scheduling is sample-relative; the play anchor is resolved in startScheduledPlayers.
+        let rate = engine.playbackPrimaryClipSampleRate ?? 48_000
+        return AVAudioTime(sampleTime: 0, atRate: rate)
     }
 
     func segmentScheduleTime(
@@ -77,20 +71,10 @@ final class MacOSPlaybackStrategy: PlatformPlaybackStrategy {
         playerStartAnchor: AVAudioTime,
         in engine: AudioEngineService
     ) -> AVAudioTime? {
-        guard offsetSamplesFromPlayhead > 0 else { return nil }
-
-        let offsetSeconds = Double(offsetSamplesFromPlayhead) / sampleRate
-        let hostTime = playerStartAnchor.hostTime &+ AVAudioTime.hostTime(forSeconds: offsetSeconds)
-
-        if playerStartAnchor.isSampleTimeValid, playerStartAnchor.sampleRate > 0 {
-            return AVAudioTime(
-                hostTime: hostTime,
-                sampleTime: playerStartAnchor.sampleTime + offsetSamplesFromPlayhead,
-                atRate: playerStartAnchor.sampleRate
-            )
-        }
-
-        return AVAudioTime(hostTime: hostTime, sampleTime: offsetSamplesFromPlayhead, atRate: sampleRate)
+        _ = playerStartAnchor
+        _ = engine
+        guard offsetSamplesFromPlayhead > 0, sampleRate > 0 else { return nil }
+        return AVAudioTime(sampleTime: offsetSamplesFromPlayhead, atRate: sampleRate)
     }
 
     func playerScheduleTime(
@@ -131,23 +115,38 @@ final class MacOSPlaybackStrategy: PlatformPlaybackStrategy {
         anchor: AVAudioTime,
         in engine: AudioEngineService
     ) {
+        _ = anchor
         engine.playbackClearSampleReference()
+
+        let playAnchor = hostLeadPlayAnchor(in: engine)
 
         var startedAny = false
         for player in players {
-            if engine.playbackSafelyPlayPlayer(player, at: anchor) {
+            if engine.playbackSafelyPlayPlayer(player, at: playAnchor) {
                 startedAny = true
             }
         }
 
-        if startedAny, anchor.isHostTimeValid {
-            engine.playbackReferenceHostTimeValue = anchor.hostTime
+        if startedAny, let playAnchor, playAnchor.isHostTimeValid {
+            engine.playbackReferenceHostTimeValue = playAnchor.hostTime
         } else {
             for player in players where !player.isPlaying {
                 _ = engine.playbackSafelyPlayPlayer(player, at: nil)
             }
             engine.playbackMarkReferenceTime()
         }
+    }
+
+    private func hostLeadPlayAnchor(in engine: AudioEngineService) -> AVAudioTime? {
+        if engine.playbackRenderClockIsLive(),
+           let nodeTime = engine.playbackEngine.outputNode.lastRenderTime,
+           nodeTime.isHostTimeValid {
+            let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: AudioEngineService.playbackLeadInSeconds)
+            return AVAudioTime(hostTime: leadHost)
+        }
+
+        let leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: AudioEngineService.playbackLeadInSeconds)
+        return AVAudioTime(hostTime: leadHost)
     }
 
     func scheduleFileSegment(

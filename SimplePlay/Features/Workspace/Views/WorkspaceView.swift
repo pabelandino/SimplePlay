@@ -40,20 +40,6 @@ struct WorkspaceView: View {
         .sheet(isPresented: $viewModel.showSettings) {
             WorkspaceSettingsView(viewModel: viewModel)
         }
-#if os(macOS)
-        .fileImporter(
-            isPresented: $viewModel.showImportPanel,
-            allowedContentTypes: SupportedAudioFormats.importPickerTypes,
-            allowsMultipleSelection: true
-        ) { result in
-            switch result {
-            case .success(let urls):
-                viewModel.handleImportPickerResults(urls)
-            case .failure(let error):
-                viewModel.errorMessage = error.localizedDescription
-            }
-        }
-#endif
         .fileImporter(
             isPresented: $viewModel.showOpenProjectPanel,
             allowedContentTypes: [.simplePlayProject],

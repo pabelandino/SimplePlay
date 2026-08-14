@@ -22,12 +22,35 @@ actor WaveformCache {
         return directory
     }
 
+    func isCached(
+        for url: URL,
+        sourceOffset: TimeInterval = 0,
+        duration: TimeInterval? = nil,
+        sampleCount: Int = 240
+    ) -> Bool {
+        let key = cacheKey(
+            url: url,
+            sampleCount: sampleCount,
+            sourceOffset: sourceOffset,
+            duration: duration
+        )
+        if memoryCache[key] != nil { return true }
+        return loadFromDisk(key: key) != nil
+    }
+
     func peaks(
         for url: URL,
+        sourceOffset: TimeInterval = 0,
+        duration: TimeInterval? = nil,
         sampleCount: Int = 240,
         onProgress: (@MainActor @Sendable (Double) -> Void)? = nil
     ) async throws -> [Float] {
-        let key = cacheKey(url: url, sampleCount: sampleCount)
+        let key = cacheKey(
+            url: url,
+            sampleCount: sampleCount,
+            sourceOffset: sourceOffset,
+            duration: duration
+        )
 
         if let cached = memoryCache[key] {
             reportProgress(1, to: onProgress)
@@ -54,12 +77,16 @@ actor WaveformCache {
         if let filePeaks = try? await peaksFromAudioFileChunked(
             url: url,
             sampleCount: sampleCount,
+            sourceOffset: sourceOffset,
+            duration: duration,
             onProgress: onProgress
         ), !filePeaks.isEmpty {
             peaks = normalize(filePeaks)
         } else if let assetPeaks = try? await peaksFromAssetLimited(
             url: url,
             sampleCount: sampleCount,
+            sourceOffset: sourceOffset,
+            duration: duration,
             onProgress: onProgress
         ), !assetPeaks.isEmpty {
             peaks = normalize(assetPeaks)
@@ -102,11 +129,17 @@ actor WaveformCache {
         }
     }
 
-    private func cacheKey(url: URL, sampleCount: Int) -> String {
+    private func cacheKey(
+        url: URL,
+        sampleCount: Int,
+        sourceOffset: TimeInterval,
+        duration: TimeInterval?
+    ) -> String {
         let attributes = (try? FileManager.default.attributesOfItem(atPath: url.path)) ?? [:]
         let size = attributes[.size] as? NSNumber
         let modified = attributes[.modificationDate] as? Date
-        let fingerprint = "\(url.path)|\(size?.intValue ?? 0)|\(modified?.timeIntervalSince1970 ?? 0)|\(sampleCount)"
+        let region = duration.map { "\(sourceOffset)|\($0)" } ?? "full"
+        let fingerprint = "\(url.path)|\(size?.intValue ?? 0)|\(modified?.timeIntervalSince1970 ?? 0)|\(sampleCount)|\(region)"
         return fingerprint.data(using: .utf8)?.base64EncodedString() ?? url.lastPathComponent
     }
 
@@ -139,22 +172,45 @@ actor WaveformCache {
     private func peaksFromAudioFileChunked(
         url: URL,
         sampleCount: Int,
+        sourceOffset: TimeInterval = 0,
+        duration: TimeInterval? = nil,
         onProgress: (@MainActor (Double) -> Void)? = nil
     ) async throws -> [Float] {
         let file = try AVAudioFile(forReading: url)
         let format = file.processingFormat
+        let sampleRate = format.sampleRate
+        guard sampleRate > 0 else { return [] }
+
         let totalFrames = Int(file.length)
         guard totalFrames > 0 else { return [] }
 
-        let bucketSize = max(1, totalFrames / sampleCount)
+        let regionStartFrame: Int
+        let regionEndFrame: Int
+        if let duration {
+            regionStartFrame = min(totalFrames, max(0, Int(sourceOffset * sampleRate)))
+            regionEndFrame = min(
+                totalFrames,
+                max(regionStartFrame + 1, Int((sourceOffset + duration) * sampleRate))
+            )
+        } else {
+            regionStartFrame = 0
+            regionEndFrame = totalFrames
+        }
+
+        let regionFrames = regionEndFrame - regionStartFrame
+        guard regionFrames > 0 else { return [] }
+
+        let bucketSize = max(1, regionFrames / sampleCount)
         var peaks: [Float] = []
         peaks.reserveCapacity(sampleCount)
 
         for bucket in 0..<sampleCount {
-            let startFrame = AVAudioFramePosition(bucket * bucketSize)
-            guard startFrame < file.length else { break }
+            let startFrame = AVAudioFramePosition(regionStartFrame + bucket * bucketSize)
+            guard startFrame < regionEndFrame else { break }
 
-            let framesToRead = AVAudioFrameCount(min(bucketSize, totalFrames - Int(startFrame)))
+            let framesToRead = AVAudioFrameCount(
+                min(bucketSize, regionEndFrame - Int(startFrame))
+            )
             guard framesToRead > 0,
                   let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: framesToRead)
             else { continue }
@@ -185,6 +241,8 @@ actor WaveformCache {
     private func peaksFromAssetLimited(
         url: URL,
         sampleCount: Int,
+        sourceOffset: TimeInterval = 0,
+        duration: TimeInterval? = nil,
         onProgress: (@MainActor (Double) -> Void)? = nil
     ) async throws -> [Float] {
         let asset = AVURLAsset(url: url)
@@ -192,7 +250,16 @@ actor WaveformCache {
             return []
         }
 
+        let assetDuration = try await asset.load(.duration).seconds
+        let regionStart = max(0, sourceOffset)
+        let regionDuration = duration ?? max(0, assetDuration - regionStart)
+        guard regionDuration > 0 else { return [] }
+
         let reader = try AVAssetReader(asset: asset)
+        reader.timeRange = CMTimeRange(
+            start: CMTime(seconds: regionStart, preferredTimescale: 44100),
+            duration: CMTime(seconds: regionDuration, preferredTimescale: 44100)
+        )
         let outputSettings: [String: Any] = [
             AVFormatIDKey: kAudioFormatLinearPCM,
             AVLinearPCMIsFloatKey: true,

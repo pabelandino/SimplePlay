@@ -85,12 +85,35 @@ struct TopToolbarView: View {
                 systemName: "cursorarrow",
                 help: "Select clips"
             )
+            timelineToolButton(
+                tool: .split,
+                systemName: "scissors",
+                help: "Split clip — drag on waveform to cut"
+            )
+            timelineToolButton(
+                tool: .trim,
+                systemName: "crop",
+                help: "Trim clip edges"
+            )
 
             if !usesCompactToolbarActions {
-                toolButton("plus")
-                toolButton("scissors")
+                addTrackMenu
             }
         }
+    }
+
+    private var addTrackMenu: some View {
+        Menu {
+            Button("Empty Track", systemImage: "rectangle.dashed") {
+                viewModel.addEmptyTrack()
+            }
+            Button("Import Audio…", systemImage: "waveform.badge.plus") {
+                viewModel.presentAddTrackImport()
+            }
+        } label: {
+            toolButton("plus")
+        }
+        .accessibilityLabel("Add track")
     }
 
     private var actionButtons: some View {
@@ -265,7 +288,10 @@ struct TopToolbarView: View {
 
     private func timelineToolButton(tool: TimelineEditTool, systemName: String, help: String) -> some View {
         Button {
-            viewModel.timelineTool = tool
+            if viewModel.timelineTool != tool {
+                viewModel.cancelClipEditing()
+                viewModel.timelineTool = tool
+            }
         } label: {
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .medium))
