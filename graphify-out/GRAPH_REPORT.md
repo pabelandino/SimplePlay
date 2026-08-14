@@ -1,15 +1,16 @@
 # Graph Report - SimplePlay  (2026-08-14)
 
 ## Corpus Check
-- cluster-only mode — file stats not available
+- 108 files · ~54,847 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1896 nodes · 4458 edges · 126 communities (81 shown, 45 thin omitted)
+- 1896 nodes · 4458 edges · 127 communities (81 shown, 46 thin omitted)
 - Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 455 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5653d8b4`
+- Built from commit: `908e7c51`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -73,7 +74,7 @@
 - .nextDistinctHex
 - UIKitToolbarMenuButtonRepresentable
 - PlatformPlaybackStrategy
-- .stem
+- .importInitial
 - .refreshLyricCatalog
 - .sessionManagement
 - .hex
@@ -91,7 +92,8 @@
 - SectionTriggerResult
 - graphify reference: query, path, explain
 - SnapGrid.swift
-- .snap
+- .addSection
+- TrackHeaderRowView
 - SectionPlaybackStatus
 - TrackWaveformProgressBar
 - graphify reference: add a URL and watch a folder
@@ -156,19 +158,19 @@
 ## Surprising Connections (you probably didn't know these)
 - `TrackOrganizationServiceTests` --calls--> `TrackOrganizationService`  [EXTRACTED]
   SimplePlayTests/TrackOrganizationServiceTests.swift → SimplePlay/Core/Services/TrackOrganizationService.swift
-- `.body` --references--> `ArrangementSection`  [INFERRED]
-  SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift → SimplePlay/Core/Models/ArrangementSection.swift
-- `.body` --references--> `ArrangementSection`  [INFERRED]
-  SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift → SimplePlay/Core/Models/ArrangementSection.swift
 - `WorkspaceViewModel` --calls--> `ArrangementPlaybackEngine`  [INFERRED]
   SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift → SimplePlay/Core/Services/ArrangementPlaybackEngine.swift
 - `.selectedMarkerEditor` --calls--> `MIDINoteAssignment`  [INFERRED]
   SimplePlay/Features/Workspace/Views/PropertiesSidebarView.swift → SimplePlay/Core/Models/MIDILearnTarget.swift
+- `.body` --calls--> `SectionEdgeGuideOverlay`  [INFERRED]
+  SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift → SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift
+- `.body` --calls--> `SectionMarkerLaneView`  [INFERRED]
+  SimplePlay/Features/Workspace/Views/TimelineWorkspacePanel.swift → SimplePlay/Features/Workspace/Views/SectionMarkerLaneView.swift
 
 ## Import Cycles
 - None detected.
 
-## Communities (126 total, 45 thin omitted)
+## Communities (127 total, 46 thin omitted)
 
 ### Community 0 - "ArrangementPlaybackEngine"
 Cohesion: 0.25
@@ -180,7 +182,7 @@ Nodes (32): Identifiable, MIDINotifyProc, MIDIPacket, MIDIPacketList, MIDILearnT
 
 ### Community 2 - "WorkspaceViewModel"
 Cohesion: 0.08
-Nodes (18): ClosedRange, Date, Float, Set, WorkspaceViewModel, .activePlaybackSection, .canSaveDirectlyToCurrentURL, .isArrangementSectionControllingPlayback (+10 more)
+Nodes (24): Bool, Date, Double, Float, Set, UUID, WorkspaceViewModel, .activePlaybackSection (+16 more)
 
 ### Community 3 - "SupportedAudioFormats"
 Cohesion: 0.06
@@ -227,7 +229,7 @@ Cohesion: 0.09
 Nodes (25): ClosedRange, Double, Float, String, TrackVolumeSettings, .trackRange, DAWVerticalFaderView, .body (+17 more)
 
 ### Community 14 - "TrackOrganizationService"
-Cohesion: 0.31
+Cohesion: 0.28
 Nodes (9): ImportedStem, ImportPlacement, appendNewGroup, insertIntoGroup, Int, String, TimeInterval, URL (+1 more)
 
 ### Community 15 - "AudioSettings"
@@ -251,8 +253,8 @@ Cohesion: 0.16
 Nodes (15): Asset, SimplePlayProjectArchive, SimplePlayProjectArchiveError, corruptAsset, corruptManifest, .errorDescription, invalidArchive, Bool (+7 more)
 
 ### Community 20 - "TopToolbarView"
-Cohesion: 0.18
-Nodes (15): Bool, String, Void, ToolbarMenuButtonStyleModifier, TopToolbarView, .importButton, .isCompact, .openButton (+7 more)
+Cohesion: 0.14
+Nodes (18): Bool, String, Void, ToolbarMenuButtonStyleModifier, TopToolbarView, .importButton, .isCompact, .openButton (+10 more)
 
 ### Community 21 - "CGFloat"
 Cohesion: 0.11
@@ -287,8 +289,8 @@ Cohesion: 0.22
 Nodes (19): Codable, Equatable, Sendable, PersistedClip, PersistedProject, PersistedTrack, Bool, Decoder (+11 more)
 
 ### Community 29 - "DAWProject"
-Cohesion: 0.07
-Nodes (28): DAWProject, Bool, Double, Int32, String, TimeInterval, UInt8, UUID (+20 more)
+Cohesion: 0.13
+Nodes (13): DAWProject, Bool, Double, Int32, String, TimeInterval, UInt8, UUID (+5 more)
 
 ### Community 30 - "TimeInterval"
 Cohesion: 0.15
@@ -402,8 +404,8 @@ Nodes (7): Coordinator, Context, String, Void, UIKitToolbarMenuButtonRepresentab
 Cohesion: 0.24
 Nodes (5): AVAudioFrameCount, AVAudioFramePosition, AVAudioTime, PlatformPlaybackStrategy, PlatformPlaybackStrategyFactory
 
-### Community 59 - ".stem"
-Cohesion: 0.33
+### Community 59 - ".importInitial"
+Cohesion: 0.32
 Nodes (3): String, TimeInterval, TrackOrganizationServiceTests
 
 ### Community 60 - ".refreshLyricCatalog"
@@ -411,11 +413,11 @@ Cohesion: 0.29
 Nodes (4): .assignModeToggle, .expandedPanel, .learnBanner, .lyricCatalogStatus
 
 ### Community 61 - ".sessionManagement"
-Cohesion: 0.24
-Nodes (6): .sessionManagement, .projectSessionButton, .projectSessionMenuItems, ProjectSessionToolbarMenuButton, .body, UIKit
+Cohesion: 0.60
+Nodes (3): .sessionManagement, .projectSessionMenuItems, .body
 
 ### Community 62 - ".hex"
-Cohesion: 0.36
+Cohesion: 0.39
 Nodes (4): .defaultColor, Int, String, TrackColorPalette
 
 ### Community 63 - "TrackGroup"
@@ -466,9 +468,9 @@ Nodes (4): SectionTriggerResult, activatedImmediately, enabledRepeatAtEnd, queue
 Cohesion: 0.33
 Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
 
-### Community 78 - ".snap"
-Cohesion: 0.14
-Nodes (8): Bool, TimeInterval, ImportPanelKind, audioFiles, folder, Int, .trackHeaderColumnTracksOnly, .importMenuItems
+### Community 78 - "TrackHeaderRowView"
+Cohesion: 0.09
+Nodes (16): Bool, TimeInterval, ImportPanelKind, audioFiles, folder, Int, .trackHeaderColumnTracksOnly, .importMenuItems (+8 more)
 
 ### Community 79 - "SectionPlaybackStatus"
 Cohesion: 0.33
@@ -495,24 +497,24 @@ Cohesion: 0.31
 Nodes (5): CoreGraphics, CGFloat, Int, WaveformLOD, .requiredLOD
 
 ## Knowledge Gaps
-- **324 isolated node(s):** `SimplePlayProjectType`, `LyricPlaySync`, `.color`, `.duration`, `.hasLyricSlideLink` (+319 more)
+- **324 isolated node(s):** `Usage`, `What graphify is for`, `Step 0 - GitHub repos and multi-path merge (only if a URL or several paths)`, `Step 1 - Ensure graphify is installed`, `Step 2 - Detect files` (+319 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **45 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **46 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `WorkspaceViewModel` connect `WorkspaceViewModel` to `ArrangementPlaybackEngine`, `MIDIInputService`, `SupportedAudioFormats`, `TrackLaneView`, `TimelineWorkspacePanel`, `AudioImportService`, `SectionMarkerChipView`, `MIDIMappingBarView`, `TrackOrganizationService`, `Foundation`, `TopToolbarView`, `CGFloat`, `TrackPitchControlView`, `AudioOutputDevice`, `View`, `DAWProject`, `TimeInterval`, `MixerPanelView`, `TimelineOverviewBar`, `WorkspaceSettingsView`, `.workspaceRoot`, `.sectionMappingCard`, `TransportBarView`, `SavedProjectDocument`, `.applyLoadedProject`, `AudioSampleRate`, `.body`, `.frames`, `PropertiesSidebarView`, `SwiftUI`, `LyricPlaySyncClient`, `ArrangementSection`, `ProjectPersistenceService`, `.refreshLyricCatalog`, `.sessionManagement`, `AudioTrack`, `Color`, `.snap`, `SectionPlaybackStatus`?**
-  _High betweenness centrality (0.363) - this node is a cross-community bridge._
-- **Why does `DAWProject` connect `DAWProject` to `MIDIInputService`, `WorkspaceViewModel`, `CodingKeys`, `AudioEngineService`, `TrackOrganizationService`, `AudioSettings`, `Foundation`, `Bool`, `CGFloat`, `View`, `Sendable`, `TimeInterval`, `.workspaceRoot`, `SavedProjectDocument`, `.applyLoadedProject`, `.body`, `.play`, `.attachClip`, `LyricPlaySyncClient`, `ArrangementSection`, `ProjectPersistenceService`, `.stem`, `TrackGroup`, `AudioTrack`, `Color`, `.snap`?**
-  _High betweenness centrality (0.097) - this node is a cross-community bridge._
-- **Why does `Foundation` connect `Foundation` to `MIDIInputService`, `SupportedAudioFormats`, `AudioImportService`, `SectionMarkerChipView`, `DAWVerticalFaderView`, `AudioSettings`, `SimplePlayProjectArchive`, `Sendable`, `AudioSampleRate`, `.attachClip`, `SwiftUI`, `LyricPlaySyncClient`, `Testing`, `PlatformPlaybackStrategy`, `TrackGroup`, `AudioClip`, `SectionPlaybackMode`, `ProjectPersistenceError`, `SnapGrid.swift`, `.loadBucket`?**
-  _High betweenness centrality (0.094) - this node is a cross-community bridge._
+- **Why does `WorkspaceViewModel` connect `WorkspaceViewModel` to `ArrangementPlaybackEngine`, `MIDIInputService`, `SupportedAudioFormats`, `TrackLaneView`, `TimelineWorkspacePanel`, `AudioImportService`, `SectionMarkerChipView`, `MIDIMappingBarView`, `TrackOrganizationService`, `Foundation`, `TopToolbarView`, `CGFloat`, `TrackPitchControlView`, `AudioOutputDevice`, `View`, `DAWProject`, `TimeInterval`, `MixerPanelView`, `TimelineOverviewBar`, `WorkspaceSettingsView`, `.workspaceRoot`, `.sectionMappingCard`, `TransportBarView`, `SavedProjectDocument`, `.applyLoadedProject`, `AudioSampleRate`, `.body`, `.frames`, `PropertiesSidebarView`, `SwiftUI`, `LyricPlaySyncClient`, `ArrangementSection`, `ProjectPersistenceService`, `.refreshLyricCatalog`, `.sessionManagement`, `AudioTrack`, `Color`, `.addSection`, `TrackHeaderRowView`, `SectionPlaybackStatus`?**
+  _High betweenness centrality (0.369) - this node is a cross-community bridge._
+- **Why does `DAWProject` connect `DAWProject` to `MIDIInputService`, `WorkspaceViewModel`, `CodingKeys`, `AudioEngineService`, `TrackOrganizationService`, `AudioSettings`, `Foundation`, `Bool`, `CGFloat`, `View`, `Sendable`, `TimeInterval`, `.workspaceRoot`, `SavedProjectDocument`, `.applyLoadedProject`, `.body`, `.play`, `.attachClip`, `LyricPlaySyncClient`, `ArrangementSection`, `ProjectPersistenceService`, `.importInitial`, `TrackGroup`, `AudioTrack`, `Color`, `.addSection`, `TrackHeaderRowView`?**
+  _High betweenness centrality (0.099) - this node is a cross-community bridge._
+- **Why does `ArrangementSection` connect `ArrangementSection` to `ArrangementPlaybackEngine`, `MIDIInputService`, `WorkspaceViewModel`, `SectionMarkerChipView`, `.selectedMarkerEditor`, `MIDIMappingBarView`, `View`, `Sendable`, `DAWProject`, `TimeInterval`, `.sectionMappingCard`, `.frames`, `PropertiesSidebarView`, `SwiftUI`, `LyricPlaySyncClient`, `CodingKeys`, `.nextDistinctHex`, `SectionPlaybackMode`, `Color`, `PlaybackState`, `.addSection`, `SectionPlaybackStatus`?**
+  _High betweenness centrality (0.098) - this node is a cross-community bridge._
 - **Are the 11 inferred relationships involving `WorkspaceViewModel` (e.g. with `ArrangementPlaybackEngine` and `AudioImportService`) actually correct?**
   _`WorkspaceViewModel` has 11 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 43 inferred relationships involving `DAWProject` (e.g. with `.activeGroupIndex()` and `.activeGroupName()`) actually correct?**
   _`DAWProject` has 43 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 4 inferred relationships involving `ArrangementSection` (e.g. with `.body` and `.body`) actually correct?**
   _`ArrangementSection` has 4 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `SimplePlayProjectType`, `LyricPlaySync`, `.color` to the rest of the system?**
+- **What connects `Usage`, `What graphify is for`, `Step 0 - GitHub repos and multi-path merge (only if a URL or several paths)` to the rest of the system?**
   _324 weakly-connected nodes found - possible documentation gaps or missing edges._
