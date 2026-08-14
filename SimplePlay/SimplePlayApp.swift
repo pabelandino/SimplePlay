@@ -35,6 +35,7 @@ struct SimplePlayApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands {
             FileCommands(viewModel: viewModel)
+            EditCommands(viewModel: viewModel)
             TransportCommands(viewModel: viewModel)
         }
 #endif

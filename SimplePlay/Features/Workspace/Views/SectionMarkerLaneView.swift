@@ -54,14 +54,17 @@ private struct SectionMarkerLayout {
         endTime: TimeInterval,
         sections: [ArrangementSection],
         pixelsPerSecond: CGFloat,
-        laneContentHeight: CGFloat
+        laneContentHeight: CGFloat,
+        excludingSectionID: UUID? = nil
     ) -> SectionMarkerLayout {
         let duration = max(0, endTime - startTime)
         let naturalWidth = CGFloat(duration) * pixelsPerSecond
 
         var availableWidth = naturalWidth
         if let nextStart = sections
-            .filter({ $0.startTime > startTime + 0.001 })
+            .filter({ section in
+                section.id != excludingSectionID && section.startTime > startTime + 0.001
+            })
             .map(\.startTime)
             .min() {
             let gapToNext = CGFloat(nextStart - startTime) * pixelsPerSecond - 1
@@ -191,14 +194,18 @@ struct SectionMarkerLaneView: View {
                         endTime: section.endTime,
                         sections: viewModel.project.sections,
                         pixelsPerSecond: viewModel.pixelsPerSecond,
-                        laneContentHeight: DAWTheme.markerLaneHeight - 14
+                        laneContentHeight: DAWTheme.markerLaneHeight - 14,
+                        excludingSectionID: dragSession?.sectionID == section.id && dragSession?.kind == .move
+                            ? section.id
+                            : nil
                     ),
                     viewModel: viewModel,
                     isSelected: viewModel.selectedSectionID == section.id,
-                    isDimmed: dragSession?.sectionID == section.id,
+                    isDimmed: dragSession?.sectionID == section.id && dragSession?.kind == .move,
                     dragSession: $dragSession
                 )
                 .offset(x: CGFloat(section.startTime) * viewModel.pixelsPerSecond)
+                .opacity(isMoveDragGhost(for: section) ? 0.22 : 1)
                 .zIndex(dragSession?.sectionID == section.id ? 1 : 0)
             }
 
@@ -216,7 +223,8 @@ struct SectionMarkerLaneView: View {
                         endTime: ghostEnd,
                         sections: viewModel.project.sections,
                         pixelsPerSecond: viewModel.pixelsPerSecond,
-                        laneContentHeight: DAWTheme.markerLaneHeight - 14
+                        laneContentHeight: DAWTheme.markerLaneHeight - 14,
+                        excludingSectionID: session.sectionID
                     )
                 )
                 .offset(x: CGFloat(ghostStart) * viewModel.pixelsPerSecond)
@@ -267,6 +275,10 @@ struct SectionMarkerLaneView: View {
             laneLocationX: session.laneLocationX,
             grabOffsetX: session.grabOffsetX
         ).upperBound
+    }
+
+    private func isMoveDragGhost(for section: ArrangementSection) -> Bool {
+        dragSession?.sectionID == section.id && dragSession?.kind == .move
     }
 
     private var sectionCreationGesture: some Gesture {

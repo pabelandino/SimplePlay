@@ -303,6 +303,8 @@ final class WorkspaceViewModel {
     func commitClipMovePreview() {
         guard let preview = clipMovePreview else { return }
 
+        recordEditSnapshot()
+
         for item in preview.items {
             guard let trackIndex = project.tracks.firstIndex(where: { $0.id == item.trackID }),
                   let clipIndex = project.tracks[trackIndex].clips.firstIndex(where: { $0.id == item.clipID }) else {
@@ -353,6 +355,8 @@ final class WorkspaceViewModel {
     }
 
     private func performSplit(trackID: UUID, clipID: UUID, at timelineTime: TimeInterval) {
+        recordEditSnapshot()
+
         guard let trackIndex = project.tracks.firstIndex(where: { $0.id == trackID }),
               let clipIndex = project.tracks[trackIndex].clips.firstIndex(where: { $0.id == clipID }),
               let split = ClipEditService.split(
@@ -368,6 +372,8 @@ final class WorkspaceViewModel {
     }
 
     private func applyClipReplacement(trackID: UUID, clipID: UUID, updated: AudioClip) {
+        recordEditSnapshot()
+
         guard let trackIndex = project.tracks.firstIndex(where: { $0.id == trackID }),
               let clipIndex = project.tracks[trackIndex].clips.firstIndex(where: { $0.id == clipID }) else {
             return
@@ -588,6 +594,11 @@ final class WorkspaceViewModel {
     private var lastLyricSyncedSectionID: UUID?
     private var lastAudioRestartWallTime: TimeInterval = 0
     private var lastAudioRestartTimelineTime: TimeInterval = -1
+    private var editHistory = ProjectEditHistory()
+    private var isApplyingEditHistory = false
+
+    var canUndo: Bool { editHistory.canUndo }
+    var canRedo: Bool { editHistory.canRedo }
 
     init() {
         MIDIInputService.shared.onEvent = { [weak self] event in
@@ -659,6 +670,8 @@ final class WorkspaceViewModel {
     ) {
         guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
 
+        recordEditSnapshot()
+
         project.sections[index].lyricDocumentID = catalog.lyricID
         project.sections[index].lyricSlideID = slide.slideID
         project.sections[index].lyricSlideOrder = slide.order
@@ -680,6 +693,8 @@ final class WorkspaceViewModel {
 
     func clearLyricSlideLink(for sectionID: UUID) {
         guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
+
+        recordEditSnapshot()
         project.sections[index].lyricDocumentID = nil
         project.sections[index].lyricSlideID = nil
         project.sections[index].lyricSlideOrder = nil
@@ -923,6 +938,8 @@ final class WorkspaceViewModel {
     }
 
     func addEmptyTrack() {
+        recordEditSnapshot()
+
         let nextIndex = project.tracks.count + 1
         var track = AudioTrack(
             originalName: "Track \(nextIndex)",
@@ -982,6 +999,8 @@ final class WorkspaceViewModel {
                 importNoticeMessage = notice
             }
             guard !result.stems.isEmpty else { return }
+
+            recordEditSnapshot()
 
             if isPlaying {
                 pause()
@@ -1043,6 +1062,8 @@ final class WorkspaceViewModel {
         placement: TrackOrganizationService.ImportPlacement
     ) {
         guard !stems.isEmpty else { return }
+
+        recordEditSnapshot()
 
         if isPlaying {
             pause()
@@ -1166,10 +1187,77 @@ final class WorkspaceViewModel {
         DAWProject(name: "Untitled Project")
     }
 
+    func undo() {
+        guard let restored = editHistory.undo(current: project) else { return }
+        applyRestoredProject(restored)
+    }
+
+    func redo() {
+        guard let restored = editHistory.redo(current: project) else { return }
+        applyRestoredProject(restored)
+    }
+
+    private func recordEditSnapshot() {
+        guard !isApplyingEditHistory else { return }
+        editHistory.recordSnapshot(project)
+    }
+
+    private func applyRestoredProject(_ restored: DAWProject) {
+        isApplyingEditHistory = true
+        defer { isApplyingEditHistory = false }
+
+        cancelClipEditing()
+        cancelSectionCreation()
+        clearSectionDragState()
+        clearSectionMovePreview()
+
+        stopPlaybackTimer()
+        isPlaying = false
+        suppressTimelineJumpRestartUntil = nil
+        loopPrebufferTriggered = false
+        lastAudioRestartTimelineTime = -1
+        lastAudioRestartWallTime = 0
+
+        audioEngine.stop()
+        arrangementEngine.pause()
+
+        WaveformLoadMonitor.shared.reset()
+        WaveformClipPeakStore.reset()
+
+        project = restored
+        SectionMarkerPalette.ensureDistinctColors(on: &project.sections)
+
+        selectedClipIDs = Set(selectedClipIDs.filter { clip(id: $0) != nil })
+        syncSelectedTrackFromClipSelection()
+        if selectedClipIDs.isEmpty {
+            selectedTrackIDForPitch = nil
+        }
+
+        if let selectedSectionID,
+           !project.sections.contains(where: { $0.id == selectedSectionID }) {
+            self.selectedSectionID = project.sections.first?.id
+        }
+
+        if let selectedGroupID,
+           !project.groups.contains(where: { $0.id == selectedGroupID }) {
+            self.selectedGroupID = project.groups.first?.id
+        }
+
+        updateSelectionRangeFromClips()
+        arrangementEngine.configure(sections: project.sections)
+        arrangementEngine.seek(to: playheadTime)
+        _ = configureAudioEngine()
+        applySavedMIDIDeviceConnection()
+        clampZoomToTimelineLimits()
+        lastLyricSyncedSectionID = nil
+        Task { await resyncLyricLinksWithLyriora() }
+    }
+
     private func replaceProject(with newProject: DAWProject) {
         stop()
         WaveformLoadMonitor.shared.reset()
         WaveformClipPeakStore.reset()
+        editHistory.clear()
 
         project = newProject
         playheadTime = 0
@@ -1412,6 +1500,11 @@ final class WorkspaceViewModel {
     private func isArrangementSectionTransition(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
         guard abs(newTime - previousTime) > 0.05 else { return false }
 
+        // continueTimeline / repeatSection exit keeps the same audio running — only the playhead advances.
+        if case .continuingTimeline = arrangementEngine.state {
+            return false
+        }
+
         let previousSection = project.sections.first(where: { $0.contains(time: previousTime) })
         let newSection = project.sections.first(where: { $0.contains(time: newTime) })
 
@@ -1552,6 +1645,7 @@ final class WorkspaceViewModel {
         stop()
         WaveformLoadMonitor.shared.reset()
         WaveformClipPeakStore.reset()
+        editHistory.clear()
 
         project = document.project
         SectionMarkerPalette.ensureDistinctColors(on: &project.sections)
@@ -1614,6 +1708,49 @@ final class WorkspaceViewModel {
 
     func setZoom(_ value: Double) {
         zoom = min(DAWTheme.maxZoom, max(minimumTimelineZoom, value))
+    }
+
+    /// Maps current zoom to a 0...1 slider position with `referenceTimelineZoom` at 0.5.
+    func timelineZoomSliderPosition(
+        reference: Double = DAWTheme.referenceTimelineZoom
+    ) -> Double {
+        let minZoom = minimumTimelineZoom
+        let maxZoom = DAWTheme.maxZoom
+        let referenceZoom = min(max(reference, minZoom), maxZoom)
+
+        if referenceZoom <= minZoom + 0.000_001 {
+            return 0.5
+        }
+
+        if zoom <= referenceZoom {
+            return 0.5 * (zoom - minZoom) / (referenceZoom - minZoom)
+        }
+
+        guard maxZoom > referenceZoom else { return 1 }
+        return 0.5 + 0.5 * (zoom - referenceZoom) / (maxZoom - referenceZoom)
+    }
+
+    func setTimelineZoomFromSliderPosition(
+        _ position: Double,
+        reference: Double = DAWTheme.referenceTimelineZoom
+    ) {
+        let minZoom = minimumTimelineZoom
+        let maxZoom = DAWTheme.maxZoom
+        let referenceZoom = min(max(reference, minZoom), maxZoom)
+        let clampedPosition = min(max(position, 0), 1)
+
+        let resolvedZoom: Double
+        if referenceZoom <= minZoom + 0.000_001 {
+            resolvedZoom = minZoom + (maxZoom - minZoom) * clampedPosition
+        } else if clampedPosition <= 0.5 {
+            let local = clampedPosition / 0.5
+            resolvedZoom = minZoom + (referenceZoom - minZoom) * local
+        } else {
+            let local = (clampedPosition - 0.5) / 0.5
+            resolvedZoom = referenceZoom + (maxZoom - referenceZoom) * local
+        }
+
+        setZoom(resolvedZoom)
     }
 
     func setTrackRowZoom(_ value: Double) {
@@ -1706,12 +1843,14 @@ final class WorkspaceViewModel {
 
     func toggleMute(trackID: UUID) {
         guard let index = project.tracks.firstIndex(where: { $0.id == trackID }) else { return }
+        recordEditSnapshot()
         project.tracks[index].isMuted.toggle()
         audioEngine.updateTrackMixing(project: project)
     }
 
     func toggleSolo(trackID: UUID) {
         guard let index = project.tracks.firstIndex(where: { $0.id == trackID }) else { return }
+        recordEditSnapshot()
         project.tracks[index].isSolo.toggle()
         audioEngine.updateTrackMixing(project: project)
     }
@@ -1995,6 +2134,7 @@ final class WorkspaceViewModel {
               sourceIndex != destination
         else { return }
 
+        recordEditSnapshot()
         moveTrack(from: sourceIndex, to: destination)
     }
 
@@ -2014,6 +2154,8 @@ final class WorkspaceViewModel {
     }
 
     func moveClips(anchorTimes: [UUID: TimeInterval], delta: TimeInterval, snap: Bool = true) {
+        recordEditSnapshot()
+
         for trackIndex in project.tracks.indices {
             for clipIndex in project.tracks[trackIndex].clips.indices {
                 let clipID = project.tracks[trackIndex].clips[clipIndex].id
@@ -2050,6 +2192,8 @@ final class WorkspaceViewModel {
     }
 
     func addSection(name: String, range: ClosedRange<TimeInterval>, mode: SectionPlaybackMode) {
+        recordEditSnapshot()
+
         let normalized = normalizedSectionRange(start: range.lowerBound, end: range.upperBound)
         guard normalized.end > normalized.start else { return }
 
@@ -2168,6 +2312,7 @@ final class WorkspaceViewModel {
 
     func renameSection(_ sectionID: UUID, name: String) {
         guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
+        recordEditSnapshot()
         project.sections[index].name = name
         arrangementEngine.configure(sections: project.sections)
     }
@@ -2289,6 +2434,7 @@ final class WorkspaceViewModel {
         }
 
         if let previewRange {
+            recordEditSnapshot()
             project.sections[index].startTime = previewRange.lowerBound
             project.sections[index].endTime = previewRange.upperBound
             arrangementEngine.configure(sections: project.sections)
@@ -2311,6 +2457,7 @@ final class WorkspaceViewModel {
         usesControlChange: Bool = false
     ) {
         guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
+        recordEditSnapshot()
         project.sections[index].midiNote = min(127, note)
         project.sections[index].midiChannel = min(15, channel)
         project.sections[index].midiUsesControlChange = usesControlChange
@@ -2318,6 +2465,7 @@ final class WorkspaceViewModel {
     }
 
     func deleteSection(_ sectionID: UUID) {
+        recordEditSnapshot()
         project.sections.removeAll { $0.id == sectionID }
         if selectedSectionID == sectionID {
             selectedSectionID = project.sections.first?.id
@@ -2386,6 +2534,12 @@ final class WorkspaceViewModel {
         guard restartAudioPlayback(from: playheadTime, force: true) else {
             SectionTriggerDiagnostics.log("resumeSectionTriggerPlayback restartAudioPlayback failed")
             return false
+        }
+
+        if let syncedTime = audioEngine.currentTimelineTime() {
+            playheadTime = syncedTime
+            arrangementEngine.seek(to: syncedTime)
+            lastAudioRestartTimelineTime = syncedTime
         }
 
         isPlaying = true
@@ -2565,6 +2719,8 @@ final class WorkspaceViewModel {
     }
 
     func selectMIDIDevice(_ source: MIDISourceInfo?) {
+        recordEditSnapshot()
+
         if let source {
             project.preferredMIDISourceName = source.name
             project.preferredMIDISourceUniqueID = source.uniqueID

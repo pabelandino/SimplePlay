@@ -128,6 +128,10 @@ struct MIDIMappingBarView: View {
                 devicePicker
             }
 
+            if viewModel.isMIDIMappingExpanded {
+                mappingRefreshControl
+            }
+
             assignModeToggle
 
             if viewModel.isMIDILearnActive {
@@ -151,15 +155,59 @@ struct MIDIMappingBarView: View {
                 }
             }
 
-            Button {
-                viewModel.prepareMIDIInput()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(isCompact ? .caption : .body)
-            }
-            .buttonStyle(DAWSecondaryButtonStyle())
-            .help("Refresh MIDI devices")
+            historyControls
         }
+    }
+
+    private var historyControls: some View {
+        HStack(spacing: 6) {
+            historyButton(
+                systemName: "arrow.uturn.backward",
+                help: "Undo",
+                enabled: viewModel.canUndo
+            ) {
+                viewModel.undo()
+            }
+
+            historyButton(
+                systemName: "arrow.uturn.forward",
+                help: "Redo",
+                enabled: viewModel.canRedo
+            ) {
+                viewModel.redo()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var mappingRefreshControl: some View {
+        Button {
+            viewModel.prepareMIDIInput()
+        } label: {
+            Label("Refresh MIDI", systemImage: "arrow.clockwise")
+                .font(isCompact ? .caption.weight(.semibold) : .subheadline.weight(.medium))
+        }
+        .buttonStyle(DAWSecondaryButtonStyle())
+        .help("Refresh MIDI devices")
+    }
+
+    private func historyButton(
+        systemName: String,
+        help: String,
+        enabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(isCompact ? .caption.weight(.semibold) : .body.weight(.medium))
+                .foregroundStyle(enabled ? DAWTheme.textPrimary : DAWTheme.textSecondary.opacity(0.45))
+                .frame(width: isCompact ? 30 : 34, height: isCompact ? 30 : 34)
+                .background(DAWTheme.surfaceElevated.opacity(enabled ? 1 : 0.55))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .help(help)
     }
 
     private var assignModeToggle: some View {
