@@ -1,0 +1,30 @@
+---
+description: Guardrails for SimplePlay audio engine — routing, playback sync, and session setup
+globs:
+  - SimplePlay/Core/Services/AudioEngineService.swift
+  - SimplePlay/Core/Services/AudioEngineService*.swift
+  - SimplePlay/Core/Services/AudioEnginePlatformServices.swift
+  - SimplePlay/Core/Services/Playback/**
+  - SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift
+alwaysApply: false
+---
+
+# Audio engine guardrails
+
+**Mandatory:** read `SimplePlay/Core/Services/AUDIO_ENGINE_AGENT_GUIDE.md` before any edit in the globs above.
+
+## Do not
+
+- Add `#if os(macOS)` session, routing, or playback-timing logic to `AudioEngineService.swift` — use `AudioEngineServiceMacOS` / `AudioEngineServiceIOS` and `Playback/*PlaybackStrategy.swift`.
+- Call `AVAudioSession.setPreferredInput` on a `.playback` category session (causes SessionCore paramErr -50 on iPad).
+- Unify Mac host-time and iOS sample-relative scheduling inside the core engine file.
+- “Fix” startup failures only inside `AudioEngineService` without checking saved output device state in the ViewModel.
+
+## Do
+
+- Platform routing → `AudioEnginePlatformServices` + Mac/iOS implementations.
+- Sync / anchor / latency → `IOSPlaybackStrategy` / `MacOSPlaybackStrategy`.
+- Validate unavailable saved interfaces in UI/ViewModel before `loadProject` / `apply(settings:)`.
+- Run `graphify query` before exploring; `graphify update .` after Swift changes.
+
+Stable playback reference: commit `584a4ad`.

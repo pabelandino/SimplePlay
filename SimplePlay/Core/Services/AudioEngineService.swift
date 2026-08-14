@@ -8,10 +8,7 @@ import Foundation
 import Observation
 import os
 
-#if os(macOS)
-import CoreAudio
-import AudioUnit
-#endif
+/// See `SimplePlay/Core/Services/AUDIO_ENGINE_AGENT_GUIDE.md` before editing this file.
 
 enum AudioEngineError: LocalizedError {
     case deviceSelectionFailed
@@ -198,6 +195,7 @@ final class AudioEngineService {
     }
 
     private let platformPlayback: PlatformPlaybackStrategy = PlatformPlaybackStrategyFactory.make()
+    internal let platformServices: AudioEnginePlatformServices = AudioEnginePlatformServicesFactory.make()
 
     static let playbackLeadInSeconds: TimeInterval = 0.02
     private static let initialLoopCycles = 2
@@ -223,9 +221,7 @@ final class AudioEngineService {
         tearDownPlayers()
         configurationWarnings.removeAll()
         lastPlaybackError = nil
-#if !os(macOS)
-        try configureAudioSession(settings: project.audioSettings)
-#endif
+        try platformServices.configureSessionBeforeEngineGraph(settings: project.audioSettings, host: self)
 
         for group in project.groups {
             let groupMixer = AVAudioMixerNode()
@@ -298,9 +294,7 @@ final class AudioEngineService {
 
         do {
             try platformPlayback.finishEngineConfiguration(in: self)
-#if os(macOS)
-            try applyOutputRouting(settings: project.audioSettings)
-#endif
+            try platformServices.applyOutputRouting(settings: project.audioSettings, host: self)
         } catch {
             throw AudioEngineError.engineStartFailed
         }
@@ -366,81 +360,13 @@ final class AudioEngineService {
     }
 
     func apply(settings: AudioSettings) throws {
-#if os(macOS)
-        if engine.isRunning {
-            try applyOutputRouting(settings: settings)
-        }
-#else
-        try configureAudioSession(settings: settings)
-#endif
+        try platformServices.apply(settings: settings, host: self)
     }
 
     /// Applies the selected output interface and restarts the engine when it is already running.
     func applyOutputRouting(settings: AudioSettings) throws {
-#if os(macOS)
-        guard engine.isRunning else { return }
-        try applyMacOutputDevice(settings: settings)
-        engine.stop()
-        try engine.start()
-        isEngineRunning = true
-#else
-        try configureAudioSession(settings: settings)
-#endif
+        try platformServices.applyOutputRouting(settings: settings, host: self)
     }
-
-#if os(macOS)
-    private func applyMacOutputDevice(settings: AudioSettings) throws {
-        guard let audioUnit = engine.outputNode.audioUnit else {
-            throw AudioEngineError.deviceSelectionFailed
-        }
-
-        let deviceID: AudioDeviceID
-        if let selected = settings.outputDeviceID, selected != 0 {
-            guard AudioDeviceService.listOutputDevices().contains(where: { $0.id == selected }) else {
-                throw AudioEngineError.deviceSelectionFailed
-            }
-            deviceID = selected
-        } else {
-            deviceID = try macOSDefaultOutputDeviceID()
-        }
-
-        var device = deviceID
-        let status = AudioUnitSetProperty(
-            audioUnit,
-            kAudioOutputUnitProperty_CurrentDevice,
-            kAudioUnitScope_Global,
-            0,
-            &device,
-            UInt32(MemoryLayout<AudioDeviceID>.size)
-        )
-
-        guard status == noErr else {
-            throw AudioEngineError.deviceSelectionFailed
-        }
-    }
-
-    private func macOSDefaultOutputDeviceID() throws -> AudioDeviceID {
-        var deviceID = AudioDeviceID(0)
-        var propertyAddress = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-        var dataSize = UInt32(MemoryLayout<AudioDeviceID>.size)
-        let status = AudioObjectGetPropertyData(
-            AudioObjectID(kAudioObjectSystemObject),
-            &propertyAddress,
-            0,
-            nil,
-            &dataSize,
-            &deviceID
-        )
-        guard status == noErr, deviceID != 0 else {
-            throw AudioEngineError.deviceSelectionFailed
-        }
-        return deviceID
-    }
-#endif
 
     func updateTrackMixing(project: DAWProject) {
         let hasSolo = project.tracks.contains(where: \.isSolo)
@@ -1050,13 +976,6 @@ final class AudioEngineService {
         isEngineRunning = true
     }
 
-#if !os(macOS)
-    private func reactivateAudioSessionIfNeeded() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setActive(true)
-    }
-#endif
-
     private func tearDownPlayers() {
         removeMetersSafely()
         for scheduled in scheduledClips.values {
@@ -1242,51 +1161,30 @@ final class AudioEngineService {
         let blended = peak * 0.35 + rms * 0.65
         return min(1, blended)
     }
-
-#if !os(macOS)
-    private func configureAudioSession(settings: AudioSettings) throws {
-        let session = AVAudioSession.sharedInstance()
-        do {
-            try session.setCategory(
-                .playback,
-                mode: .default,
-                options: [.allowBluetoothA2DP, .allowBluetoothHFP]
-            )
-            try session.setPreferredSampleRate(settings.sampleRate.rawValue)
-            try session.setPreferredIOBufferDuration(0.005)
-            try applyIOSOutputRoute(settings: settings, session: session)
-            try session.setActive(true)
-        } catch {
-            throw AudioEngineError.engineStartFailed
-        }
-    }
-
-    private func applyIOSOutputRoute(settings: AudioSettings, session: AVAudioSession) throws {
-        if settings.outputDeviceID == AudioOutputDevice.builtInSpeaker.id
-            || settings.outputPortUID == AudioDeviceService.builtInSpeakerPortUID {
-            try session.overrideOutputAudioPort(.speaker)
-            return
-        }
-
-        try session.overrideOutputAudioPort(.none)
-
-        guard let portUID = settings.outputPortUID,
-              portUID != AudioDeviceService.builtInSpeakerPortUID else {
-            return
-        }
-
-        if session.currentRoute.outputs.contains(where: { $0.uid == portUID }) {
-            return
-        }
-
-        if let input = session.availableInputs?.first(where: { $0.uid == portUID }) {
-            try session.setPreferredInput(input)
-        }
-    }
-#endif
 }
 
-// MARK: - Platform playback bridge
+// MARK: - Platform host + playback bridge
+
+extension AudioEngineService: AudioEngineServiceHost {
+    var avEngine: AVAudioEngine { engine }
+
+    var engineIsRunning: Bool {
+        get { isEngineRunning }
+        set { isEngineRunning = newValue }
+    }
+
+    func hostStartEngine() throws {
+        try startEngine()
+    }
+
+    func hostStopEngineIfRunning() {
+        stopEngineIfRunning()
+    }
+
+    func hostRenderClockIsLive() -> Bool {
+        renderClockIsLive()
+    }
+}
 
 extension AudioEngineService {
     var playbackEngine: AVAudioEngine { engine }
@@ -1344,30 +1242,7 @@ extension AudioEngineService {
     func playbackPrepareEngine() { engine.prepare() }
     func playbackRefreshMeterMonitoring() { refreshMeterMonitoring() }
 
-#if !os(macOS)
-    func playbackReactivateAudioSession() throws {
-        try reactivateAudioSessionIfNeeded()
-    }
-#endif
-
     func playbackTimelineFromSampleClocks(preferMinimumElapsed: Bool = false) -> TimeInterval? {
         timelineTimeFromPlayingPlayers(preferMinimumElapsed: preferMinimumElapsed)
     }
-
-#if !os(macOS)
-    func playbackHeardAudioLatencySeconds() -> TimeInterval {
-        let session = AVAudioSession.sharedInstance()
-        return session.outputLatency + (session.ioBufferDuration * 0.5)
-    }
-
-    func playbackMakeIOSPlayAnchor() -> AVAudioTime? {
-        guard renderClockIsLive(),
-              let nodeTime = engine.outputNode.lastRenderTime,
-              nodeTime.isHostTimeValid else {
-            return nil
-        }
-        let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
-        return AVAudioTime(hostTime: leadHost)
-    }
-#endif
 }
