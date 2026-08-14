@@ -23,6 +23,8 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
     var masterVolume: Double
     var tempo: Double
     var audioSettings: AudioSettings
+    var linkedLyricDocumentID: UUID?
+    var linkedLyricTitle: String?
 
     init(
         id: UUID = UUID(),
@@ -39,7 +41,9 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
         isSnapEnabled: Bool = true,
         masterVolume: Double = 1.0,
         tempo: Double = 120,
-        audioSettings: AudioSettings = AudioSettings()
+        audioSettings: AudioSettings = AudioSettings(),
+        linkedLyricDocumentID: UUID? = nil,
+        linkedLyricTitle: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -56,6 +60,8 @@ struct DAWProject: Identifiable, Codable, Sendable, Equatable {
         self.masterVolume = masterVolume
         self.tempo = tempo
         self.audioSettings = audioSettings
+        self.linkedLyricDocumentID = linkedLyricDocumentID
+        self.linkedLyricTitle = linkedLyricTitle
     }
 
     var duration: TimeInterval {

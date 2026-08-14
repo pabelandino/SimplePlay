@@ -27,11 +27,26 @@ struct PitchShiftSettingsTests {
             standardCode: "EG",
             role: .electricGuitar,
             colorHex: "#FFFFFF",
-            pitchSemitones: 2.5
+            pitchSemitones: 2.5,
+            isPitchEnabled: true
         )
         let project = DAWProject(tracks: [track])
 
         #expect(project.pitchSemitones(forTrackID: track.id) == 2.5)
+        #expect(project.usesPitchProcessing(forTrackID: track.id))
         #expect(project.track(containing: UUID()) == nil)
+    }
+
+    @Test func pitchBypassedUntilEnabled() {
+        let track = AudioTrack(
+            originalName: "EG",
+            standardCode: "EG",
+            role: .electricGuitar,
+            colorHex: "#FFFFFF",
+            pitchSemitones: 0,
+            isPitchEnabled: false
+        )
+
+        #expect(!PitchShiftSettings.usesPitchProcessing(for: track))
     }
 }

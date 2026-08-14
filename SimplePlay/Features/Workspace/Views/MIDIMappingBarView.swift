@@ -187,15 +187,15 @@ struct MIDIMappingBarView: View {
         }
         .buttonStyle(.plain)
         .help(viewModel.isMIDIMappingAssignModeEnabled
-            ? "Stop assigning sections to MIDI"
-            : "Show section pads and assign each section to a MIDI control")
+            ? "Stop assigning sections"
+            : "Assign MIDI pads and Lyriora slides for each section")
     }
 
     private var assignModeToggleTitle: String {
         if viewModel.isMIDIMappingAssignModeEnabled {
             return "Assigning…"
         }
-        return isCompact ? "Assign MIDI" : "Assign Section to MIDI"
+        return isCompact ? "Assign" : "Assign Sections"
     }
 
     private var sectionQuickPads: some View {
@@ -346,9 +346,13 @@ struct MIDIMappingBarView: View {
             }
 
             if !isCompact {
-                Text("Press Assign on a section card, then tap a pad or key on your controller.")
+                Text("Assign a MIDI pad and a Lyriora slide for each section card.")
                     .font(.caption2)
                     .foregroundStyle(DAWTheme.textSecondary)
+            }
+
+            if viewModel.isMIDIMappingAssignModeEnabled {
+                lyricCatalogStatus
             }
 
             if viewModel.project.sections.isEmpty {
@@ -371,6 +375,41 @@ struct MIDIMappingBarView: View {
         .padding(.leading, DAWTheme.macTrafficLightLeadingInset - 16)
 #endif
         .padding(.bottom, isCompact ? 8 : 12)
+        .task(id: viewModel.isMIDIMappingAssignModeEnabled) {
+            guard viewModel.isMIDIMappingAssignModeEnabled else { return }
+            await viewModel.refreshLyricCatalog()
+        }
+    }
+
+    @ViewBuilder
+    private var lyricCatalogStatus: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(viewModel.isLyrioraReachable ? Color.green : Color.red)
+                .frame(width: 7, height: 7)
+
+            if viewModel.isLoadingLyricCatalog {
+                Text("Loading slides from Lyriora…")
+            } else if let catalog = viewModel.lyricCatalog {
+                Text("\(catalog.slides.count) slides · \(catalog.lyricTitle)")
+            } else {
+                Text(viewModel.lyricSyncErrorMessage ?? "Lyriora not found on this network")
+            }
+
+            Spacer(minLength: 0)
+
+            Button("Refresh") {
+                Task { await viewModel.refreshLyricCatalog() }
+            }
+            .buttonStyle(DAWSecondaryButtonStyle())
+            .disabled(viewModel.isLoadingLyricCatalog)
+        }
+        .font(.caption2)
+        .foregroundStyle(DAWTheme.textSecondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(DAWTheme.background.opacity(0.45))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     @ViewBuilder
@@ -451,9 +490,15 @@ struct MIDIMappingBarView: View {
                 }
                 .buttonStyle(SectionMappingAssignButtonStyle(isLearning: isLearning))
                 .accessibilityLabel(isLearning ? "Listening for MIDI assignment" : "Assign MIDI for \(section.name)")
+
+                Rectangle()
+                    .fill(DAWTheme.border.opacity(0.85))
+                    .frame(height: 1)
+
+                sectionLyricAssignRow(section)
             }
         }
-        .frame(width: isCompact ? 132 : 156)
+        .frame(width: isCompact ? 148 : 176)
         .background(cardBackground(for: section, status: status, isLearning: isLearning))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
@@ -605,7 +650,7 @@ struct MIDIMappingBarView: View {
             Spacer(minLength: 0)
 
             if !isLearning {
-                Text("Assign")
+                Text("MIDI")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(DAWTheme.textPrimary.opacity(0.85))
             }
@@ -614,6 +659,78 @@ struct MIDIMappingBarView: View {
         .padding(.vertical, 9)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(isLearning ? DAWTheme.accent.opacity(0.1) : DAWTheme.background.opacity(0.45))
+    }
+
+    @ViewBuilder
+    private func sectionLyricAssignRow(_ section: ArrangementSection) -> some View {
+        if let catalog = viewModel.lyricCatalog {
+            Menu {
+                ForEach(catalog.slides) { slide in
+                    Button {
+                        viewModel.assignLyricSlide(
+                            sectionID: section.id,
+                            slide: slide,
+                            catalog: catalog
+                        )
+                    } label: {
+                        Text(lyricSlideMenuTitle(slide))
+                    }
+                }
+
+                if section.hasLyricSlideLink {
+                    Divider()
+                    Button("Clear Slide Link", role: .destructive) {
+                        viewModel.clearLyricSlideLink(for: section.id)
+                    }
+                }
+            } label: {
+                sectionLyricAssignLabel(section)
+            }
+            .buttonStyle(SectionMappingAssignButtonStyle(isLearning: false))
+        } else {
+            sectionLyricAssignLabel(section)
+                .opacity(0.72)
+        }
+    }
+
+    private func sectionLyricAssignLabel(_ section: ArrangementSection) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "text.below.photo")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.playhead : DAWTheme.textSecondary)
+
+            Text(viewModel.lyricSlideLabel(for: section, catalog: viewModel.lyricCatalog))
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.textPrimary : DAWTheme.textSecondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            if viewModel.isLoadingLyricCatalog {
+                ProgressView()
+                    .controlSize(.small)
+            } else if viewModel.lyricCatalog != nil {
+                Text(section.hasLyricSlideLink ? "Change" : "Slide")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(DAWTheme.textPrimary.opacity(0.85))
+            } else {
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.red.opacity(0.85))
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DAWTheme.background.opacity(0.45))
+    }
+
+    private func lyricSlideMenuTitle(_ slide: LyricSlideCatalogItem) -> String {
+        let preview = slide.preview.trimmingCharacters(in: .whitespacesAndNewlines)
+        if preview.isEmpty {
+            return "Slide \(slide.order + 1)"
+        }
+        return "Slide \(slide.order + 1) · \(preview)"
     }
 
     private func sectionTimeRange(_ section: ArrangementSection) -> String {
@@ -689,7 +806,11 @@ struct MIDIMappingBarView: View {
 
         switch status {
         case .idle:
-            return "Play “\(section.name)” · MIDI: \(assignment)"
+            var details = "Play “\(section.name)” · MIDI: \(assignment)"
+            if section.hasLyricSlideLink {
+                details += " · \(viewModel.lyricSlideLabel(for: section, catalog: viewModel.lyricCatalog))"
+            }
+            return details
         case .playing:
             return "“\(section.name)” is playing · tap again to repeat once"
         case .queued:

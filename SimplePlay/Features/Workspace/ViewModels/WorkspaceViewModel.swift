@@ -3,6 +3,7 @@
 //  SimplePlay
 //
 
+import AVFoundation
 import Foundation
 import Observation
 import SwiftUI
@@ -46,6 +47,7 @@ final class WorkspaceViewModel {
     var selectedGroupID: UUID?
     var timelineViewportWidth: CGFloat = 800
     var timelineVisibleOffsetX: CGFloat = 0
+    private(set) var isTimelineScrolling = false
     private(set) var timelineScrollRequest: TimelineScrollRequest?
     var availableOutputDevices: [AudioOutputDevice] = AudioDeviceService.listOutputDevices()
     var draggingTrackID: UUID?
@@ -192,23 +194,192 @@ final class WorkspaceViewModel {
     let audioEngine = AudioEngineService()
     let arrangementEngine = ArrangementPlaybackEngine()
     let midiOutput = MIDIOutputService.shared
+    let lyricSync = LyricPlaySyncClient()
+
+    var isSectionLyricLinkSheetPresented = false
+    var sectionIDForLyricLink: UUID?
+    var lyricCatalog: LyricSlideCatalog?
+    var isLoadingLyricCatalog = false
+    var lyricSyncErrorMessage: String?
 
     private let importService = AudioImportService()
     private let organizationService = TrackOrganizationService()
     private let projectPersistence = ProjectPersistenceService()
     private var playbackTimer: Timer?
     private var playheadPublishAccumulator: TimeInterval = 0
-    private let playbackTickInterval: TimeInterval = 1.0 / 30.0
     private let playheadPublishInterval: TimeInterval = 1.0 / 10.0
+    private var isApplicationActive = true
     private var loopPrebufferTriggered = false
     private var arrangementSyncedToAudioThisTick = false
     private var suppressTimelineJumpRestartUntil: Date?
+    private var lastLyricSyncedSectionID: UUID?
+    private var lastAudioRestartWallTime: TimeInterval = 0
+    private var lastAudioRestartTimelineTime: TimeInterval = -1
 
     init() {
         MIDIInputService.shared.onEvent = { [weak self] event in
             self?.handleIncomingMIDI(event)
         }
         prepareMIDIInput()
+        lyricSync.startBrowsing()
+        lyricSync.startHeartbeat()
+#if !os(macOS)
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleAudioRouteChange()
+            }
+        }
+#endif
+    }
+
+#if !os(macOS)
+    private func handleAudioRouteChange() {
+        refreshAudioDevices()
+        reconcileStoredOutputDevice()
+        guard !project.tracks.isEmpty else { return }
+        applyAudioSettings()
+    }
+
+    private func reconcileStoredOutputDevice() {
+        guard let device = AudioDeviceService.device(
+            matching: project.audioSettings,
+            in: availableOutputDevices
+        ) else {
+            project.audioSettings.outputDeviceID = nil
+            project.audioSettings.outputPortUID = nil
+            project.audioSettings.outputDeviceName = AudioOutputDevice.systemDefault.name
+            return
+        }
+
+        project.audioSettings.outputDeviceID = device.id == 0 ? nil : device.id
+        project.audioSettings.outputPortUID = device.portUID
+        project.audioSettings.outputDeviceName = device.name
+    }
+#endif
+
+    func presentLyricLinkSheet(for sectionID: UUID) {
+        sectionIDForLyricLink = sectionID
+        isSectionLyricLinkSheetPresented = true
+    }
+
+    func refreshLyricCatalog() async {
+        isLoadingLyricCatalog = true
+        lyricSyncErrorMessage = nil
+        defer { isLoadingLyricCatalog = false }
+
+        do {
+            lyricCatalog = try await lyricSync.requestCatalog()
+        } catch {
+            lyricCatalog = nil
+            lyricSyncErrorMessage = error.localizedDescription
+        }
+    }
+
+    func assignLyricSlide(
+        sectionID: UUID,
+        slide: LyricSlideCatalogItem,
+        catalog: LyricSlideCatalog
+    ) {
+        guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
+
+        project.sections[index].lyricDocumentID = catalog.lyricID
+        project.sections[index].lyricSlideID = slide.slideID
+        project.sections[index].lyricSlideOrder = slide.order
+        project.linkedLyricDocumentID = catalog.lyricID
+        project.linkedLyricTitle = catalog.lyricTitle
+
+        let command = LinkSectionCommand(
+            lyricID: catalog.lyricID,
+            slideID: slide.slideID,
+            sectionID: sectionID,
+            projectID: project.id,
+            projectName: project.name
+        )
+
+        Task {
+            try? await lyricSync.linkSection(command)
+        }
+    }
+
+    func clearLyricSlideLink(for sectionID: UUID) {
+        guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
+        project.sections[index].lyricDocumentID = nil
+        project.sections[index].lyricSlideID = nil
+        project.sections[index].lyricSlideOrder = nil
+    }
+
+    func lyricSlideLabel(for section: ArrangementSection, catalog: LyricSlideCatalog?) -> String {
+        guard section.hasLyricSlideLink else { return "No slide" }
+        if let catalog,
+           let slide = catalog.slides.first(where: { $0.slideID == section.lyricSlideID }) {
+            let preview = slide.preview.trimmingCharacters(in: .whitespacesAndNewlines)
+            if preview.isEmpty {
+                return "Slide \(slide.order + 1)"
+            }
+            return "Slide \(slide.order + 1) · \(preview)"
+        }
+        if let order = section.lyricSlideOrder {
+            return "Slide \(order + 1)"
+        }
+        return "Linked slide"
+    }
+
+    var isLyrioraReachable: Bool {
+        if case .connected = lyricSync.connectionState { return true }
+        return lyricCatalog != nil
+    }
+
+    private func resyncLyricLinksWithLyriora() async {
+        for section in project.sections where section.hasLyricSlideLink {
+            guard let lyricID = section.lyricDocumentID,
+                  let slideID = section.lyricSlideID else { continue }
+
+            let command = LinkSectionCommand(
+                lyricID: lyricID,
+                slideID: slideID,
+                sectionID: section.id,
+                projectID: project.id,
+                projectName: project.name
+            )
+            try? await lyricSync.linkSection(command)
+        }
+    }
+
+    private func sendLyricSlideTrigger(for section: ArrangementSection) {
+        guard section.hasLyricSlideLink else { return }
+
+        let command = ShowSlideCommand(
+            lyricID: section.lyricDocumentID!,
+            slideID: section.lyricSlideID!,
+            sectionID: section.id,
+            projectID: project.id
+        )
+
+        Task {
+            try? await lyricSync.showSlide(command)
+        }
+    }
+
+    private func section(at time: TimeInterval) -> ArrangementSection? {
+        project.sections.first(where: { $0.contains(time: time) })
+    }
+
+    private func syncLyricSlideForCurrentPlayhead(force: Bool = false) {
+        guard isPlaying else { return }
+
+        guard let section = section(at: arrangementEngine.currentTime) else {
+            lastLyricSyncedSectionID = nil
+            return
+        }
+
+        guard force || section.id != lastLyricSyncedSectionID else { return }
+
+        lastLyricSyncedSectionID = section.id
+        sendLyricSlideTrigger(for: section)
     }
 
     func prepareMIDIInput() {
@@ -223,6 +394,25 @@ final class WorkspaceViewModel {
 
     var pixelsPerSecond: CGFloat {
         DAWTheme.pixelsPerSecond * zoom
+    }
+
+    private var playbackTickInterval: TimeInterval {
+        if !isApplicationActive {
+            return 1.0 / 10.0
+        }
+        return 1.0 / 30.0
+    }
+
+    func syncMeterMonitoring() {
+        audioEngine.isMeterMonitoringEnabled = showMixerPanel && isApplicationActive
+    }
+
+    func setApplicationSceneActive(_ active: Bool) {
+        guard isApplicationActive != active else { return }
+        isApplicationActive = active
+        syncMeterMonitoring()
+        guard isPlaying else { return }
+        startPlaybackTimer()
     }
 
     var formattedCurrentTime: String {
@@ -569,6 +759,7 @@ final class WorkspaceViewModel {
             if !audioEngine.configurationWarnings.isEmpty {
                 importNoticeMessage = audioEngine.configurationWarnings.joined(separator: "\n")
             }
+            syncMeterMonitoring()
             return true
         } catch {
             reportError(error)
@@ -591,16 +782,46 @@ final class WorkspaceViewModel {
 
         if let loop {
             if attemptAudioPlayback(from: time, sectionLoop: loop) {
+                SectionTriggerDiagnostics.logAudioStart(
+                    source: "startAudioPlayback",
+                    time: time,
+                    started: true,
+                    sectionLoop: true,
+                    error: nil
+                )
                 return true
             }
-            return configureAudioEngine() && attemptAudioPlayback(from: time, sectionLoop: loop)
+            let restarted = configureAudioEngine() && attemptAudioPlayback(from: time, sectionLoop: loop)
+            SectionTriggerDiagnostics.logAudioStart(
+                source: "startAudioPlayback(reconfigure)",
+                time: time,
+                started: restarted,
+                sectionLoop: true,
+                error: audioEngine.lastPlaybackError
+            )
+            return restarted
         }
 
         if attemptAudioPlayback(from: time, sectionLoop: nil) {
+            SectionTriggerDiagnostics.logAudioStart(
+                source: "startAudioPlayback",
+                time: time,
+                started: true,
+                sectionLoop: false,
+                error: nil
+            )
             return true
         }
 
-        return configureAudioEngine() && attemptAudioPlayback(from: time, sectionLoop: nil)
+        let restarted = configureAudioEngine() && attemptAudioPlayback(from: time, sectionLoop: nil)
+        SectionTriggerDiagnostics.logAudioStart(
+            source: "startAudioPlayback(reconfigure)",
+            time: time,
+            started: restarted,
+            sectionLoop: false,
+            error: audioEngine.lastPlaybackError
+        )
+        return restarted
     }
 
     private func attemptAudioPlayback(
@@ -664,6 +885,16 @@ final class WorkspaceViewModel {
             || previousTime >= loop.endTime - 0.001
         guard nearEnd else { return false }
         return abs(newTime - loop.startTime) <= playbackTickInterval * 3
+    }
+
+    /// Arrangement repeat-at-end wrap (second tap on section pad) back to section start.
+    private func isSectionRepeatWrap(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
+        guard newTime + 0.001 < previousTime else { return false }
+
+        return project.sections.contains { section in
+            abs(newTime - section.startTime) <= playbackTickInterval * 3
+                && abs(previousTime - section.endTime) <= playbackTickInterval * 3
+        }
     }
 
     private func appendSectionLoopAudioIfNeeded(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
@@ -840,6 +1071,8 @@ final class WorkspaceViewModel {
             applyAudioSettings()
         }
         clampZoomToTimelineLimits()
+        lastLyricSyncedSectionID = nil
+        Task { await resyncLyricLinksWithLyriora() }
     }
 
     func importMultitrackFolder(
@@ -939,7 +1172,18 @@ final class WorkspaceViewModel {
     }
 
     func updateTimelineVisibleOffset(_ offset: CGFloat) {
+        let clamped = max(0, offset)
+        let quantized = (clamped / 4).rounded(.down) * 4
+        guard abs(quantized - timelineVisibleOffsetX) >= 4 else { return }
+        timelineVisibleOffsetX = quantized
+    }
+
+    func flushTimelineVisibleOffset(_ offset: CGFloat) {
         timelineVisibleOffsetX = max(0, offset)
+    }
+
+    func setTimelineScrolling(_ isScrolling: Bool) {
+        isTimelineScrolling = isScrolling
     }
 
     func scrollTimelineToPlayhead(alignment: TimelineScrollAlignment = .center) {
@@ -1045,17 +1289,28 @@ final class WorkspaceViewModel {
 
         do {
             try audioEngine.apply(settings: project.audioSettings)
-            if audioEngine.isPlaybackGraphReady {
-                _ = configureAudioEngine()
+            if !project.tracks.isEmpty {
+                guard configureAudioEngine() else { return }
             }
+            refreshAudioDevices()
+            reconcileStoredOutputDeviceIfNeeded()
             if wasPlaying {
                 playheadTime = resumeTime
                 play()
             }
         } catch {
+            refreshAudioDevices()
             reportError(error)
         }
     }
+
+#if !os(macOS)
+    private func reconcileStoredOutputDeviceIfNeeded() {
+        reconcileStoredOutputDevice()
+    }
+#else
+    private func reconcileStoredOutputDeviceIfNeeded() {}
+#endif
 
     func refreshAudioDevices() {
         availableOutputDevices = AudioDeviceService.listOutputDevices()
@@ -1079,13 +1334,33 @@ final class WorkspaceViewModel {
               let index = project.tracks.firstIndex(where: { $0.id == trackID })
         else { return }
 
-        project.tracks[index].pitchSemitones = PitchShiftSettings.clampSemitones(semitones)
-        audioEngine.updateTrackPitch(project: project)
+        let wasProcessing = project.usesPitchProcessing(forTrackID: trackID)
+        let clamped = PitchShiftSettings.clampSemitones(semitones)
+        project.tracks[index].pitchSemitones = clamped
+        project.tracks[index].isPitchEnabled = abs(clamped) >= 0.001
+
+        let isProcessing = project.usesPitchProcessing(forTrackID: trackID)
+        if wasProcessing != isProcessing {
+            _ = configureAudioEngine()
+        } else if isProcessing {
+            audioEngine.updateTrackPitch(project: project)
+        }
         resyncPlaybackIfNeeded()
     }
 
     func resetSelectedTrackPitch() {
-        setSelectedTrackPitch(0)
+        guard let trackID = activePitchTrack?.id,
+              let index = project.tracks.firstIndex(where: { $0.id == trackID })
+        else { return }
+
+        let wasProcessing = project.tracks[index].isPitchEnabled
+        project.tracks[index].pitchSemitones = 0
+        project.tracks[index].isPitchEnabled = false
+
+        if wasProcessing {
+            _ = configureAudioEngine()
+        }
+        resyncPlaybackIfNeeded()
     }
 
     func toggleSelectionLoop() {
@@ -1574,7 +1849,7 @@ final class WorkspaceViewModel {
     }
 
     @discardableResult
-    private func restartAudioPlayback(from time: TimeInterval) -> Bool {
+    private func restartAudioPlayback(from time: TimeInterval, force: Bool = false) -> Bool {
         let shouldResumeTimer = playbackTimer != nil
         if shouldResumeTimer {
             stopPlaybackTimer()
@@ -1583,6 +1858,9 @@ final class WorkspaceViewModel {
         guard startAudioPlayback(from: time) else {
             return false
         }
+
+        lastAudioRestartTimelineTime = time
+        lastAudioRestartWallTime = ProcessInfo.processInfo.systemUptime
 
         if shouldResumeTimer {
             startPlaybackTimer()
@@ -1593,14 +1871,23 @@ final class WorkspaceViewModel {
     /// Starts audio for a section trigger using the same path as transport play (reliable on iPad).
     @discardableResult
     private func resumeSectionTriggerPlayback(from time: TimeInterval) -> Bool {
+        SectionTriggerDiagnostics.log(String(
+            format: "resumeSectionTriggerPlayback at %.3fs (vmPlaying=%d audioPlaying=%d)",
+            time,
+            isPlaying ? 1 : 0,
+            audioEngine.isAnyPlayerPlaying ? 1 : 0
+        ))
+
         playheadTime = time
-        suppressTimelineJumpRestartUntil = Date().addingTimeInterval(0.35)
+        playheadPublishAccumulator = 0
+        suppressTimelineJumpRestartUntil = Date().addingTimeInterval(1.0)
         arrangementEngine.seek(to: playheadTime)
         arrangementEngine.play()
         arrangementEngine.ensureSectionPlaybackContext(at: playheadTime)
         audioEngine.clearSectionLoopState()
 
-        guard restartAudioPlayback(from: playheadTime) else {
+        guard restartAudioPlayback(from: playheadTime, force: true) else {
+            SectionTriggerDiagnostics.log("resumeSectionTriggerPlayback restartAudioPlayback failed")
             return false
         }
 
@@ -1653,19 +1940,46 @@ final class WorkspaceViewModel {
         }
 
         let result = arrangementEngine.triggerSection(section)
+        SectionTriggerDiagnostics.logTrigger(
+            sectionName: section.name,
+            sectionID: section.id,
+            result: result,
+            workspacePlaying: isPlaying,
+            arrangementPlaying: arrangementEngine.isPlaying,
+            audioPlaying: audioEngine.isAnyPlayerPlaying,
+            playheadTime: playheadTime,
+            arrangementTime: arrangementEngine.currentTime
+        )
+
         midiOutput.sendSectionTrigger(section)
+        lastLyricSyncedSectionID = section.id
+        sendLyricSlideTrigger(for: section)
 
         switch result {
         case .queuedForEnd:
             if isPlaying {
                 loopPrebufferTriggered = true
+                SectionTriggerDiagnostics.logEarlyReturn("queuedForEnd while playing", sectionName: section.name)
                 return
             }
         case .enabledRepeatAtEnd:
             if isPlaying {
-                if !audioEngine.isAnyPlayerPlaying,
-                   !resumeSectionTriggerPlayback(from: arrangementEngine.currentTime) {
-                    pause()
+                if !audioEngine.isAnyPlayerPlaying {
+                    SectionTriggerDiagnostics.log(
+                        "enabledRepeatAtEnd with silent audio — restarting playback"
+                    )
+                    if !resumeSectionTriggerPlayback(from: arrangementEngine.currentTime) {
+                        pause()
+                    }
+                } else if let loop = currentSectionLoopContext(at: arrangementEngine.currentTime) {
+                    loopPrebufferTriggered = audioEngine.adoptSectionLoopDuringPlayback(
+                        project: project,
+                        loop: loop,
+                        playheadTime: arrangementEngine.currentTime
+                    )
+                    SectionTriggerDiagnostics.log(
+                        "enabledRepeatAtEnd — adopted loop cycles without restart"
+                    )
                 }
                 return
             }
@@ -1678,6 +1992,9 @@ final class WorkspaceViewModel {
 
         if isPlaying {
             guard resumeSectionTriggerPlayback(from: playheadTime) else {
+                SectionTriggerDiagnostics.log(
+                    "resumeSectionTriggerPlayback failed — pausing transport"
+                )
                 pause()
                 return
             }
@@ -1791,7 +2108,9 @@ final class WorkspaceViewModel {
     func setMIDIMappingAssignModeEnabled(_ enabled: Bool) {
         isMIDIMappingAssignModeEnabled = enabled
         isMIDIMappingExpanded = enabled
-        if !enabled {
+        if enabled {
+            Task { await refreshLyricCatalog() }
+        } else {
             cancelMIDILearn()
         }
     }
@@ -1848,13 +2167,19 @@ final class WorkspaceViewModel {
         arrangementEngine.ensureSectionPlaybackContext(at: playheadTime)
 
         guard startAudioPlayback(from: playheadTime) else {
+            SectionTriggerDiagnostics.log("play() startAudioPlayback failed — pausing arrangement")
             arrangementEngine.pause()
             return
         }
 
         isPlaying = true
         loopPrebufferTriggered = false
+        lastLyricSyncedSectionID = nil
+        lastAudioRestartTimelineTime = playheadTime
+        lastAudioRestartWallTime = ProcessInfo.processInfo.systemUptime
+        suppressTimelineJumpRestartUntil = Date().addingTimeInterval(1.0)
         startPlaybackTimer()
+        syncLyricSlideForCurrentPlayhead(force: true)
     }
 
     func pause() {
@@ -1876,6 +2201,7 @@ final class WorkspaceViewModel {
         loopPrebufferTriggered = false
         audioEngine.stop()
         arrangementEngine.stop()
+        lastLyricSyncedSectionID = nil
         stopPlaybackTimer()
         scrollTimelineToStart()
     }
@@ -1896,10 +2222,15 @@ final class WorkspaceViewModel {
 
         if isPlaying {
             arrangementEngine.ensureSectionPlaybackContext(at: playheadTime)
-            if !restartAudioPlayback(from: playheadTime) {
+            if !restartAudioPlayback(from: playheadTime, force: true) {
                 pause()
             }
+            syncLyricSlideForCurrentPlayhead(force: true)
         }
+    }
+
+    private func shouldSuppressTimelineJumpRestart() -> Bool {
+        suppressTimelineJumpRestartUntil.map { Date() < $0 } ?? false
     }
 
     private func playbackTimelineDidJump(
@@ -1944,20 +2275,29 @@ final class WorkspaceViewModel {
         guard isPlaying else { return 0 }
 
         guard let audioTime = audioEngine.currentTimelineTime() else {
-            return audioEngine.isAnyPlayerPlaying ? playbackTickInterval : 0
+            return 0
         }
 
         let rawDelta = audioTime - previousTime
         if rawDelta >= 0, rawDelta <= 0.5 {
             return rawDelta
         }
-        if rawDelta > 0.5 {
-            guard audioTime <= project.duration + 0.25 else {
-                return playbackTickInterval
-            }
+        if rawDelta > 0.5, rawDelta <= 1.0, audioTime <= project.duration + 0.25 {
             arrangementEngine.seek(to: audioTime)
             arrangementSyncedToAudioThisTick = true
-            return 0
+            SectionTriggerDiagnostics.log(String(
+                format: "audio drift sync %.3fs -> %.3fs (delta %.3fs)",
+                previousTime,
+                audioTime,
+                rawDelta
+            ))
+        } else if rawDelta > 1.0 {
+            SectionTriggerDiagnostics.log(String(
+                format: "ignored stale audio clock jump %.3fs -> %.3fs (delta %.3fs)",
+                previousTime,
+                audioTime,
+                rawDelta
+            ))
         }
         return 0
     }
@@ -1994,6 +2334,7 @@ final class WorkspaceViewModel {
             delta: delta
         )
         publishPlayheadTime(newTime, force: didJumpTimeline || inSectionLoop)
+        syncLyricSlideForCurrentPlayhead()
 
         if didJumpTimeline, newTime + 0.5 < previousTime {
             scrollTimelineToPlayhead(alignment: .center)
@@ -2002,30 +2343,33 @@ final class WorkspaceViewModel {
         if isPlaying,
            didJumpTimeline,
            !arrangementSyncedToAudioThisTick {
-            if isSectionLoopWrap(from: previousTime, to: newTime) {
-                audioEngine.reanchorPlaybackTimeline(at: newTime)
+            if isSectionLoopWrap(from: previousTime, to: newTime)
+                || isSectionRepeatWrap(from: previousTime, to: newTime) {
                 loopPrebufferTriggered = false
+                audioEngine.reanchorPlaybackTimeline(at: newTime)
                 let canAppend = audioEngine.isSectionLoopPlaybackActive
                     && appendSectionLoopAudioIfNeeded(from: previousTime, to: newTime)
                 if !canAppend {
-                    if !restartAudioPlayback(from: newTime) {
+                    if !restartAudioPlayback(from: newTime, force: true) {
                         pause()
                         return
                     }
                 }
             } else if isArrangementSectionTransition(from: previousTime, to: newTime) {
+                guard !shouldSuppressTimelineJumpRestart() else { return }
                 loopPrebufferTriggered = false
                 SectionLoopDiagnostics.log(String(
                     format: "section transition restart %.6fs -> %.6fs",
                     previousTime,
                     newTime
                 ))
-                if !restartAudioPlayback(from: newTime) {
+                if !restartAudioPlayback(from: newTime, force: true) {
                     pause()
                     return
                 }
-            } else if suppressTimelineJumpRestartUntil.map({ Date() >= $0 }) ?? true {
-                SectionLoopDiagnostics.log(String(
+            } else if !shouldSuppressTimelineJumpRestart(),
+                      audioEngine.isSamplePlaybackClockEstablished {
+                SectionTriggerDiagnostics.log(String(
                     format: "timeline jump restart %.6fs -> %.6fs",
                     previousTime,
                     newTime

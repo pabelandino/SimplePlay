@@ -196,6 +196,7 @@ struct ProjectPersistenceService: Sendable {
                     pan: track.pan,
                     volume: track.volume,
                     pitchSemitones: track.pitchSemitones,
+                    isPitchEnabled: track.isPitchEnabled,
                     clips: persistedClips
                 )
             )
@@ -236,6 +237,7 @@ struct ProjectPersistenceService: Sendable {
                 pan: track.pan,
                 volume: track.volume,
                 pitchSemitones: track.pitchSemitones,
+                isPitchEnabled: track.isPitchEnabled,
                 clips: track.clips.map { clip in
                     AudioClip(
                         id: clip.id,
@@ -274,7 +276,8 @@ struct ProjectPersistenceService: Sendable {
 
     private func migrateLegacyGroupPitch(into tracks: inout [AudioTrack], groups: [TrackGroup]) {
         for index in tracks.indices {
-            guard abs(tracks[index].pitchSemitones) < 0.001 else { continue }
+            guard !tracks[index].isPitchEnabled,
+                  abs(tracks[index].pitchSemitones) < 0.001 else { continue }
 
             let groupIndices = Set(tracks[index].clips.map(\.groupIndex))
             guard groupIndices.count == 1,
@@ -286,6 +289,7 @@ struct ProjectPersistenceService: Sendable {
             guard abs(legacyPitch) > 0.001 else { continue }
 
             tracks[index].pitchSemitones = PitchShiftSettings.clampSemitones(legacyPitch)
+            tracks[index].isPitchEnabled = true
         }
     }
 }

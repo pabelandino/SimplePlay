@@ -10,7 +10,12 @@ struct TrackLaneView: View {
     @Bindable var viewModel: WorkspaceViewModel
     let contentWidth: CGFloat
     var rowHeight: CGFloat = DAWTheme.trackRowHeight
+    var isTimelineScrolling = false
     @State private var dragAnchorTimes: [UUID: TimeInterval] = [:]
+
+    private var clipHeight: CGFloat {
+        max(24, rowHeight - 16)
+    }
 
     private var liveTrack: AudioTrack {
         viewModel.project.tracks.first(where: { $0.id == track.id }) ?? track
@@ -30,7 +35,9 @@ struct TrackLaneView: View {
                             trackID: track.id,
                             trackColor: displayColor,
                             pixelsPerSecond: viewModel.pixelsPerSecond,
-                            isSelected: viewModel.isClipSelected(clip.id)
+                            isSelected: viewModel.isClipSelected(clip.id),
+                            clipHeight: clipHeight,
+                            isTimelineScrolling: isTimelineScrolling
                         )
                         .offset(x: CGFloat(clip.startTime) * viewModel.pixelsPerSecond)
                         .modifier(ClipDragInteractionModifier(

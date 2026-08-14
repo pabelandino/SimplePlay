@@ -21,6 +21,12 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
     var nextSectionID: UUID?
     /// When switching sections mid-playback, wait for the current section to finish first.
     var waitForCurrentToFinish: Bool
+    /// Lyriora lyric document linked to this section marker.
+    var lyricDocumentID: UUID?
+    /// Lyriora slide shown when this section is triggered.
+    var lyricSlideID: UUID?
+    /// Cached slide order for display when Lyriora is offline.
+    var lyricSlideOrder: Int?
 
     init(
         id: UUID = UUID(),
@@ -33,7 +39,10 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
         midiUsesControlChange: Bool = false,
         playbackMode: SectionPlaybackMode = .continueTimeline,
         nextSectionID: UUID? = nil,
-        waitForCurrentToFinish: Bool = true
+        waitForCurrentToFinish: Bool = true,
+        lyricDocumentID: UUID? = nil,
+        lyricSlideID: UUID? = nil,
+        lyricSlideOrder: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -46,12 +55,16 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
         self.playbackMode = playbackMode
         self.nextSectionID = nextSectionID
         self.waitForCurrentToFinish = waitForCurrentToFinish
+        self.lyricDocumentID = lyricDocumentID
+        self.lyricSlideID = lyricSlideID
+        self.lyricSlideOrder = lyricSlideOrder
     }
 
     enum CodingKeys: String, CodingKey {
         case id, name, startTime, endTime, colorHex
         case midiNote, midiChannel, midiUsesControlChange, playbackMode
         case nextSectionID, waitForCurrentToFinish
+        case lyricDocumentID, lyricSlideID, lyricSlideOrder
     }
 
     init(from decoder: Decoder) throws {
@@ -66,6 +79,9 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
         playbackMode = try container.decode(SectionPlaybackMode.self, forKey: .playbackMode)
         nextSectionID = try container.decodeIfPresent(UUID.self, forKey: .nextSectionID)
         waitForCurrentToFinish = try container.decodeIfPresent(Bool.self, forKey: .waitForCurrentToFinish) ?? true
+        lyricDocumentID = try container.decodeIfPresent(UUID.self, forKey: .lyricDocumentID)
+        lyricSlideID = try container.decodeIfPresent(UUID.self, forKey: .lyricSlideID)
+        lyricSlideOrder = try container.decodeIfPresent(Int.self, forKey: .lyricSlideOrder)
 
         if let storedColor = try container.decodeIfPresent(String.self, forKey: .colorHex) {
             colorHex = storedColor
@@ -82,5 +98,9 @@ struct ArrangementSection: Identifiable, Codable, Sendable, Equatable {
 
     func contains(time: TimeInterval) -> Bool {
         time >= startTime && time < endTime
+    }
+
+    var hasLyricSlideLink: Bool {
+        lyricDocumentID != nil && lyricSlideID != nil
     }
 }
