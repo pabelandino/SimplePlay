@@ -64,6 +64,22 @@ struct AudioSettings: Codable, Sendable, Equatable {
         self.outputChannelPair = outputChannelPair
         self.sampleRate = sampleRate
     }
+
+    var usesCustomOutputDevice: Bool {
+        if let deviceID = outputDeviceID, deviceID != 0 {
+            return true
+        }
+        if let portUID = outputPortUID, !portUID.isEmpty {
+            return true
+        }
+        return false
+    }
+
+    mutating func resetOutputToSystemDefault() {
+        outputDeviceID = nil
+        outputPortUID = nil
+        outputDeviceName = AudioOutputDevice.systemDefault.name
+    }
 }
 
 struct AudioOutputDevice: Identifiable, Hashable, Sendable {

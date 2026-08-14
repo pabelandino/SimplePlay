@@ -44,6 +44,11 @@ enum AudioDeviceService {
         return nil
     }
 
+    static func isAvailable(_ settings: AudioSettings, in devices: [AudioOutputDevice]) -> Bool {
+        guard settings.usesCustomOutputDevice else { return true }
+        return device(matching: settings, in: devices) != nil
+    }
+
     static func channelPairOptions(for device: AudioOutputDevice) -> [Int] {
 #if os(macOS)
         guard device.outputChannelCount > 2 else { return [0] }

@@ -1066,6 +1066,10 @@ final class WorkspaceViewModel {
         arrangementEngine.configure(sections: project.sections)
         arrangementEngine.seek(to: playheadTime)
 
+#if !os(macOS)
+        refreshAudioDevices()
+        reconcileStoredOutputDevice()
+#endif
         if configureAudioEngine() {
             reconcileProjectSampleRateWithLoadedClips()
             applyAudioSettings()
