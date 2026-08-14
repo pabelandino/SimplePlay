@@ -11,11 +11,14 @@ struct WaveformClipView: View {
     let trackColor: Color
     let pixelsPerSecond: CGFloat
     let isSelected: Bool
+    var clipHeight: CGFloat = DAWTheme.trackRowHeight - 16
+    var isTimelineScrolling = false
 
     @State private var peaks: [Float] = []
     @State private var isLoading = false
     @State private var loadedLOD = 0
     @State private var loadGeneration = 0
+    @State private var deferredLOD: Int?
 
     private var clipWidth: CGFloat {
         max(48, CGFloat(clip.duration) * pixelsPerSecond)
@@ -35,6 +38,7 @@ struct WaveformClipView: View {
                 }
 
             WaveformEnvelopeView(peaks: peaks, color: trackColor, isLoading: isLoading)
+                .equatable()
                 .padding(.horizontal, 4)
                 .padding(.vertical, 6)
 
@@ -46,7 +50,7 @@ struct WaveformClipView: View {
                 .padding(.top, 4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(width: clipWidth, height: DAWTheme.trackRowHeight - 16)
+        .frame(width: clipWidth, height: clipHeight)
         .id(clip.id)
         .task(id: clip.fileURL) {
             startLoadGeneration()
@@ -57,11 +61,24 @@ struct WaveformClipView: View {
         }
         .onChange(of: requiredLOD) { _, newLOD in
             guard newLOD > loadedLOD else { return }
-            loadGeneration += 1
-            let generation = loadGeneration
-            Task {
-                await fetchPeaks(lod: newLOD, reportToMonitor: false, expectedGeneration: generation)
+            if isTimelineScrolling {
+                deferredLOD = max(deferredLOD ?? 0, newLOD)
+                return
             }
+            scheduleLODUpgrade(to: newLOD)
+        }
+        .onChange(of: isTimelineScrolling) { _, isScrolling in
+            guard !isScrolling, let pendingLOD = deferredLOD, pendingLOD > loadedLOD else { return }
+            deferredLOD = nil
+            scheduleLODUpgrade(to: pendingLOD)
+        }
+    }
+
+    private func scheduleLODUpgrade(to newLOD: Int) {
+        loadGeneration += 1
+        let generation = loadGeneration
+        Task {
+            await fetchPeaks(lod: newLOD, reportToMonitor: false, expectedGeneration: generation)
         }
     }
 
@@ -130,10 +147,16 @@ struct WaveformClipView: View {
     }
 }
 
-struct WaveformEnvelopeView: View {
+struct WaveformEnvelopeView: View, Equatable {
     let peaks: [Float]
     let color: Color
     let isLoading: Bool
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.peaks == rhs.peaks
+            && lhs.isLoading == rhs.isLoading
+            && lhs.color == rhs.color
+    }
 
     var body: some View {
         GeometryReader { proxy in

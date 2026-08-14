@@ -18,8 +18,10 @@ struct AudioTrack: Identifiable, Codable, Sendable, Equatable {
     var isLocked: Bool
     var pan: Double
     var volume: Double
-    /// Pitch offset in semitones (-5…+5). 0 = original audio.
+    /// Pitch offset in semitones (-5…+5). Only applied when `isPitchEnabled` is true.
     var pitchSemitones: Double
+    /// When false, audio bypasses pitch processing entirely (default for new tracks).
+    var isPitchEnabled: Bool
     var clips: [AudioClip]
 
     init(
@@ -34,6 +36,7 @@ struct AudioTrack: Identifiable, Codable, Sendable, Equatable {
         pan: Double = 0,
         volume: Double = 1,
         pitchSemitones: Double = 0,
+        isPitchEnabled: Bool = false,
         clips: [AudioClip] = []
     ) {
         self.id = id
@@ -47,6 +50,7 @@ struct AudioTrack: Identifiable, Codable, Sendable, Equatable {
         self.pan = pan
         self.volume = volume
         self.pitchSemitones = pitchSemitones
+        self.isPitchEnabled = isPitchEnabled
         self.clips = clips
     }
 

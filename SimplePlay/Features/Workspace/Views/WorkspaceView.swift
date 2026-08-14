@@ -8,8 +8,14 @@ import UniformTypeIdentifiers
 
 struct WorkspaceView: View {
     @Bindable var viewModel: WorkspaceViewModel
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        workspaceRoot
+            .modifier(WorkspaceLifecycleModifier(viewModel: viewModel, scenePhase: scenePhase))
+    }
+
+    private var workspaceRoot: some View {
         VStack(spacing: 0) {
             TopToolbarView(viewModel: viewModel)
             MIDIMappingBarView(viewModel: viewModel)
@@ -154,6 +160,21 @@ struct WorkspaceView: View {
             MixerPanelView(viewModel: viewModel)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
         }
+    }
+}
+
+private struct WorkspaceLifecycleModifier: ViewModifier {
+    let viewModel: WorkspaceViewModel
+    let scenePhase: ScenePhase
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scenePhase) { _, phase in
+                viewModel.setApplicationSceneActive(phase == .active)
+            }
+            .onChange(of: viewModel.showMixerPanel) { _, _ in
+                viewModel.syncMeterMonitoring()
+            }
     }
 }
 

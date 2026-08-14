@@ -10,11 +10,11 @@ import UniformTypeIdentifiers
 struct TimelineWorkspacePanel: View {
     @Bindable var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var scrollCoordinator = TimelineScrollCoordinator()
     @State private var isDropTargeted = false
     @State private var magnificationAnchor: Double?
     @State private var zoomAnchorTime: TimeInterval?
     @State private var zoomAnchorViewportX: CGFloat?
-    @State private var horizontalScrollOffset: CGFloat = 0
     @State private var timelineScrollPosition = ScrollPosition(x: 0)
 
     private var isCompact: Bool {
@@ -27,10 +27,6 @@ struct TimelineWorkspacePanel: View {
 
     private var trackRowHeight: CGFloat {
         isCompact ? DAWTheme.compactTrackRowHeight : DAWTheme.trackRowHeight
-    }
-
-    private var timelineTopInset: CGFloat {
-        DAWTheme.rulerHeight + DAWTheme.markerLaneHeight
     }
 
     private var laneAreaHeight: CGFloat {
@@ -48,7 +44,12 @@ struct TimelineWorkspacePanel: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                pinnedTimelineHeaders
+                PinnedTimelineHeaderStrip(
+                    viewModel: viewModel,
+                    scrollCoordinator: scrollCoordinator,
+                    trackHeaderWidth: trackHeaderWidth,
+                    isCompact: isCompact
+                )
 
                 ScrollView(.vertical, showsIndicators: true) {
                     HStack(alignment: .top, spacing: 0) {
@@ -69,54 +70,6 @@ struct TimelineWorkspacePanel: View {
         }
         .background(DAWTheme.background)
     }
-
-    // MARK: - Pinned headers (Time + Sections stay visible while tracks scroll)
-
-    private var pinnedTimelineHeaders: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                timeHeaderCell
-                mirroredHorizontalTimeline(height: DAWTheme.rulerHeight) {
-                    TimelineRulerView(
-                        duration: viewModel.project.duration,
-                        pixelsPerSecond: viewModel.pixelsPerSecond,
-                        playheadTime: viewModel.playheadTime,
-                        onSeek: { time in
-                            viewModel.seek(to: time)
-                        }
-                    )
-                    .frame(width: viewModel.timelineContentWidth, height: DAWTheme.rulerHeight)
-                }
-            }
-
-            HStack(spacing: 0) {
-                markerHeaderRow
-                masterSectionLaneScroll
-            }
-        }
-        .background(DAWTheme.surface)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(DAWTheme.border).frame(height: 1)
-        }
-    }
-
-    private var timeHeaderCell: some View {
-        Rectangle()
-            .fill(DAWTheme.surfaceElevated)
-            .frame(width: trackHeaderWidth, height: DAWTheme.rulerHeight)
-            .overlay(alignment: .topLeading) {
-                Text("Time")
-                    .font(.caption2)
-                    .foregroundStyle(DAWTheme.textSecondary)
-                    .padding(.leading, isCompact ? 8 : 12)
-                    .padding(.top, 8)
-            }
-            .overlay(alignment: .trailing) {
-                Rectangle().fill(DAWTheme.border).frame(width: 1)
-            }
-    }
-
-    // MARK: - Track headers (scroll vertically with lanes)
 
     private var trackHeaderColumnTracksOnly: some View {
         VStack(spacing: 0) {
@@ -151,6 +104,176 @@ struct TimelineWorkspacePanel: View {
         .overlay(alignment: .trailing) {
             Rectangle().fill(DAWTheme.border).frame(width: 1)
         }
+    }
+
+    private var masterTimelineHorizontalScroll: some View {
+        TimelineTrackScrollArea(
+            viewModel: viewModel,
+            scrollCoordinator: scrollCoordinator,
+            timelineScrollPosition: $timelineScrollPosition,
+            trackRowHeight: trackRowHeight,
+            laneAreaHeight: laneAreaHeight,
+            isDropTargeted: $isDropTargeted,
+            timelineDropOverlayMessage: timelineDropOverlayMessage,
+            onZoomChange: { oldZoom, newZoom in
+                guard oldZoom != newZoom, magnificationAnchor == nil else { return }
+                preserveTimelineScrollAfterZoom(
+                    from: oldZoom,
+                    focalViewportX: viewModel.timelineViewportWidth * 0.5
+                )
+            },
+            onScrollRequest: { request in
+                guard let request else { return }
+                applyTimelineScroll(offsetX: request.offsetX)
+            },
+            onPlayheadFollow: followPlayheadIfNeeded
+        )
+        .simultaneousGesture(magnificationGesture)
+    }
+
+    private func followPlayheadIfNeeded() {
+        guard viewModel.isPlaying, !scrollCoordinator.isScrolling else { return }
+
+        let playheadX = CGFloat(viewModel.playheadTime) * viewModel.pixelsPerSecond
+        let viewport = max(1, viewModel.timelineViewportWidth)
+        let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
+        let margin = viewport * 0.12
+        let visibleStart = scrollCoordinator.horizontalOffset + margin
+        let visibleEnd = scrollCoordinator.horizontalOffset + viewport - margin
+
+        guard playheadX < visibleStart || playheadX > visibleEnd else { return }
+
+        let targetX = min(maxOffset, max(0, playheadX - viewport * 0.35))
+        guard abs(targetX - scrollCoordinator.horizontalOffset) > 1 else { return }
+
+        applyTimelineScroll(offsetX: targetX)
+    }
+
+    private func applyTimelineScroll(offsetX: CGFloat) {
+        let viewport = max(1, viewModel.timelineViewportWidth)
+        let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
+        let clampedOffset = min(max(0, offsetX), maxOffset)
+
+        scrollCoordinator.syncHorizontalOffset(clampedOffset)
+        timelineScrollPosition = ScrollPosition(x: clampedOffset)
+        viewModel.flushTimelineVisibleOffset(clampedOffset)
+    }
+
+    private func preserveTimelineScrollAfterZoom(from oldZoom: Double, focalViewportX: CGFloat) {
+        if viewModel.zoom <= viewModel.minimumTimelineZoom + 0.001 {
+            applyTimelineScroll(offsetX: 0)
+            return
+        }
+
+        let oldPixelsPerSecond = DAWTheme.pixelsPerSecond * oldZoom
+        let anchorTime = TimeInterval(
+            (scrollCoordinator.horizontalOffset + focalViewportX) / oldPixelsPerSecond
+        )
+        applyTimelineScrollPreservingTime(anchorTime, focalViewportX: focalViewportX)
+    }
+
+    private func applyTimelineScrollPreservingTime(_ anchorTime: TimeInterval, focalViewportX: CGFloat) {
+        if viewModel.zoom <= viewModel.minimumTimelineZoom + 0.001 {
+            applyTimelineScroll(offsetX: 0)
+            return
+        }
+
+        let targetOffset = CGFloat(anchorTime) * viewModel.pixelsPerSecond - focalViewportX
+        applyTimelineScroll(offsetX: targetOffset)
+    }
+
+    private var magnificationGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                if magnificationAnchor == nil {
+                    magnificationAnchor = viewModel.zoom
+                    zoomAnchorViewportX = value.startLocation.x
+                    let oldPixelsPerSecond = DAWTheme.pixelsPerSecond * viewModel.zoom
+                    zoomAnchorTime = TimeInterval(
+                        (scrollCoordinator.horizontalOffset + value.startLocation.x) / oldPixelsPerSecond
+                    )
+                }
+
+                viewModel.setZoom((magnificationAnchor ?? 1) * value.magnification)
+
+                if let anchorTime = zoomAnchorTime {
+                    applyTimelineScrollPreservingTime(
+                        anchorTime,
+                        focalViewportX: zoomAnchorViewportX ?? value.startLocation.x
+                    )
+                }
+            }
+            .onEnded { _ in
+                magnificationAnchor = nil
+                zoomAnchorTime = nil
+                zoomAnchorViewportX = nil
+            }
+    }
+}
+
+// MARK: - Pinned ruler + sections (only subviews that read scroll offset)
+
+private struct PinnedTimelineHeaderStrip: View {
+    @Bindable var viewModel: WorkspaceViewModel
+    var scrollCoordinator: TimelineScrollCoordinator
+    let trackHeaderWidth: CGFloat
+    let isCompact: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                timeHeaderCell
+                TimelineHorizontalMirror(
+                    offset: scrollCoordinator.horizontalOffset,
+                    contentWidth: viewModel.timelineContentWidth,
+                    height: DAWTheme.rulerHeight
+                ) {
+                    TimelineRulerView(
+                        duration: viewModel.project.duration,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        playheadTime: viewModel.playheadTime,
+                        onSeek: { time in
+                            viewModel.seek(to: time)
+                        }
+                    )
+                    .frame(width: viewModel.timelineContentWidth, height: DAWTheme.rulerHeight)
+                }
+            }
+
+            HStack(spacing: 0) {
+                markerHeaderRow
+                TimelineHorizontalMirror(
+                    offset: scrollCoordinator.horizontalOffset,
+                    contentWidth: viewModel.timelineContentWidth,
+                    height: DAWTheme.markerLaneHeight
+                ) {
+                    SectionMarkerLaneView(
+                        viewModel: viewModel,
+                        contentWidth: viewModel.timelineContentWidth
+                    )
+                }
+            }
+        }
+        .background(DAWTheme.surface)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(DAWTheme.border).frame(height: 1)
+        }
+    }
+
+    private var timeHeaderCell: some View {
+        Rectangle()
+            .fill(DAWTheme.surfaceElevated)
+            .frame(width: trackHeaderWidth, height: DAWTheme.rulerHeight)
+            .overlay(alignment: .topLeading) {
+                Text("Time")
+                    .font(.caption2)
+                    .foregroundStyle(DAWTheme.textSecondary)
+                    .padding(.leading, isCompact ? 8 : 12)
+                    .padding(.top, 8)
+            }
+            .overlay(alignment: .trailing) {
+                Rectangle().fill(DAWTheme.border).frame(width: 1)
+            }
     }
 
     private var markerHeaderRow: some View {
@@ -194,25 +317,80 @@ struct TimelineWorkspacePanel: View {
             Rectangle().fill(DAWTheme.border).frame(width: 1)
         }
     }
+}
 
-    private var masterSectionLaneScroll: some View {
-        mirroredHorizontalTimeline(height: DAWTheme.markerLaneHeight) {
-            SectionMarkerLaneView(
-                viewModel: viewModel,
-                contentWidth: viewModel.timelineContentWidth
-            )
-        }
-    }
+// MARK: - Horizontal track scroll (does not read scroll offset in body)
 
-    // MARK: - Master horizontal scroll (tracks + playhead)
+private struct TimelineTrackScrollArea: View {
+    @Bindable var viewModel: WorkspaceViewModel
+    var scrollCoordinator: TimelineScrollCoordinator
+    @Binding var timelineScrollPosition: ScrollPosition
+    let trackRowHeight: CGFloat
+    let laneAreaHeight: CGFloat
+    @Binding var isDropTargeted: Bool
+    let timelineDropOverlayMessage: String
+    let onZoomChange: (Double, Double) -> Void
+    let onScrollRequest: (WorkspaceViewModel.TimelineScrollRequest?) -> Void
+    let onPlayheadFollow: () -> Void
 
-    private var masterTimelineHorizontalScroll: some View {
+    var body: some View {
         ScrollView(.horizontal, showsIndicators: true) {
             ZStack(alignment: .topLeading) {
-                trackLaneBackground
-                trackLanes
-                sectionEdgeGuides
-                playhead
+                TimelineTrackLaneBackground(
+                    trackCount: viewModel.project.tracks.count,
+                    rowHeight: trackRowHeight,
+                    pixelsPerSecond: viewModel.pixelsPerSecond,
+                    snapInterval: viewModel.project.snapInterval,
+                    isSnapEnabled: viewModel.project.isSnapEnabled,
+                    onSeek: { time in viewModel.seek(to: time) }
+                )
+                .equatable()
+
+                VStack(spacing: 0) {
+                    ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
+                        TrackLaneView(
+                            track: track,
+                            viewModel: viewModel,
+                            contentWidth: viewModel.timelineContentWidth,
+                            rowHeight: trackRowHeight,
+                            isTimelineScrolling: scrollCoordinator.isScrolling
+                        )
+                        .offset(y: viewModel.trackDragVisualOffset(for: track.id))
+                        .overlay(alignment: .top) {
+                            if viewModel.showsTrackDropIndicator(at: index) {
+                                Rectangle()
+                                    .fill(track.color)
+                                    .frame(height: 2)
+                            }
+                        }
+                        .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
+                        .frame(height: trackRowHeight)
+                    }
+                }
+                .frame(width: viewModel.timelineContentWidth, alignment: .leading)
+
+                if let guides = viewModel.activeSectionEdgeGuides {
+                    SectionEdgeGuideOverlay(
+                        startTime: guides.startTime,
+                        endTime: guides.endTime,
+                        showStartEdge: guides.showStartEdge,
+                        showEndEdge: guides.showEndEdge,
+                        color: Color(hex: guides.colorHex) ?? DAWTheme.accent,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        height: laneAreaHeight
+                    )
+                    .zIndex(40)
+                    .allowsHitTesting(false)
+                }
+
+                PlayheadView(
+                    playheadTime: viewModel.playheadTime,
+                    pixelsPerSecond: viewModel.pixelsPerSecond,
+                    height: laneAreaHeight
+                ) { time in
+                    viewModel.seek(to: time)
+                }
+                .zIndex(100)
 
                 if viewModel.project.tracks.isEmpty {
                     TimelineEmptyDropHint()
@@ -229,131 +407,58 @@ struct TimelineWorkspacePanel: View {
         }
         .scrollPosition($timelineScrollPosition)
         .scrollDisabled(viewModel.isSectionResizeActive)
-        .simultaneousGesture(magnificationGesture)
         .onScrollGeometryChange(for: CGFloat.self) { geometry in
             geometry.contentOffset.x + geometry.contentInsets.leading
         } action: { _, newValue in
-            horizontalScrollOffset = max(0, newValue)
-            viewModel.updateTimelineVisibleOffset(horizontalScrollOffset)
+            scrollCoordinator.syncHorizontalOffset(max(0, newValue))
+        }
+        .onScrollPhaseChange { _, newPhase in
+            let isScrolling = newPhase != .idle
+            scrollCoordinator.setScrolling(isScrolling)
+            viewModel.setTimelineScrolling(isScrolling)
+            if newPhase == .idle {
+                viewModel.flushTimelineVisibleOffset(scrollCoordinator.horizontalOffset)
+            }
         }
         .onChange(of: viewModel.zoom) { oldZoom, newZoom in
-            guard oldZoom != newZoom, magnificationAnchor == nil else { return }
-            preserveTimelineScrollAfterZoom(from: oldZoom, focalViewportX: viewModel.timelineViewportWidth * 0.5)
+            onZoomChange(oldZoom, newZoom)
         }
         .onChange(of: viewModel.timelineScrollRequest) { _, request in
-            guard let request else { return }
-            applyTimelineScroll(offsetX: request.offsetX)
+            onScrollRequest(request)
         }
         .onChange(of: viewModel.playheadTime) { _, _ in
-            followPlayheadIfNeeded()
+            onPlayheadFollow()
         }
         .onChange(of: viewModel.isPlaying) { _, isPlaying in
             if isPlaying {
-                followPlayheadIfNeeded()
+                onPlayheadFollow()
             }
         }
     }
+}
 
-    @ViewBuilder
-    private func mirroredHorizontalTimeline<Content: View>(
-        height: CGFloat,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        let mirroredContent = content()
+private struct TimelineTrackLaneBackground: View, Equatable {
+    let trackCount: Int
+    let rowHeight: CGFloat
+    let pixelsPerSecond: CGFloat
+    let snapInterval: TimeInterval
+    let isSnapEnabled: Bool
+    let onSeek: (TimeInterval) -> Void
 
-        GeometryReader { geometry in
-            mirroredContent
-                .frame(width: viewModel.timelineContentWidth, alignment: .leading)
-                .offset(x: -horizontalScrollOffset)
-                .frame(width: geometry.size.width, alignment: .leading)
-                .clipped()
-        }
-        .frame(height: height)
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.trackCount == rhs.trackCount
+            && lhs.rowHeight == rhs.rowHeight
+            && lhs.pixelsPerSecond == rhs.pixelsPerSecond
+            && lhs.snapInterval == rhs.snapInterval
+            && lhs.isSnapEnabled == rhs.isSnapEnabled
     }
 
-    private func followPlayheadIfNeeded() {
-        guard viewModel.isPlaying else { return }
-
-        let playheadX = CGFloat(viewModel.playheadTime) * viewModel.pixelsPerSecond
-        let viewport = max(1, viewModel.timelineViewportWidth)
-        let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
-        let margin = viewport * 0.12
-        let visibleStart = horizontalScrollOffset + margin
-        let visibleEnd = horizontalScrollOffset + viewport - margin
-
-        guard playheadX < visibleStart || playheadX > visibleEnd else { return }
-
-        let targetX = min(maxOffset, max(0, playheadX - viewport * 0.35))
-        guard abs(targetX - horizontalScrollOffset) > 1 else { return }
-
-        applyTimelineScroll(offsetX: targetX)
-    }
-
-    private func applyTimelineScroll(offsetX: CGFloat) {
-        let viewport = max(1, viewModel.timelineViewportWidth)
-        let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
-        let clampedOffset = min(max(0, offsetX), maxOffset)
-
-        horizontalScrollOffset = clampedOffset
-        timelineScrollPosition = ScrollPosition(x: clampedOffset)
-        viewModel.updateTimelineVisibleOffset(clampedOffset)
-    }
-
-    private func preserveTimelineScrollAfterZoom(from oldZoom: Double, focalViewportX: CGFloat) {
-        if viewModel.zoom <= viewModel.minimumTimelineZoom + 0.001 {
-            applyTimelineScroll(offsetX: 0)
-            return
-        }
-
-        let oldPixelsPerSecond = DAWTheme.pixelsPerSecond * oldZoom
-        let anchorTime = TimeInterval((horizontalScrollOffset + focalViewportX) / oldPixelsPerSecond)
-        applyTimelineScrollPreservingTime(anchorTime, focalViewportX: focalViewportX)
-    }
-
-    private func applyTimelineScrollPreservingTime(_ anchorTime: TimeInterval, focalViewportX: CGFloat) {
-        if viewModel.zoom <= viewModel.minimumTimelineZoom + 0.001 {
-            applyTimelineScroll(offsetX: 0)
-            return
-        }
-
-        let targetOffset = CGFloat(anchorTime) * viewModel.pixelsPerSecond - focalViewportX
-        applyTimelineScroll(offsetX: targetOffset)
-    }
-
-    private var magnificationGesture: some Gesture {
-        MagnifyGesture()
-            .onChanged { value in
-                if magnificationAnchor == nil {
-                    magnificationAnchor = viewModel.zoom
-                    zoomAnchorViewportX = value.startLocation.x
-                    let oldPixelsPerSecond = DAWTheme.pixelsPerSecond * viewModel.zoom
-                    zoomAnchorTime = TimeInterval(
-                        (horizontalScrollOffset + value.startLocation.x) / oldPixelsPerSecond
-                    )
-                }
-
-                viewModel.setZoom((magnificationAnchor ?? 1) * value.magnification)
-
-                if let anchorTime = zoomAnchorTime {
-                    applyTimelineScrollPreservingTime(
-                        anchorTime,
-                        focalViewportX: zoomAnchorViewportX ?? value.startLocation.x
-                    )
-                }
-            }
-            .onEnded { _ in
-                magnificationAnchor = nil
-                zoomAnchorTime = nil
-                zoomAnchorViewportX = nil
-            }
-    }
-
-    private var trackLaneBackground: some View {
+    var body: some View {
         VStack(spacing: 0) {
-            ForEach(viewModel.project.tracks) { _ in
+            ForEach(0..<trackCount, id: \.self) { _ in
                 Rectangle()
                     .fill(DAWTheme.background)
-                    .frame(height: trackRowHeight)
+                    .frame(height: rowHeight)
                     .overlay(alignment: .bottom) {
                         Rectangle().fill(DAWTheme.border).frame(height: 1)
                     }
@@ -363,77 +468,19 @@ struct TimelineWorkspacePanel: View {
         .overlay {
             Color.clear
                 .contentShape(Rectangle())
-                .gesture(timelineSeekGesture)
+                .gesture(
+                    SpatialTapGesture()
+                        .onEnded { value in
+                            let rawTime = TimeInterval(max(0, value.location.x) / pixelsPerSecond)
+                            let snapped = SnapGrid.snap(
+                                rawTime,
+                                interval: snapInterval,
+                                enabled: isSnapEnabled
+                            )
+                            onSeek(snapped)
+                        }
+                )
         }
-    }
-
-    private var timelineSeekGesture: some Gesture {
-        SpatialTapGesture()
-            .onEnded { value in
-                seekToTimelinePosition(value.location.x)
-            }
-    }
-
-    private func seekToTimelinePosition(_ x: CGFloat) {
-        let rawTime = TimeInterval(max(0, x) / viewModel.pixelsPerSecond)
-        let snapped = SnapGrid.snap(
-            rawTime,
-            interval: viewModel.project.snapInterval,
-            enabled: viewModel.project.isSnapEnabled
-        )
-        viewModel.seek(to: snapped)
-    }
-
-    private var trackLanes: some View {
-        ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
-            TrackLaneView(
-                track: track,
-                viewModel: viewModel,
-                contentWidth: viewModel.timelineContentWidth,
-                rowHeight: trackRowHeight
-            )
-            .offset(
-                y: CGFloat(index) * trackRowHeight
-                    + viewModel.trackDragVisualOffset(for: track.id)
-            )
-            .overlay(alignment: .top) {
-                if viewModel.showsTrackDropIndicator(at: index) {
-                    Rectangle()
-                        .fill(track.color)
-                        .frame(height: 2)
-                }
-            }
-            .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
-            .frame(width: viewModel.timelineContentWidth, height: trackRowHeight, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private var sectionEdgeGuides: some View {
-        if let guides = viewModel.activeSectionEdgeGuides {
-            SectionEdgeGuideOverlay(
-                startTime: guides.startTime,
-                endTime: guides.endTime,
-                showStartEdge: guides.showStartEdge,
-                showEndEdge: guides.showEndEdge,
-                color: Color(hex: guides.colorHex) ?? DAWTheme.accent,
-                pixelsPerSecond: viewModel.pixelsPerSecond,
-                height: laneAreaHeight
-            )
-            .zIndex(40)
-            .allowsHitTesting(false)
-        }
-    }
-
-    private var playhead: some View {
-        PlayheadView(
-            playheadTime: viewModel.playheadTime,
-            pixelsPerSecond: viewModel.pixelsPerSecond,
-            height: laneAreaHeight
-        ) { time in
-            viewModel.seek(to: time)
-        }
-        .zIndex(100)
     }
 }
 

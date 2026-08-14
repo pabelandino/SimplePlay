@@ -6,9 +6,11 @@
 import AVFoundation
 import Foundation
 import Observation
+import os
 
 #if os(macOS)
 import CoreAudio
+import AudioUnit
 #endif
 
 enum AudioEngineError: LocalizedError {
@@ -39,7 +41,54 @@ private struct ScheduledClip {
     let trackID: UUID
     let file: AVAudioFile
     let player: AVAudioPlayerNode
-    let timePitch: AVAudioUnitTimePitch
+    let timePitch: AVAudioUnitTimePitch?
+}
+
+/// Thread-safe peak accumulator fed from audio render taps; flushed on the main actor.
+private final class MeterPeakBuffer: @unchecked Sendable {
+    private let lock = OSAllocatedUnfairLock()
+
+    private var trackPeaks: [UUID: Float] = [:]
+    private var groupPeaks: [UUID: Float] = [:]
+    private var masterPeak: Float = 0
+
+    func recordTrack(_ trackID: UUID, peak: Float) {
+        lock.withLock {
+            trackPeaks[trackID] = max(trackPeaks[trackID] ?? 0, peak)
+        }
+    }
+
+    func recordGroup(_ groupID: UUID, peak: Float) {
+        lock.withLock {
+            groupPeaks[groupID] = max(groupPeaks[groupID] ?? 0, peak)
+        }
+    }
+
+    func recordMaster(_ peak: Float) {
+        lock.withLock {
+            masterPeak = max(masterPeak, peak)
+        }
+    }
+
+    func drain() -> (tracks: [UUID: Float], groups: [UUID: Float], master: Float) {
+        lock.withLock {
+            let tracks = trackPeaks
+            let groups = groupPeaks
+            let master = masterPeak
+            trackPeaks.removeAll()
+            groupPeaks.removeAll()
+            masterPeak = 0
+            return (tracks, groups, master)
+        }
+    }
+
+    func reset() {
+        lock.withLock {
+            trackPeaks.removeAll()
+            groupPeaks.removeAll()
+            masterPeak = 0
+        }
+    }
 }
 
 /// Multi-track audio playback engine built on AVAudioEngine.
@@ -69,26 +118,22 @@ final class AudioEngineService {
         scheduledClips.values.contains { $0.player.isPlaying }
     }
 
-    /// Timeline position derived from the audio engine render clock (stays in sync under CPU load).
-    func currentTimelineTime() -> TimeInterval? {
-        guard playbackReferenceHostTime != nil else { return nil }
-
-        if let sampleTimeline = timelineTimeFromPlayingPlayers() {
-            return sampleTimeline
-        }
-
-        guard let reference = playbackReferenceHostTime else { return nil }
-        let now = engine.outputNode.lastRenderTime?.hostTime ?? mach_absolute_time()
-        guard now >= reference else { return playbackStartTime }
-        return playbackStartTime + Self.secondsBetweenHostTimes(from: reference, to: now)
+    /// True once player sample clocks are reporting (audible playback has started rendering).
+    var isSamplePlaybackClockEstablished: Bool {
+        playbackReferencePlayerSample != nil
     }
 
-    /// Sample-accurate timeline from player render clocks (matches audible playback on iOS).
-    private func timelineTimeFromPlayingPlayers() -> TimeInterval? {
+    /// Timeline position derived from the audio engine render clock (stays in sync under CPU load).
+    func currentTimelineTime() -> TimeInterval? {
+        platformPlayback.currentTimelineTime(in: self)
+    }
+
+    /// Sample-accurate timeline from player render clocks.
+    private func timelineTimeFromPlayingPlayers(preferMinimumElapsed: Bool = false) -> TimeInterval? {
         capturePlaybackSampleReferenceIfNeeded()
         guard let referenceSample = playbackReferencePlayerSample else { return nil }
 
-        var maxElapsed: TimeInterval?
+        var aggregated: TimeInterval?
         for scheduled in scheduledClips.values {
             guard scheduled.player.isPlaying,
                   let nodeTime = scheduled.player.lastRenderTime,
@@ -98,11 +143,15 @@ final class AudioEngineService {
             let sampleDelta = nodeTime.sampleTime - referenceSample
             guard sampleDelta >= 0 else { continue }
             let elapsed = Double(sampleDelta) / nodeTime.sampleRate
-            maxElapsed = max(maxElapsed ?? elapsed, elapsed)
+            if preferMinimumElapsed {
+                aggregated = min(aggregated ?? elapsed, elapsed)
+            } else {
+                aggregated = max(aggregated ?? elapsed, elapsed)
+            }
         }
 
-        guard let maxElapsed else { return nil }
-        return playbackStartTime + maxElapsed
+        guard let aggregated else { return nil }
+        return playbackStartTime + aggregated
     }
 
     private func capturePlaybackSampleReferenceIfNeeded() {
@@ -123,6 +172,11 @@ final class AudioEngineService {
         playbackReferencePlayerSample = anchorSample
     }
 
+    private func clearPlaybackClockState() {
+        playbackReferenceHostTime = nil
+        playbackReferencePlayerSample = nil
+    }
+
     private func clearPlaybackSampleReference() {
         playbackReferencePlayerSample = nil
     }
@@ -137,15 +191,22 @@ final class AudioEngineService {
     private(set) var lastPlaybackError: String?
     private var metersInstalled = false
     private var configuredProjectClipCount = 0
-    private var meterFlushScheduled = false
-    private var pendingTrackPeaks: [UUID: Float] = [:]
-    private var pendingGroupPeaks: [UUID: Float] = [:]
-    private var pendingMasterPeak: Float = 0
+    private var meterPeakBuffer = MeterPeakBuffer()
+    private var meterFlushTimer: Timer?
+    var isMeterMonitoringEnabled = false {
+        didSet { refreshMeterMonitoring() }
+    }
 
-    private static let playbackLeadInSeconds: TimeInterval = 0.02
+    private let platformPlayback: PlatformPlaybackStrategy = PlatformPlaybackStrategyFactory.make()
+
+    static let playbackLeadInSeconds: TimeInterval = 0.02
     private static let initialLoopCycles = 2
     private static let appendedLoopCycles = 2
-    private static let meterTapBufferSize: AVAudioFrameCount = 4096
+    private static let maxQueuedLoopBatches = 4
+    private static let meterFlushInterval: TimeInterval = 1.0 / 15.0
+    private var meterTapBufferSize: AVAudioFrameCount {
+        platformPlayback.meterTapBufferSize
+    }
 
     var masterVolume: Double = 1.0 {
         didSet { mainMixer.outputVolume = Float(masterVolume) }
@@ -162,7 +223,9 @@ final class AudioEngineService {
         tearDownPlayers()
         configurationWarnings.removeAll()
         lastPlaybackError = nil
-        try apply(settings: project.audioSettings)
+#if !os(macOS)
+        try configureAudioSession(settings: project.audioSettings)
+#endif
 
         for group in project.groups {
             let groupMixer = AVAudioMixerNode()
@@ -231,18 +294,16 @@ final class AudioEngineService {
 
         updateTrackMixing(project: project)
         configuredProjectClipCount = project.tracks.reduce(0) { $0 + $1.clips.count }
-        installMetersSafely()
+        refreshMeterMonitoring()
 
-#if os(macOS)
         do {
-            try startEngine()
+            try platformPlayback.finishEngineConfiguration(in: self)
+#if os(macOS)
+            try applyOutputRouting(settings: project.audioSettings)
+#endif
         } catch {
             throw AudioEngineError.engineStartFailed
         }
-#else
-        // Keep the engine stopped until playback on iOS/iPadOS to avoid stale graph state.
-        isEngineRunning = false
-#endif
     }
 
     var isPlaybackGraphReady: Bool {
@@ -270,16 +331,22 @@ final class AudioEngineService {
         }
 
         let player = AVAudioPlayerNode()
-        let timePitch = AVAudioUnitTimePitch()
-        PitchShiftSettings.apply(
-            semitones: project.pitchSemitones(forTrackID: trackID),
-            to: timePitch
-        )
-
         engine.attach(player)
-        engine.attach(timePitch)
-        engine.connect(player, to: timePitch, format: file.processingFormat)
-        engine.connect(timePitch, to: trackMixer, format: file.processingFormat)
+
+        var timePitch: AVAudioUnitTimePitch?
+        let unit = AVAudioUnitTimePitch()
+        if project.usesPitchProcessing(forTrackID: trackID) {
+            PitchShiftSettings.apply(
+                semitones: project.pitchSemitones(forTrackID: trackID),
+                to: unit
+            )
+        } else {
+            PitchShiftSettings.applyNeutral(to: unit)
+        }
+        engine.attach(unit)
+        engine.connect(player, to: unit, format: file.processingFormat)
+        engine.connect(unit, to: trackMixer, format: file.processingFormat)
+        timePitch = unit
 
         scheduledClips[clip.id] = ScheduledClip(
             clip: clip,
@@ -300,13 +367,80 @@ final class AudioEngineService {
 
     func apply(settings: AudioSettings) throws {
 #if os(macOS)
-        if let deviceID = settings.outputDeviceID, deviceID != 0 {
-            try setDefaultOutputDevice(deviceID)
+        if engine.isRunning {
+            try applyOutputRouting(settings: settings)
         }
 #else
-        try configureAudioSession(sampleRate: settings.sampleRate)
+        try configureAudioSession(settings: settings)
 #endif
     }
+
+    /// Applies the selected output interface and restarts the engine when it is already running.
+    func applyOutputRouting(settings: AudioSettings) throws {
+#if os(macOS)
+        guard engine.isRunning else { return }
+        try applyMacOutputDevice(settings: settings)
+        engine.stop()
+        try engine.start()
+        isEngineRunning = true
+#else
+        try configureAudioSession(settings: settings)
+#endif
+    }
+
+#if os(macOS)
+    private func applyMacOutputDevice(settings: AudioSettings) throws {
+        guard let audioUnit = engine.outputNode.audioUnit else {
+            throw AudioEngineError.deviceSelectionFailed
+        }
+
+        let deviceID: AudioDeviceID
+        if let selected = settings.outputDeviceID, selected != 0 {
+            guard AudioDeviceService.listOutputDevices().contains(where: { $0.id == selected }) else {
+                throw AudioEngineError.deviceSelectionFailed
+            }
+            deviceID = selected
+        } else {
+            deviceID = try macOSDefaultOutputDeviceID()
+        }
+
+        var device = deviceID
+        let status = AudioUnitSetProperty(
+            audioUnit,
+            kAudioOutputUnitProperty_CurrentDevice,
+            kAudioUnitScope_Global,
+            0,
+            &device,
+            UInt32(MemoryLayout<AudioDeviceID>.size)
+        )
+
+        guard status == noErr else {
+            throw AudioEngineError.deviceSelectionFailed
+        }
+    }
+
+    private func macOSDefaultOutputDeviceID() throws -> AudioDeviceID {
+        var deviceID = AudioDeviceID(0)
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var dataSize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &dataSize,
+            &deviceID
+        )
+        guard status == noErr, deviceID != 0 else {
+            throw AudioEngineError.deviceSelectionFailed
+        }
+        return deviceID
+    }
+#endif
 
     func updateTrackMixing(project: DAWProject) {
         let hasSolo = project.tracks.contains(where: \.isSolo)
@@ -340,8 +474,13 @@ final class AudioEngineService {
 
     func updateTrackPitch(project: DAWProject) {
         for scheduled in scheduledClips.values {
-            let semitones = project.pitchSemitones(forTrackID: scheduled.trackID)
-            PitchShiftSettings.apply(semitones: semitones, to: scheduled.timePitch)
+            guard let timePitch = scheduled.timePitch else { continue }
+            if project.usesPitchProcessing(forTrackID: scheduled.trackID) {
+                let semitones = project.pitchSemitones(forTrackID: scheduled.trackID)
+                PitchShiftSettings.apply(semitones: semitones, to: timePitch)
+            } else {
+                PitchShiftSettings.applyNeutral(to: timePitch)
+            }
         }
     }
 
@@ -362,14 +501,13 @@ final class AudioEngineService {
             return false
         }
 
-        guard warmUpEngineForPlayback() else {
+        guard platformPlayback.warmUpEngineForPlayback(in: self) else {
             lastPlaybackError = AudioEngineError.playbackUnavailable.errorDescription
             return false
         }
 
         playbackStartTime = max(0, time)
-        playbackReferenceHostTime = nil
-        clearPlaybackSampleReference()
+        clearPlaybackClockState()
         let clipRate = primaryClipSampleRate ?? project.audioSettings.sampleRate.rawValue
         if abs(clipRate - project.audioSettings.sampleRate.rawValue) > 1 {
             SectionLoopDiagnostics.log(String(
@@ -384,17 +522,21 @@ final class AudioEngineService {
             sampleRate: clipRate
         )
 
-        for scheduled in scheduledClips.values {
+        let orderedClips = orderedScheduledClips(for: project)
+
+        for scheduled in orderedClips {
             safelyStopPlayer(scheduled.player)
         }
 
-        let playerStartAnchor = resolvePlaybackStartAnchor()
-
         var playersToStart: [AVAudioPlayerNode] = []
 
-        for scheduled in scheduledClips.values {
+        for scheduled in orderedClips {
             safelyResetPlayer(scheduled.player)
+        }
 
+        let playbackAnchor = platformPlayback.resolvePlaybackStartAnchor(in: self)
+
+        for scheduled in orderedClips {
             if let sectionLoop {
                 let queued = scheduleClipWithSectionLoop(
                     scheduled,
@@ -402,7 +544,7 @@ final class AudioEngineService {
                     loop: sectionLoop,
                     initialCycles: Self.initialLoopCycles,
                     labelPrefix: "initial",
-                    playerStartAnchor: playerStartAnchor
+                    playerStartAnchor: playbackAnchor
                 )
                 if queued {
                     playersToStart.append(scheduled.player)
@@ -413,7 +555,7 @@ final class AudioEngineService {
                     scheduled,
                     from: playbackStartTime,
                     scheduleUntil: scheduleUntil,
-                    playerStartAnchor: playerStartAnchor
+                    playerStartAnchor: playbackAnchor
                 ) else { continue }
                 playersToStart.append(scheduled.player)
             }
@@ -431,7 +573,11 @@ final class AudioEngineService {
             return false
         }
 
-        startScheduledPlayers(playersToStart, anchor: playerStartAnchor)
+        let sortedPlayers = sortedPlayersForPlayback(
+            playersToStart,
+            trackOrder: trackOrderLookup(for: project)
+        )
+        platformPlayback.startScheduledPlayers(sortedPlayers, anchor: playbackAnchor, in: self)
 
         if playbackStartTime < project.duration {
             return true
@@ -440,60 +586,31 @@ final class AudioEngineService {
         return true
     }
 
-    private func startScheduledPlayers(_ players: [AVAudioPlayerNode], anchor: AVAudioTime) {
-#if os(iOS)
-        // iPad/iPhone: play(at: nil) is required when segments start mid-file (seek / sections).
-        for player in players {
-            _ = safelyPlayPlayer(player, at: nil)
-        }
-        markPlaybackReferenceTime()
-#else
-        for player in players {
-            _ = safelyPlayPlayer(player, at: anchor)
-        }
-        playbackReferenceHostTime = anchor.hostTime
-#endif
+    private func trackOrderLookup(for project: DAWProject) -> [UUID: Int] {
+        Dictionary(uniqueKeysWithValues: project.tracks.enumerated().map { ($0.element.id, $0.offset) })
     }
 
-    /// Host-time anchor for sample-accurate player start and segment scheduling (macOS).
-    private func resolvePlaybackStartAnchor() -> AVAudioTime {
-        if renderClockIsLive(),
-           let anchor = makeSynchronizedPlaybackAnchor() {
-            return anchor
+    private func orderedScheduledClips(for project: DAWProject) -> [ScheduledClip] {
+        let trackOrder = trackOrderLookup(for: project)
+        return scheduledClips.values.sorted { lhs, rhs in
+            let leftOrder = trackOrder[lhs.trackID] ?? Int.max
+            let rightOrder = trackOrder[rhs.trackID] ?? Int.max
+            if leftOrder != rightOrder { return leftOrder < rightOrder }
+            return lhs.clip.id.uuidString < rhs.clip.id.uuidString
         }
-
-        let sampleRate = primaryClipSampleRate ?? 48_000
-        let leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
-        return AVAudioTime(hostTime: leadHost, sampleTime: 0, atRate: sampleRate)
     }
 
-    private func segmentScheduleTime(
-        offsetSamplesFromPlayhead: AVAudioFramePosition,
-        sampleRate: Double,
-        playerStartAnchor: AVAudioTime
-    ) -> AVAudioTime? {
-        guard offsetSamplesFromPlayhead > 0 else { return nil }
-
-#if os(iOS)
-        // Relative to the player timeline when using play(at: nil) on iOS.
-        return AVAudioTime(
-            sampleTime: offsetSamplesFromPlayhead,
-            atRate: sampleRate
-        )
-#else
-        let offsetSeconds = Double(offsetSamplesFromPlayhead) / sampleRate
-        let hostTime = playerStartAnchor.hostTime &+ AVAudioTime.hostTime(forSeconds: offsetSeconds)
-
-        if playerStartAnchor.isSampleTimeValid, playerStartAnchor.sampleRate > 0 {
-            return AVAudioTime(
-                hostTime: hostTime,
-                sampleTime: playerStartAnchor.sampleTime + offsetSamplesFromPlayhead,
-                atRate: playerStartAnchor.sampleRate
-            )
+    private func sortedPlayersForPlayback(
+        _ players: [AVAudioPlayerNode],
+        trackOrder: [UUID: Int]
+    ) -> [AVAudioPlayerNode] {
+        let playerToTrack = Dictionary(uniqueKeysWithValues: scheduledClips.values.map { ($0.player, $0.trackID) })
+        return players.sorted { lhs, rhs in
+            let leftOrder = trackOrder[playerToTrack[lhs] ?? UUID()] ?? Int.max
+            let rightOrder = trackOrder[playerToTrack[rhs] ?? UUID()] ?? Int.max
+            if leftOrder != rightOrder { return leftOrder < rightOrder }
+            return ObjectIdentifier(lhs) < ObjectIdentifier(rhs)
         }
-
-        return AVAudioTime(hostTime: hostTime, sampleTime: offsetSamplesFromPlayhead, atRate: sampleRate)
-#endif
     }
 
     /// True when the engine render clock was updated recently (avoids stale host times after stop).
@@ -554,6 +671,13 @@ final class AudioEngineService {
     /// Queues additional loop cycles without stopping active players (seamless section repeat).
     @discardableResult
     func appendSectionLoopCycles(project: DAWProject, loop: SectionLoopContext, cycles: Int? = nil) -> Bool {
+        guard scheduledLoopCycleCount < Self.maxQueuedLoopBatches else {
+            SectionLoopDiagnostics.log(
+                "append skipped: queued loop batches=\(scheduledLoopCycleCount) (max \(Self.maxQueuedLoopBatches))"
+            )
+            return false
+        }
+
         let cycleCount = cycles ?? Self.appendedLoopCycles
         if activeSectionLoop == nil {
             activeSectionLoop = loop
@@ -612,25 +736,22 @@ final class AudioEngineService {
             safelyStopPlayer(scheduled.player)
             scheduled.player.reset()
         }
-        playbackReferenceHostTime = nil
-        clearPlaybackSampleReference()
+        clearPlaybackClockState()
         clearSectionLoopState()
         resetMeters()
+        platformPlayback.pause(in: self)
     }
 
     func stop() {
         playbackStartTime = 0
-        playbackReferenceHostTime = nil
-        clearPlaybackSampleReference()
+        clearPlaybackClockState()
         clearSectionLoopState()
         for scheduled in scheduledClips.values {
             safelyStopPlayer(scheduled.player)
             scheduled.player.reset()
         }
         resetMeters()
-#if !os(macOS)
-        stopEngineIfRunning()
-#endif
+        platformPlayback.stop(in: self)
     }
 
     private func shouldPlayClip(_ clip: AudioClip, at playheadTime: TimeInterval) -> Bool {
@@ -666,18 +787,20 @@ final class AudioEngineService {
         let frameCount = AVAudioFrameCount(effectiveEndFrame - playbackStartFrame)
         guard frameCount > 0, sourceStartFrame >= 0, sourceStartFrame < file.length else { return false }
 
-        let scheduleAt = segmentScheduleTime(
+        let scheduleAt = platformPlayback.segmentScheduleTime(
             offsetSamplesFromPlayhead: playbackStartFrame - playheadFrame,
             sampleRate: sampleRate,
-            playerStartAnchor: playerStartAnchor
+            playerStartAnchor: playerStartAnchor,
+            in: self
         )
 
-        scheduleFileSegment(
+        platformPlayback.scheduleFileSegment(
             player: player,
             file: file,
             startingFrame: sourceStartFrame,
             frameCount: frameCount,
-            at: scheduleAt
+            at: scheduleAt,
+            in: self
         )
         return true
     }
@@ -769,11 +892,12 @@ final class AudioEngineService {
                 let cycleStartFrame = TimelineSampleGrid.frames(at: cycleStartTimeline, sampleRate: sampleRate)
                 let playheadFrame = TimelineSampleGrid.frames(at: playheadTime, sampleRate: sampleRate)
                 let framesFromNow = cycleStartFrame - playheadFrame
-                scheduleAt = playerScheduleTime(
+                scheduleAt = platformPlayback.playerScheduleTime(
                     player: scheduled.player,
                     framesFromNow: framesFromNow,
                     sampleRate: sampleRate,
-                    playheadTime: playheadTime
+                    playheadTime: playheadTime,
+                    in: self
                 )
             } else {
                 scheduleAt = nil
@@ -790,62 +914,6 @@ final class AudioEngineService {
             }
         }
         return scheduledAny
-    }
-
-    private func playerScheduleTime(
-        player: AVAudioPlayerNode,
-        framesFromNow: AVAudioFramePosition,
-        sampleRate: Double,
-        playheadTime: TimeInterval
-    ) -> AVAudioTime? {
-        guard framesFromNow >= 0 else { return nil }
-
-        // Near the section boundary, queue at the tail instead of sample-time scheduling.
-        if Double(framesFromNow) / sampleRate <= 0.1 {
-            return nil
-        }
-
-#if os(iOS)
-        if let nodeTime = player.lastRenderTime, nodeTime.isSampleTimeValid {
-            return AVAudioTime(
-                sampleTime: nodeTime.sampleTime + framesFromNow,
-                atRate: sampleRate
-            )
-        }
-
-        if let audioTime = currentTimelineTime() {
-            let elapsedFrames = TimelineSampleGrid.frames(
-                at: max(0, audioTime - playbackStartTime),
-                sampleRate: sampleRate
-            )
-            return AVAudioTime(sampleTime: elapsedFrames + framesFromNow, atRate: sampleRate)
-        }
-
-        let playheadOffsetFrames = TimelineSampleGrid.frames(
-            at: max(0, playheadTime - playbackStartTime),
-            sampleRate: sampleRate
-        )
-        return AVAudioTime(sampleTime: playheadOffsetFrames + framesFromNow, atRate: sampleRate)
-#else
-        guard renderClockIsLive(),
-              let nodeTime = engine.outputNode.lastRenderTime,
-              nodeTime.isHostTimeValid else {
-            let leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
-            let offsetHost = AVAudioTime.hostTime(forSeconds: Double(framesFromNow) / sampleRate)
-            return AVAudioTime(hostTime: leadHost &+ offsetHost, sampleTime: 0, atRate: sampleRate)
-        }
-
-        let offsetHost = AVAudioTime.hostTime(forSeconds: Double(framesFromNow) / sampleRate)
-        if nodeTime.isSampleTimeValid, nodeTime.sampleRate > 0 {
-            return AVAudioTime(
-                hostTime: nodeTime.hostTime &+ offsetHost,
-                sampleTime: nodeTime.sampleTime + framesFromNow,
-                atRate: nodeTime.sampleRate
-            )
-        }
-
-        return AVAudioTime(hostTime: nodeTime.hostTime &+ offsetHost, sampleTime: framesFromNow, atRate: sampleRate)
-#endif
     }
 
     @discardableResult
@@ -873,12 +941,13 @@ final class AudioEngineService {
             return false
         }
 
-        scheduleFileSegment(
+        platformPlayback.scheduleFileSegment(
             player: player,
             file: file,
             startingFrame: sourceStartFrame,
             frameCount: frameCount,
-            at: at
+            at: at,
+            in: self
         )
 
         SectionLoopDiagnostics.logScheduledSegment(
@@ -897,26 +966,6 @@ final class AudioEngineService {
         guard isNodeConnected(player) else { return }
         player.stop()
         player.reset()
-    }
-
-    private func scheduleFileSegment(
-        player: AVAudioPlayerNode,
-        file: AVAudioFile,
-        startingFrame: AVAudioFramePosition,
-        frameCount: AVAudioFrameCount,
-        at: AVAudioTime?
-    ) {
-#if os(iOS)
-        if startingFrame > 0 {
-            player.prepare(withFrameCount: frameCount)
-        }
-#endif
-        player.scheduleSegment(
-            file,
-            startingFrame: startingFrame,
-            frameCount: frameCount,
-            at: at
-        )
     }
 
     @discardableResult
@@ -960,9 +1009,10 @@ final class AudioEngineService {
         }
 
         let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
-        let sampleRate = nodeTime.sampleRate > 0
-            ? nodeTime.sampleRate
-            : (primaryClipSampleRate ?? 48_000)
+        let outputRate = engine.outputNode.outputFormat(forBus: 0).sampleRate
+        let sampleRate = outputRate > 0
+            ? outputRate
+            : (nodeTime.sampleRate > 0 ? nodeTime.sampleRate : (primaryClipSampleRate ?? 48_000))
 
         if nodeTime.isSampleTimeValid, sampleRate > 0 {
             let leadSamples = AVAudioFramePosition(Self.playbackLeadInSeconds * sampleRate)
@@ -982,42 +1032,6 @@ final class AudioEngineService {
         mach_timebase_info(&timebase)
         let nanoseconds = Double(end - start) * Double(timebase.numer) / Double(timebase.denom)
         return nanoseconds / 1_000_000_000
-    }
-
-    @discardableResult
-    private func warmUpEngineForPlayback() -> Bool {
-#if !os(macOS)
-        do {
-            try reactivateAudioSessionIfNeeded()
-        } catch {
-            return false
-        }
-#endif
-
-        if engine.isRunning, playbackGraphIsHealthy {
-            engine.prepare()
-            isEngineRunning = true
-            return true
-        }
-
-        stopEngineIfRunning()
-        engine.prepare()
-
-        do {
-            try engine.start()
-            isEngineRunning = true
-            installMetersSafely()
-            return playbackGraphIsHealthy
-        } catch {
-            isEngineRunning = false
-            return false
-        }
-    }
-
-    private var playbackGraphIsHealthy: Bool {
-        scheduledClips.values.contains { scheduled in
-            isNodeConnected(scheduled.player) && isNodeConnected(scheduled.timePitch)
-        }
     }
 
     private func stopEngineIfRunning() {
@@ -1047,7 +1061,9 @@ final class AudioEngineService {
         removeMetersSafely()
         for scheduled in scheduledClips.values {
             engine.detach(scheduled.player)
-            engine.detach(scheduled.timePitch)
+            if let timePitch = scheduled.timePitch {
+                engine.detach(timePitch)
+            }
         }
         for (_, mixer) in trackMixers {
             engine.detach(mixer)
@@ -1070,23 +1086,35 @@ final class AudioEngineService {
         resetMeters()
     }
 
+    private func refreshMeterMonitoring() {
+        guard isMeterMonitoringEnabled, engine.isRunning, !trackMixers.isEmpty else {
+            stopMeterFlushTimer()
+            removeMetersSafely()
+            return
+        }
+
+        installMetersSafely()
+        startMeterFlushTimer()
+    }
+
     private func installMetersSafely() {
         removeMetersSafely()
+        let peakBuffer = meterPeakBuffer
 
         for (trackID, mixer) in trackMixers {
-            installMeterTap(on: mixer) { [weak self] peak in
-                self?.enqueueTrackMeterPeak(trackID: trackID, peak: peak)
+            installMeterTap(on: mixer) { peak in
+                peakBuffer.recordTrack(trackID, peak: peak)
             }
         }
 
         for (groupID, mixer) in groupMixers {
-            installMeterTap(on: mixer) { [weak self] peak in
-                self?.enqueueGroupMeterPeak(groupID: groupID, peak: peak)
+            installMeterTap(on: mixer) { peak in
+                peakBuffer.recordGroup(groupID, peak: peak)
             }
         }
 
-        installMeterTap(on: mainMixer) { [weak self] peak in
-            self?.enqueueMasterMeterPeak(peak)
+        installMeterTap(on: mainMixer) { peak in
+            peakBuffer.recordMaster(peak)
         }
 
         metersInstalled = true
@@ -1096,54 +1124,39 @@ final class AudioEngineService {
         let format = mixer.outputFormat(forBus: 0)
         guard format.sampleRate > 0 else { return }
 
-        mixer.installTap(onBus: 0, bufferSize: Self.meterTapBufferSize, format: format) { buffer, _ in
-            let peak = Self.peakLevel(from: buffer)
-            Task { @MainActor [weak self] in
-                guard self != nil else { return }
-                handler(peak)
+        mixer.installTap(onBus: 0, bufferSize: meterTapBufferSize, format: format) { buffer, _ in
+            handler(Self.peakLevel(from: buffer))
+        }
+    }
+
+    private func startMeterFlushTimer() {
+        guard meterFlushTimer == nil else { return }
+
+        let timer = Timer(timeInterval: Self.meterFlushInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.flushMeterPeaksFromBuffer()
             }
         }
+        meterFlushTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
-    private func enqueueTrackMeterPeak(trackID: UUID, peak: Float) {
-        pendingTrackPeaks[trackID] = max(pendingTrackPeaks[trackID] ?? 0, peak)
-        scheduleMeterFlush()
+    private func stopMeterFlushTimer() {
+        meterFlushTimer?.invalidate()
+        meterFlushTimer = nil
     }
 
-    private func enqueueGroupMeterPeak(groupID: UUID, peak: Float) {
-        pendingGroupPeaks[groupID] = max(pendingGroupPeaks[groupID] ?? 0, peak)
-        scheduleMeterFlush()
-    }
+    private func flushMeterPeaksFromBuffer() {
+        let snapshot = meterPeakBuffer.drain()
 
-    private func enqueueMasterMeterPeak(_ peak: Float) {
-        pendingMasterPeak = max(pendingMasterPeak, peak)
-        scheduleMeterFlush()
-    }
-
-    private func scheduleMeterFlush() {
-        guard !meterFlushScheduled else { return }
-        meterFlushScheduled = true
-        Task { @MainActor in
-            self.flushPendingMeterPeaks()
-        }
-    }
-
-    private func flushPendingMeterPeaks() {
-        meterFlushScheduled = false
-
-        for (trackID, peak) in pendingTrackPeaks {
+        for (trackID, peak) in snapshot.tracks {
             updateTrackMeterLevel(trackID: trackID, peak: peak)
         }
-        pendingTrackPeaks.removeAll()
-
-        for (groupID, peak) in pendingGroupPeaks {
+        for (groupID, peak) in snapshot.groups {
             updateGroupMeterLevel(groupID: groupID, peak: peak)
         }
-        pendingGroupPeaks.removeAll()
-
-        if pendingMasterPeak > 0 {
-            updateMasterMeterLevel(peak: pendingMasterPeak)
-            pendingMasterPeak = 0
+        if snapshot.master > 0 {
+            updateMasterMeterLevel(peak: snapshot.master)
         }
     }
 
@@ -1158,6 +1171,7 @@ final class AudioEngineService {
         }
         mainMixer.removeTap(onBus: 0)
         metersInstalled = false
+        meterPeakBuffer.reset()
     }
 
     private func updateTrackMeterLevel(trackID: UUID, peak: Float) {
@@ -1193,6 +1207,8 @@ final class AudioEngineService {
     }
 
     private func resetMeters() {
+        stopMeterFlushTimer()
+        meterPeakBuffer.reset()
         trackMeterLevels.removeAll()
         groupMeterLevels.removeAll()
         masterMeterLevel = 0
@@ -1227,38 +1243,131 @@ final class AudioEngineService {
         return min(1, blended)
     }
 
-#if os(macOS)
-    private func setDefaultOutputDevice(_ deviceID: UInt32) throws {
-        var device = deviceID
-        var propertyAddress = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
-            mScope: kAudioObjectPropertyScopeGlobal,
-            mElement: kAudioObjectPropertyElementMain
-        )
-
-        let status = AudioObjectSetPropertyData(
-            AudioObjectID(kAudioObjectSystemObject),
-            &propertyAddress,
-            0,
-            nil,
-            UInt32(MemoryLayout<AudioDeviceID>.size),
-            &device
-        )
-
-        guard status == noErr else {
-            throw AudioEngineError.deviceSelectionFailed
-        }
-    }
-#else
-    private func configureAudioSession(sampleRate: AudioSampleRate) throws {
+#if !os(macOS)
+    private func configureAudioSession(settings: AudioSettings) throws {
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playback, mode: .default, options: [])
-            try session.setPreferredSampleRate(sampleRate.rawValue)
+            try session.setCategory(
+                .playback,
+                mode: .default,
+                options: [.allowBluetoothA2DP, .allowBluetoothHFP]
+            )
+            try session.setPreferredSampleRate(settings.sampleRate.rawValue)
+            try session.setPreferredIOBufferDuration(0.005)
+            try applyIOSOutputRoute(settings: settings, session: session)
             try session.setActive(true)
         } catch {
             throw AudioEngineError.engineStartFailed
         }
+    }
+
+    private func applyIOSOutputRoute(settings: AudioSettings, session: AVAudioSession) throws {
+        if settings.outputDeviceID == AudioOutputDevice.builtInSpeaker.id
+            || settings.outputPortUID == AudioDeviceService.builtInSpeakerPortUID {
+            try session.overrideOutputAudioPort(.speaker)
+            return
+        }
+
+        try session.overrideOutputAudioPort(.none)
+
+        guard let portUID = settings.outputPortUID,
+              portUID != AudioDeviceService.builtInSpeakerPortUID else {
+            return
+        }
+
+        if session.currentRoute.outputs.contains(where: { $0.uid == portUID }) {
+            return
+        }
+
+        if let input = session.availableInputs?.first(where: { $0.uid == portUID }) {
+            try session.setPreferredInput(input)
+        }
+    }
+#endif
+}
+
+// MARK: - Platform playback bridge
+
+extension AudioEngineService {
+    var playbackEngine: AVAudioEngine { engine }
+
+    var playbackStartTimeValue: TimeInterval {
+        get { playbackStartTime }
+        set { playbackStartTime = newValue }
+    }
+
+    var playbackReferenceHostTimeValue: UInt64? {
+        get { playbackReferenceHostTime }
+        set { playbackReferenceHostTime = newValue }
+    }
+
+    var playbackIsEngineRunning: Bool {
+        get { isEngineRunning }
+        set { isEngineRunning = newValue }
+    }
+
+    var playbackPrimaryClipSampleRate: Double? { primaryClipSampleRate }
+
+    var playbackGraphIsHealthy: Bool {
+        scheduledClips.values.contains { scheduled in
+            guard isNodeConnected(scheduled.player) else { return false }
+            if let timePitch = scheduled.timePitch {
+                return isNodeConnected(timePitch)
+            }
+            return true
+        }
+    }
+
+    func playbackMarkReferenceTime() { markPlaybackReferenceTime() }
+    func playbackClearSampleReference() { clearPlaybackSampleReference() }
+
+    @discardableResult
+    func playbackSafelyPlayPlayer(_ player: AVAudioPlayerNode, at when: AVAudioTime?) -> Bool {
+        safelyPlayPlayer(player, at: when)
+    }
+
+    func playbackRenderClockIsLive() -> Bool { renderClockIsLive() }
+    func playbackMakeSynchronizedAnchor() -> AVAudioTime? { makeSynchronizedPlaybackAnchor() }
+
+    func playbackSecondsBetweenHostTimes(from start: UInt64, to end: UInt64) -> TimeInterval {
+        Self.secondsBetweenHostTimes(from: start, to: end)
+    }
+
+    func playbackStopEngineIfRunning() { stopEngineIfRunning() }
+
+    @discardableResult
+    func playbackStartEngine() throws -> Bool {
+        try startEngine()
+        return playbackGraphIsHealthy
+    }
+
+    func playbackPrepareEngine() { engine.prepare() }
+    func playbackRefreshMeterMonitoring() { refreshMeterMonitoring() }
+
+#if !os(macOS)
+    func playbackReactivateAudioSession() throws {
+        try reactivateAudioSessionIfNeeded()
+    }
+#endif
+
+    func playbackTimelineFromSampleClocks(preferMinimumElapsed: Bool = false) -> TimeInterval? {
+        timelineTimeFromPlayingPlayers(preferMinimumElapsed: preferMinimumElapsed)
+    }
+
+#if !os(macOS)
+    func playbackHeardAudioLatencySeconds() -> TimeInterval {
+        let session = AVAudioSession.sharedInstance()
+        return session.outputLatency + (session.ioBufferDuration * 0.5)
+    }
+
+    func playbackMakeIOSPlayAnchor() -> AVAudioTime? {
+        guard renderClockIsLive(),
+              let nodeTime = engine.outputNode.lastRenderTime,
+              nodeTime.isHostTimeValid else {
+            return nil
+        }
+        let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+        return AVAudioTime(hostTime: leadHost)
     }
 #endif
 }

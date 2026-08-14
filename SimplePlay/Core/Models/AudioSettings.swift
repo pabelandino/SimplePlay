@@ -46,17 +46,21 @@ enum AudioSampleRate: Double, CaseIterable, Identifiable, Codable, Sendable {
 struct AudioSettings: Codable, Sendable, Equatable {
     var outputDeviceID: UInt32?
     var outputDeviceName: String
+    /// Stable AVAudioSession port UID on iPad/iPhone (optional).
+    var outputPortUID: String?
     var outputChannelPair: Int
     var sampleRate: AudioSampleRate
 
     init(
         outputDeviceID: UInt32? = nil,
         outputDeviceName: String = "System Default",
+        outputPortUID: String? = nil,
         outputChannelPair: Int = 0,
         sampleRate: AudioSampleRate = .rate44100
     ) {
         self.outputDeviceID = outputDeviceID
         self.outputDeviceName = outputDeviceName
+        self.outputPortUID = outputPortUID
         self.outputChannelPair = outputChannelPair
         self.sampleRate = sampleRate
     }
@@ -66,6 +70,29 @@ struct AudioOutputDevice: Identifiable, Hashable, Sendable {
     let id: UInt32
     let name: String
     let outputChannelCount: Int
+    /// AVAudioSession port UID when listed from a route (nil for system default).
+    let portUID: String?
 
-    static let systemDefault = AudioOutputDevice(id: 0, name: "System Default", outputChannelCount: 2)
+    init(id: UInt32, name: String, outputChannelCount: Int, portUID: String? = nil) {
+        self.id = id
+        self.name = name
+        self.outputChannelCount = outputChannelCount
+        self.portUID = portUID
+    }
+
+    static let systemDefault = AudioOutputDevice(
+        id: 0,
+        name: "System Default",
+        outputChannelCount: 2,
+        portUID: nil
+    )
+
+#if !os(macOS)
+    static let builtInSpeaker = AudioOutputDevice(
+        id: 1,
+        name: "iPad Speaker",
+        outputChannelCount: 2,
+        portUID: AudioDeviceService.builtInSpeakerPortUID
+    )
+#endif
 }

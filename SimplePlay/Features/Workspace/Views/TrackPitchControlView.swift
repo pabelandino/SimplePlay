@@ -82,14 +82,16 @@ struct TrackPitchControlView: View {
     }
 
     private var pitchLabel: String {
+        guard viewModel.activePitchTrack?.isPitchEnabled == true else {
+            return "Original (pitch off)"
+        }
         let semitones = viewModel.activePitchTrack?.pitchSemitones ?? 0
-        if abs(semitones) < 0.001 { return "Original (0 st)" }
         if semitones > 0 { return String(format: "+%.1f semitones", semitones) }
         return String(format: "%.1f semitones", semitones)
     }
 
     private var pitchIsOriginal: Bool {
-        abs(viewModel.activePitchTrack?.pitchSemitones ?? 0) < 0.001
+        !(viewModel.activePitchTrack?.isPitchEnabled ?? false)
     }
 
     private var selectedTrackIDBinding: Binding<UUID> {

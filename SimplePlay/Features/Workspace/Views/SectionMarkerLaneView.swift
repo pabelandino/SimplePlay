@@ -238,44 +238,34 @@ fileprivate struct SectionMarkerChipView: View {
     let isDimmed: Bool
     @Binding var dragSession: SectionDragSession?
 
+#if os(iOS)
+    private let chipTapThreshold: CGFloat = 12
+    private let chipMoveThreshold: CGFloat = 14
+    private let chipMoveDragMinimumDistance: CGFloat = 8
+#else
     private let chipTapThreshold: CGFloat = 8
     private let chipMoveThreshold: CGFloat = 10
+    private let chipMoveDragMinimumDistance: CGFloat = 4
+#endif
 
     private var liveSection: ArrangementSection {
         viewModel.project.sections.first(where: { $0.id == section.id }) ?? section
     }
 
     private var chipWidth: CGFloat {
-        max(56, CGFloat(liveSection.duration) * viewModel.pixelsPerSecond)
+        max(resizeHandleHitWidth * 2 + 20, CGFloat(liveSection.duration) * viewModel.pixelsPerSecond)
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            resizeHandle(edge: .start)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(liveSection.name)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    Text(TimeFormatting.format(liveSection.startTime))
-                    Text("→")
-                    Text(TimeFormatting.format(liveSection.endTime))
-                }
-                .font(.caption2.monospaced())
-                .foregroundStyle(.white.opacity(0.85))
+        chipLabelBlock
+            .frame(width: chipWidth, height: DAWTheme.markerLaneHeight - 14, alignment: .leading)
+            .overlay(alignment: .leading) {
+                resizeHandle(edge: .start)
             }
-            .padding(.horizontal, 10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .gesture(chipMoveOrTapGesture)
-
-            resizeHandle(edge: .end)
-        }
-        .frame(width: chipWidth, height: DAWTheme.markerLaneHeight - 14)
-        .opacity(isDimmed ? 0.28 : 1)
+            .overlay(alignment: .trailing) {
+                resizeHandle(edge: .end)
+            }
+            .opacity(isDimmed ? 0.28 : 1)
         .background {
             RoundedRectangle(cornerRadius: 10)
                 .fill(
@@ -311,12 +301,37 @@ fileprivate struct SectionMarkerChipView: View {
             }
         }
 #if os(macOS)
-        .help("Drag to move · Drag edges to resize · Double-click to trigger · Tap to delete")
+        .help("Drag center to move · Drag edges to resize · Tap or double-click to trigger")
 #endif
     }
 
+    private var chipLabelBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(liveSection.name)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+
+            HStack(spacing: 6) {
+                Text(TimeFormatting.format(liveSection.startTime))
+                Text("→")
+                Text(TimeFormatting.format(liveSection.endTime))
+            }
+            .font(.caption2.monospaced())
+            .foregroundStyle(.white.opacity(0.85))
+        }
+        .padding(.leading, resizeHandleHitWidth)
+        .padding(.trailing, resizeHandleHitWidth)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .gesture(chipMoveOrTapGesture)
+    }
+
     private var chipMoveOrTapGesture: some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .named(sectionLaneCoordinateSpace))
+        DragGesture(
+            minimumDistance: chipMoveDragMinimumDistance,
+            coordinateSpace: .named(sectionLaneCoordinateSpace)
+        )
             .onChanged { value in
                 guard dragSession == nil
                     || (dragSession?.sectionID == section.id && dragSession?.kind == .move) else {
@@ -366,7 +381,7 @@ fileprivate struct SectionMarkerChipView: View {
 
                 let distance = hypot(value.translation.width, value.translation.height)
                 if distance < chipTapThreshold {
-                    viewModel.requestDeleteSection(section.id)
+                    viewModel.triggerSection(liveSection)
                 }
             }
     }
@@ -376,42 +391,59 @@ fileprivate struct SectionMarkerChipView: View {
         case end
     }
 
-    private var resizeHandleVisualWidth: CGFloat {
-#if os(iOS)
-        10
-#else
-        8
-#endif
-    }
-
     private var resizeHandleHitWidth: CGFloat {
 #if os(iOS)
-        36
+        44
 #else
-        24
+        28
 #endif
     }
 
     private func resizeHandle(edge: ResizeEdge) -> some View {
-        RoundedRectangle(cornerRadius: 3)
-            .fill(Color.white.opacity(isDimmed ? 0.2 : 0.35))
-            .frame(width: resizeHandleVisualWidth)
-            .padding(.vertical, 8)
-            .padding(edge == .start ? .leading : .trailing, 2)
-            .contentShape(
-                Rectangle().size(
-                    width: resizeHandleHitWidth,
-                    height: DAWTheme.markerLaneHeight - 14
-                )
-            )
-            .highPriorityGesture(sectionDragGesture(kind: edge == .start ? .resizeStart : .resizeEnd))
+        HStack(spacing: 0) {
+            if edge == .end {
+                Spacer(minLength: 0)
+            }
+
+            resizeGripIndicator
+
+            if edge == .start {
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(width: resizeHandleHitWidth)
+        .frame(maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .zIndex(2)
+        .highPriorityGesture(sectionDragGesture(kind: edge == .start ? .resizeStart : .resizeEnd))
 #if os(macOS)
-            .cursor(.resizeLeftRight)
+        .cursor(.resizeLeftRight)
 #endif
     }
 
+    private var resizeGripIndicator: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(isDimmed ? 0.28 : 0.48))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
+                }
+
+            HStack(spacing: 3) {
+                ForEach(0..<2, id: \.self) { _ in
+                    Capsule()
+                        .fill(Color.white.opacity(isDimmed ? 0.55 : 0.92))
+                        .frame(width: 2, height: 12)
+                }
+            }
+        }
+        .frame(width: 13, height: 22)
+        .padding(.horizontal, 5)
+    }
+
     private func sectionDragGesture(kind: WorkspaceViewModel.SectionDragKind) -> some Gesture {
-        DragGesture(minimumDistance: 2, coordinateSpace: .named(sectionLaneCoordinateSpace))
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(sectionLaneCoordinateSpace))
             .onChanged { value in
                 guard dragSession == nil
                     || (dragSession?.sectionID == section.id && dragSession?.kind == kind) else {
@@ -455,11 +487,17 @@ fileprivate struct SectionMarkerChipView: View {
                     )
                 }
             }
-            .onEnded { _ in
+            .onEnded { value in
                 let shouldCommit = dragSession?.sectionID == section.id && dragSession?.kind == kind
                 defer { dragSession = nil }
 
                 guard shouldCommit else {
+                    viewModel.cancelSectionDrag()
+                    return
+                }
+
+                let distance = hypot(value.translation.width, value.translation.height)
+                guard distance >= 2 else {
                     viewModel.cancelSectionDrag()
                     return
                 }

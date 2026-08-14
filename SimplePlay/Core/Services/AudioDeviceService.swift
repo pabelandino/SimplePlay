@@ -11,12 +11,37 @@ import CoreAudio
 #endif
 
 enum AudioDeviceService {
+#if !os(macOS)
+    static let builtInSpeakerPortUID = "__simpleplay_builtin_speaker__"
+#endif
+
     static func listOutputDevices() -> [AudioOutputDevice] {
 #if os(macOS)
         listOutputDevicesMac()
 #else
         listOutputDevicesIOS()
 #endif
+    }
+
+    static func device(
+        matching settings: AudioSettings,
+        in devices: [AudioOutputDevice] = listOutputDevices()
+    ) -> AudioOutputDevice? {
+        if let deviceID = settings.outputDeviceID,
+           let device = devices.first(where: { $0.id == deviceID }) {
+            return device
+        }
+        if let portUID = settings.outputPortUID,
+           let device = devices.first(where: { $0.portUID == portUID }) {
+            return device
+        }
+        if settings.outputDeviceID == nil || settings.outputDeviceID == 0 {
+            return .systemDefault
+        }
+        if let device = devices.first(where: { $0.name == settings.outputDeviceName }) {
+            return device
+        }
+        return nil
     }
 
     static func channelPairOptions(for device: AudioOutputDevice) -> [Int] {
@@ -34,6 +59,15 @@ enum AudioDeviceService {
         let left = pairIndex * 2 + 1
         let right = left + 1
         return "Out \(left)-\(right)"
+    }
+
+    static func stableDeviceID(forPortUID portUID: String) -> UInt32 {
+        var hash: UInt32 = 2_166_136_261
+        for byte in portUID.utf8 {
+            hash ^= UInt32(byte)
+            hash = hash &* 1_677_761_9
+        }
+        return hash | 0x8000_0000
     }
 
 #if os(macOS)
@@ -74,7 +108,13 @@ enum AudioDeviceService {
         for deviceID in deviceIDs where deviceHasOutput(deviceID) {
             let name = deviceName(deviceID) ?? "Unknown Device"
             let channels = outputChannelCount(deviceID)
-            devices.append(AudioOutputDevice(id: deviceID, name: name, outputChannelCount: max(2, channels)))
+            devices.append(
+                AudioOutputDevice(
+                    id: deviceID,
+                    name: name,
+                    outputChannelCount: max(2, channels)
+                )
+            )
         }
 
         return devices
@@ -123,14 +163,26 @@ enum AudioDeviceService {
 #else
     private static func listOutputDevicesIOS() -> [AudioOutputDevice] {
         let session = AVAudioSession.sharedInstance()
-        var devices = [AudioOutputDevice.systemDefault]
-        var seenNames = Set<String>()
+        var devices: [AudioOutputDevice] = [.systemDefault, .builtInSpeaker]
+        var seenUIDs = Set<String>()
+
+        func appendPort(_ port: AVAudioSessionPortDescription) {
+            guard seenUIDs.insert(port.uid).inserted else { return }
+            devices.append(
+                AudioOutputDevice(
+                    id: stableDeviceID(forPortUID: port.uid),
+                    name: port.portName,
+                    outputChannelCount: 2,
+                    portUID: port.uid
+                )
+            )
+        }
 
         for port in session.currentRoute.outputs {
-            guard seenNames.insert(port.portName).inserted else { continue }
-            let id = UInt32(truncatingIfNeeded: abs(port.uid.hashValue))
-            devices.append(AudioOutputDevice(id: id, name: port.portName, outputChannelCount: 2))
+            appendPort(port)
         }
+
+        session.availableInputs?.forEach { appendPort($0) }
 
         return devices
     }

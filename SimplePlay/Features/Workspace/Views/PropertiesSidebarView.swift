@@ -32,6 +32,27 @@ struct PropertiesSidebarView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    @ViewBuilder
+    private func lyricSlideLinkSection(for section: ArrangementSection) -> some View {
+        SettingsValueRow(
+            title: "Lyric Slide",
+            value: section.hasLyricSlideLink
+                ? viewModel.lyricSlideLabel(for: section, catalog: viewModel.lyricCatalog)
+                : "Not assigned",
+            monospaced: false
+        )
+
+        Button("Open Assign Sections") {
+            viewModel.selectedSectionID = section.id
+            viewModel.setMIDIMappingAssignModeEnabled(true)
+        }
+        .buttonStyle(DAWSecondaryButtonStyle())
+
+        SettingsFootnote(
+            text: "Use Assign Sections in the mapping bar to link MIDI pads and Lyriora slides."
+        )
+    }
+
     private var audioSettings: some View {
         SidebarPanel(title: "Audio Output", icon: "speaker.wave.2.fill") {
             SettingsMenuRow(
@@ -39,6 +60,9 @@ struct PropertiesSidebarView: View {
                 options: viewModel.availableOutputDevices.map { ($0.id, $0.name) },
                 selection: selectedDeviceID
             )
+            .onChange(of: viewModel.project.audioSettings.outputDeviceID) { _, _ in
+                viewModel.applyAudioSettings()
+            }
 
             if selectedDevice.outputChannelCount > 2 {
                 SettingsMenuRow(
@@ -48,6 +72,9 @@ struct PropertiesSidebarView: View {
                     },
                     selection: $viewModel.project.audioSettings.outputChannelPair
                 )
+                .onChange(of: viewModel.project.audioSettings.outputChannelPair) { _, _ in
+                    viewModel.applyAudioSettings()
+                }
             }
 
             SettingsMenuRow(
@@ -72,27 +99,25 @@ struct PropertiesSidebarView: View {
     }
 
     private var selectedDevice: AudioOutputDevice {
-        if let deviceID = viewModel.project.audioSettings.outputDeviceID,
-           let device = viewModel.availableOutputDevices.first(where: { $0.id == deviceID }) {
-            return device
-        }
-        return .systemDefault
+        AudioDeviceService.device(
+            matching: viewModel.project.audioSettings,
+            in: viewModel.availableOutputDevices
+        ) ?? .systemDefault
     }
 
     private var selectedDeviceID: Binding<UInt32> {
         Binding(
             get: {
-                let stored = viewModel.project.audioSettings.outputDeviceID ?? 0
-                if viewModel.availableOutputDevices.contains(where: { $0.id == stored }) {
-                    return stored
-                }
-                return 0
+                selectedDevice.id
             },
             set: { newValue in
-                viewModel.project.audioSettings.outputDeviceID = newValue == 0 ? nil : newValue
                 if newValue == 0 {
+                    viewModel.project.audioSettings.outputDeviceID = nil
+                    viewModel.project.audioSettings.outputPortUID = nil
                     viewModel.project.audioSettings.outputDeviceName = AudioOutputDevice.systemDefault.name
                 } else if let device = viewModel.availableOutputDevices.first(where: { $0.id == newValue }) {
+                    viewModel.project.audioSettings.outputDeviceID = device.id
+                    viewModel.project.audioSettings.outputPortUID = device.portUID
                     viewModel.project.audioSettings.outputDeviceName = device.name
                 }
             }
@@ -176,10 +201,13 @@ struct PropertiesSidebarView: View {
     }
 
     private var pitchIsOriginal: Bool {
-        abs(viewModel.activePitchTrack?.pitchSemitones ?? 0) < 0.001
+        !(viewModel.activePitchTrack?.isPitchEnabled ?? false)
     }
 
     private var pitchLabel: String {
+        guard viewModel.activePitchTrack?.isPitchEnabled == true else {
+            return "Original (pitch off)"
+        }
         let semitones = viewModel.activePitchTrack?.pitchSemitones ?? 0
         if abs(semitones) < 0.001 { return "Original (0 st)" }
         let sign = semitones > 0 ? "+" : ""
@@ -248,6 +276,8 @@ struct PropertiesSidebarView: View {
                     viewModel.startMIDILearn(for: .section(section.id))
                 }
                 .buttonStyle(DAWSecondaryButtonStyle())
+
+                lyricSlideLinkSection(for: section)
 
                 SettingsFootnote(
                     text: "While playing, another pad queues a jump at the current section end. Press the same section pad again during playback to repeat it once."

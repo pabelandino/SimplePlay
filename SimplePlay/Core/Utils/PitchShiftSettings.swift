@@ -24,11 +24,31 @@ enum PitchShiftSettings {
         unit.pitch = cents(from: clampSemitones(semitones))
         unit.overlap = qualityOverlap
     }
+
+    /// Neutral TimePitch settings for graph latency matching when pitch is off.
+    static func applyNeutral(to unit: AVAudioUnitTimePitch) {
+        unit.rate = 1.0
+        unit.pitch = 0
+        unit.overlap = 8
+    }
+
+    static func usesPitchProcessing(for track: AudioTrack) -> Bool {
+        track.isPitchEnabled && abs(clampSemitones(track.pitchSemitones)) >= 0.001
+    }
 }
 
 extension DAWProject {
     func pitchSemitones(forTrackID trackID: UUID) -> Double {
         tracks.first(where: { $0.id == trackID })?.pitchSemitones ?? 0
+    }
+
+    func track(forID trackID: UUID) -> AudioTrack? {
+        tracks.first(where: { $0.id == trackID })
+    }
+
+    func usesPitchProcessing(forTrackID trackID: UUID) -> Bool {
+        guard let track = track(forID: trackID) else { return false }
+        return PitchShiftSettings.usesPitchProcessing(for: track)
     }
 
     func track(containing clipID: UUID) -> AudioTrack? {

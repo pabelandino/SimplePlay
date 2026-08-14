@@ -48,11 +48,12 @@ struct PersistedTrack: Codable, Sendable, Equatable {
     var pan: Double
     var volume: Double
     var pitchSemitones: Double
+    var isPitchEnabled: Bool
     var clips: [PersistedClip]
 
     enum CodingKeys: String, CodingKey {
         case id, originalName, standardCode, role, colorHex
-        case isMuted, isSolo, isLocked, pan, volume, pitchSemitones, clips
+        case isMuted, isSolo, isLocked, pan, volume, pitchSemitones, isPitchEnabled, clips
     }
 
     init(
@@ -67,6 +68,7 @@ struct PersistedTrack: Codable, Sendable, Equatable {
         pan: Double,
         volume: Double = 1,
         pitchSemitones: Double = 0,
+        isPitchEnabled: Bool = false,
         clips: [PersistedClip]
     ) {
         self.id = id
@@ -80,6 +82,7 @@ struct PersistedTrack: Codable, Sendable, Equatable {
         self.pan = pan
         self.volume = volume
         self.pitchSemitones = pitchSemitones
+        self.isPitchEnabled = isPitchEnabled
         self.clips = clips
     }
 
@@ -96,7 +99,26 @@ struct PersistedTrack: Codable, Sendable, Equatable {
         pan = try container.decode(Double.self, forKey: .pan)
         volume = try container.decodeIfPresent(Double.self, forKey: .volume) ?? 1
         pitchSemitones = try container.decodeIfPresent(Double.self, forKey: .pitchSemitones) ?? 0
+        isPitchEnabled = try container.decodeIfPresent(Bool.self, forKey: .isPitchEnabled)
+            ?? (abs(pitchSemitones) >= 0.001)
         clips = try container.decode([PersistedClip].self, forKey: .clips)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(originalName, forKey: .originalName)
+        try container.encode(standardCode, forKey: .standardCode)
+        try container.encode(role, forKey: .role)
+        try container.encode(colorHex, forKey: .colorHex)
+        try container.encode(isMuted, forKey: .isMuted)
+        try container.encode(isSolo, forKey: .isSolo)
+        try container.encode(isLocked, forKey: .isLocked)
+        try container.encode(pan, forKey: .pan)
+        try container.encode(volume, forKey: .volume)
+        try container.encode(pitchSemitones, forKey: .pitchSemitones)
+        try container.encode(isPitchEnabled, forKey: .isPitchEnabled)
+        try container.encode(clips, forKey: .clips)
     }
 }
 
