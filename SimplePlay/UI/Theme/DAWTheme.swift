@@ -70,6 +70,8 @@ enum DAWTheme {
     /// Hard lower bound for zoom; actual minimum may be higher to fit the full timeline.
     static let absoluteMinZoom: Double = 0.001
     static let maxZoom: Double = 8.0
+    /// Neutral timeline zoom — centered on the zoom slider (0.5 position).
+    static let referenceTimelineZoom: Double = 1.0
     static let timelineTailPaddingSeconds: TimeInterval = 30
     static let timelineZoomHorizontalInset: CGFloat = 32
     static let emptyTimelineMinimumWidth: CGFloat = 800

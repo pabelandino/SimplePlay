@@ -48,6 +48,17 @@ struct WorkspaceKeyboardShortcuts: ViewModifier {
                 viewModel.selectAllClips()
                 return .handled
             }
+            .onKeyPress(.init("z"), phases: .down) { press in
+                guard press.modifiers.contains(.command) else { return .ignored }
+                if press.modifiers.contains(.shift) {
+                    guard viewModel.canRedo else { return .ignored }
+                    viewModel.redo()
+                } else {
+                    guard viewModel.canUndo else { return .ignored }
+                    viewModel.undo()
+                }
+                return .handled
+            }
 #endif
     }
 }

@@ -52,9 +52,11 @@ struct TransportBarView: View {
                 Spacer(minLength: 4)
                 transportControls
                 Spacer(minLength: 4)
-                mainVolumeControl
-                mixerButton
-                zoomControls
+                TransportRightToolbar(
+                    viewModel: viewModel,
+                    isCompact: isCompact,
+                    usesPhoneDock: false
+                )
             }
             .padding(.horizontal, isCompact ? 12 : 16)
             .padding(.bottom, isCompact ? 8 : 10)
@@ -79,18 +81,11 @@ struct TransportBarView: View {
     }
 
     private var phoneRightControls: some View {
-        HStack(spacing: 6) {
-            mixerButton
-            phoneZoomControls
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(DAWTheme.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(DAWTheme.border, lineWidth: 1)
-        }
+        TransportRightToolbar(
+            viewModel: viewModel,
+            isCompact: true,
+            usesPhoneDock: true
+        )
     }
 
     private var phoneTimeDisplay: some View {
@@ -132,8 +127,20 @@ struct TransportBarView: View {
                     .overlay(DAWTheme.border)
 
                 HStack(spacing: 8) {
-                    transportIconButton("arrow.uturn.backward", help: "Undo")
-                    transportIconButton("arrow.uturn.forward", help: "Redo")
+                    transportIconButton(
+                        "arrow.uturn.backward",
+                        help: "Undo",
+                        enabled: viewModel.canUndo
+                    ) {
+                        viewModel.undo()
+                    }
+                    transportIconButton(
+                        "arrow.uturn.forward",
+                        help: "Redo",
+                        enabled: viewModel.canRedo
+                    ) {
+                        viewModel.redo()
+                    }
                 }
             }
         }
@@ -147,16 +154,22 @@ struct TransportBarView: View {
         }
     }
 
-    private func transportIconButton(_ systemName: String, help: String) -> some View {
-        Button(action: {}) {
+    private func transportIconButton(
+        _ systemName: String,
+        help: String,
+        enabled: Bool = true,
+        action: @escaping () -> Void = {}
+    ) -> some View {
+        Button(action: action) {
             Image(systemName: systemName)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(DAWTheme.textSecondary)
+                .foregroundStyle(enabled ? DAWTheme.textSecondary : DAWTheme.textSecondary.opacity(0.45))
                 .frame(width: 28, height: 28)
-                .background(DAWTheme.background.opacity(0.55))
+                .background(DAWTheme.background.opacity(enabled ? 0.55 : 0.35))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
+        .disabled(!enabled)
         .help(help)
     }
 
@@ -251,139 +264,6 @@ struct TransportBarView: View {
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.35 : 1)
         .help(help ?? "")
-    }
-
-    @ViewBuilder
-    private var mainVolumeControl: some View {
-        VStack(spacing: 2) {
-            Text("Main")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(DAWTheme.textSecondary)
-
-            FaderMeterStripView(
-                value: masterVolumeBinding,
-                level: viewModel.masterMeterLevel,
-                isAudible: viewModel.isPlaying,
-                faderWidth: isCompact ? 14 : 16,
-                faderHeight: isCompact ? 44 : 52,
-                valueRange: 0...1,
-                segmentCount: 8,
-                dotSize: 3
-            )
-        }
-        .frame(width: isCompact ? 36 : 42)
-        .padding(.horizontal, isCompact ? 6 : 8)
-        .padding(.vertical, isCompact ? 4 : 6)
-        .background(DAWTheme.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(DAWTheme.border, lineWidth: 1)
-        }
-        .accessibilityLabel("Main Volume")
-    }
-
-    private var masterVolumeBinding: Binding<Double> {
-        Binding(
-            get: { viewModel.project.masterVolume },
-            set: { viewModel.setMasterVolume($0) }
-        )
-    }
-
-    @ViewBuilder
-    private var mixerButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.22)) {
-                viewModel.showMixerPanel.toggle()
-            }
-        } label: {
-            Image(systemName: "slider.vertical.3")
-                .font(usesPhoneDock ? .body.weight(.semibold) : (isCompact ? .caption.weight(.semibold) : .body.weight(.semibold)))
-                .foregroundStyle(viewModel.showMixerPanel ? DAWTheme.accent : DAWTheme.textPrimary)
-                .frame(
-                    width: usesPhoneDock ? phoneTapTarget : (isCompact ? 30 : 34),
-                    height: usesPhoneDock ? phoneTapTarget : (isCompact ? 30 : 34)
-                )
-                .background {
-                    if usesPhoneDock {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(viewModel.showMixerPanel ? DAWTheme.accent.opacity(0.15) : DAWTheme.background.opacity(0.55))
-                    } else {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(viewModel.showMixerPanel ? DAWTheme.accent.opacity(0.15) : DAWTheme.surfaceElevated)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Mixer")
-    }
-
-    private var phoneZoomControls: some View {
-        HStack(spacing: 4) {
-            phoneZoomButton(systemName: "minus.magnifyingglass") {
-                viewModel.zoomOutOneStep()
-            }
-            phoneZoomButton(systemName: "plus.magnifyingglass") {
-                viewModel.zoomInOneStep()
-            }
-        }
-    }
-
-    private func phoneZoomButton(systemName: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(DAWTheme.textPrimary)
-                .frame(width: phoneSecondaryTapTarget, height: phoneSecondaryTapTarget)
-                .background(DAWTheme.background.opacity(0.55))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var zoomControls: some View {
-        HStack(spacing: isCompact ? 6 : 8) {
-            if isCompact {
-                Button { viewModel.zoomOutOneStep() } label: {
-                    Image(systemName: "minus.magnifyingglass")
-                }
-                Button { viewModel.zoomInOneStep() } label: {
-                    Image(systemName: "plus.magnifyingglass")
-                }
-                Button("Fit") { viewModel.zoomToFitTimeline() }
-                    .font(.caption.weight(.semibold))
-            } else {
-                Button { viewModel.zoomOutOneStep() } label: {
-                    Image(systemName: "minus.magnifyingglass")
-                }
-
-                Slider(
-                    value: Binding(
-                        get: { viewModel.zoom },
-                        set: { viewModel.setZoom($0) }
-                    ),
-                    in: viewModel.minimumTimelineZoom...DAWTheme.maxZoom
-                )
-                .frame(width: 96)
-
-                Button { viewModel.zoomInOneStep() } label: {
-                    Image(systemName: "plus.magnifyingglass")
-                }
-
-                Button("Fit") { viewModel.zoomToFitTimeline() }
-                    .font(.caption.weight(.semibold))
-            }
-        }
-        .foregroundStyle(DAWTheme.textSecondary)
-        .padding(.horizontal, isCompact ? 8 : 10)
-        .padding(.vertical, isCompact ? 6 : 8)
-        .background(DAWTheme.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(DAWTheme.border, lineWidth: 1)
-        }
     }
 
     private var loopButtonColor: Color {

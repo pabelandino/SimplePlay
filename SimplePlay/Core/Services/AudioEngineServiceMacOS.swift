@@ -82,4 +82,23 @@ final class AudioEngineServiceMacOS: AudioEnginePlatformServices {
     }
 }
 
+extension AudioEngineService {
+    func playbackHeardAudioLatencySeconds() -> TimeInterval {
+        let outputNode = playbackEngine.outputNode
+        let sampleRate = outputNode.outputFormat(forBus: 0).sampleRate
+        let bufferDuration = sampleRate > 0 ? Double(4096) / sampleRate : 0.005
+        return outputNode.presentationLatency + (bufferDuration * 0.5)
+    }
+
+    func playbackMakeMacPlayAnchor() -> AVAudioTime? {
+        guard playbackRenderClockIsLive(),
+              let nodeTime = playbackEngine.outputNode.lastRenderTime,
+              nodeTime.isHostTimeValid else {
+            return nil
+        }
+        let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+        return AVAudioTime(hostTime: leadHost)
+    }
+}
+
 #endif
