@@ -14,6 +14,9 @@ final class WorkspaceViewModel {
     var project = DAWProject()
     var playheadTime: TimeInterval = 0
     var zoom: Double = 1.0
+    var trackRowZoom: Double = DAWTheme.defaultTrackRowZoom
+    /// Updated by the timeline panel so drag math matches the visible row height.
+    var trackRowHeightForInteraction: CGFloat = DAWTheme.trackRowHeight
     var selectedClipID: UUID?
     var selectedSectionID: UUID?
     var selectionRange: ClosedRange<TimeInterval>?
@@ -1043,6 +1046,7 @@ final class WorkspaceViewModel {
             workspace: .init(
                 playheadTime: playheadTime,
                 zoom: zoom,
+                trackRowZoom: trackRowZoom,
                 isPropertiesSidebarVisible: false,
                 propertiesSidebarWidth: Double(propertiesSidebarWidth)
             )
@@ -1058,6 +1062,7 @@ final class WorkspaceViewModel {
         applySavedMIDIDeviceConnection()
         playheadTime = document.workspace.playheadTime
         zoom = document.workspace.zoom
+        trackRowZoom = document.workspace.trackRowZoom
         propertiesSidebarWidth = CGFloat(document.workspace.propertiesSidebarWidth)
         selectedClipIDs.removeAll()
         selectedSectionID = nil
@@ -1144,6 +1149,19 @@ final class WorkspaceViewModel {
 
     func setZoom(_ value: Double) {
         zoom = min(DAWTheme.maxZoom, max(minimumTimelineZoom, value))
+    }
+
+    func setTrackRowZoom(_ value: Double) {
+        trackRowZoom = min(DAWTheme.maxTrackRowZoom, max(DAWTheme.minTrackRowZoom, value))
+    }
+
+    func trackRowHeight(isCompact: Bool) -> CGFloat {
+        let base = isCompact ? DAWTheme.compactTrackRowHeight : DAWTheme.trackRowHeight
+        return max(DAWTheme.minTrackRowHeight, base * trackRowZoom)
+    }
+
+    func updateTrackRowHeightForInteraction(_ height: CGFloat) {
+        trackRowHeightForInteraction = max(DAWTheme.minTrackRowHeight, height)
     }
 
     func adjustZoom(by factor: Double) {
@@ -1486,7 +1504,7 @@ final class WorkspaceViewModel {
         else { return }
 
         trackDragTranslation = translation
-        let deltaRows = Int((translation / DAWTheme.trackRowHeight).rounded())
+        let deltaRows = Int((translation / trackRowHeightForInteraction).rounded())
         let destination = min(max(0, sourceIndex + deltaRows), project.tracks.count - 1)
         trackDropIndicatorIndex = destination
     }

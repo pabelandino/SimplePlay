@@ -17,6 +17,126 @@ private struct SectionDragSession: Equatable {
 
 private let sectionLaneCoordinateSpace = "sectionLane"
 
+private enum SectionMarkerDensity {
+    case full
+    case compact
+    case minimal
+    case dot
+}
+
+private struct SectionMarkerLayout {
+    let width: CGFloat
+    let height: CGFloat
+    let density: SectionMarkerDensity
+    let showsName: Bool
+    let showsTimeRange: Bool
+    let showsResizeHandles: Bool
+    let horizontalTextPadding: CGFloat
+
+    var cornerRadius: CGFloat {
+        switch density {
+        case .full, .compact: 10
+        case .minimal: 2
+        case .dot: 0
+        }
+    }
+
+    private static var resizeHandleReserve: CGFloat {
+#if os(iOS)
+        44
+#else
+        28
+#endif
+    }
+
+    static func make(
+        startTime: TimeInterval,
+        endTime: TimeInterval,
+        sections: [ArrangementSection],
+        pixelsPerSecond: CGFloat,
+        laneContentHeight: CGFloat
+    ) -> SectionMarkerLayout {
+        let duration = max(0, endTime - startTime)
+        let naturalWidth = CGFloat(duration) * pixelsPerSecond
+
+        var availableWidth = naturalWidth
+        if let nextStart = sections
+            .filter({ $0.startTime > startTime + 0.001 })
+            .map(\.startTime)
+            .min() {
+            let gapToNext = CGFloat(nextStart - startTime) * pixelsPerSecond - 1
+            availableWidth = min(naturalWidth, max(0, gapToNext))
+        }
+
+        let zoomScale = min(1, max(0.22, pixelsPerSecond / 48))
+        let height = max(6, laneContentHeight * zoomScale)
+
+        let showsHandles = availableWidth >= 120 && height >= 32
+        let textPadding = showsHandles ? resizeHandleReserve : 6
+        let innerWidth = max(0, availableWidth - textPadding * 2)
+
+        let showsTimeRange = innerWidth >= 108 && height >= 38
+        let showsName = innerWidth >= 34 && height >= (showsTimeRange ? 38 : 14)
+
+        let density: SectionMarkerDensity
+        let width: CGFloat
+
+        if showsTimeRange {
+            density = .full
+            width = availableWidth
+        } else if showsName {
+            density = .compact
+            width = availableWidth
+        } else if availableWidth >= 5 {
+            density = .minimal
+            width = max(3, availableWidth)
+        } else {
+            density = .dot
+            width = max(4, min(6, height * 0.85))
+        }
+
+        return SectionMarkerLayout(
+            width: width,
+            height: height,
+            density: density,
+            showsName: showsName,
+            showsTimeRange: showsTimeRange,
+            showsResizeHandles: showsHandles && density == .full,
+            horizontalTextPadding: textPadding
+        )
+    }
+}
+
+private struct SectionMarkerLabelContent: View {
+    let name: String
+    let startLabel: String
+    let endLabel: String
+    let layout: SectionMarkerLayout
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: layout.showsTimeRange ? 3 : 0) {
+            if layout.showsName {
+                Text(name)
+                    .font(layout.showsTimeRange ? .caption.weight(.semibold) : .caption2.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .allowsTightening(true)
+            }
+
+            if layout.showsTimeRange {
+                Text("\(startLabel) → \(endLabel)")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .allowsTightening(true)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
 struct SectionMarkerLaneView: View {
     @Bindable var viewModel: WorkspaceViewModel
     let contentWidth: CGFloat
@@ -66,6 +186,13 @@ struct SectionMarkerLaneView: View {
             ForEach(viewModel.project.sections) { section in
                 SectionMarkerChipView(
                     section: section,
+                    layout: SectionMarkerLayout.make(
+                        startTime: section.startTime,
+                        endTime: section.endTime,
+                        sections: viewModel.project.sections,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        laneContentHeight: DAWTheme.markerLaneHeight - 14
+                    ),
                     viewModel: viewModel,
                     isSelected: viewModel.selectedSectionID == section.id,
                     isDimmed: dragSession?.sectionID == section.id,
@@ -84,7 +211,13 @@ struct SectionMarkerLaneView: View {
                     section: section,
                     startTime: ghostStart,
                     endTime: ghostEnd,
-                    pixelsPerSecond: viewModel.pixelsPerSecond
+                    layout: SectionMarkerLayout.make(
+                        startTime: ghostStart,
+                        endTime: ghostEnd,
+                        sections: viewModel.project.sections,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        laneContentHeight: DAWTheme.markerLaneHeight - 14
+                    )
                 )
                 .offset(x: CGFloat(ghostStart) * viewModel.pixelsPerSecond)
                 .transaction { $0.disablesAnimations = true }
@@ -159,22 +292,32 @@ private struct SectionCreationPreviewView: View {
     let color: Color
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 10)
+        let layout = SectionMarkerLayout.make(
+            startTime: range.lowerBound,
+            endTime: range.upperBound,
+            sections: [],
+            pixelsPerSecond: pixelsPerSecond,
+            laneContentHeight: DAWTheme.markerLaneHeight - 14
+        )
+
+        RoundedRectangle(cornerRadius: layout.cornerRadius)
             .fill(color.opacity(0.35))
             .overlay {
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: layout.cornerRadius)
                     .stroke(color.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
             }
             .overlay(alignment: .leading) {
-                Text(name)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
+                if layout.showsName {
+                    Text(name)
+                        .font(layout.showsTimeRange ? .caption.weight(.semibold) : .caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, layout.horizontalTextPadding)
+                }
             }
-            .frame(
-                width: max(48, CGFloat(range.upperBound - range.lowerBound) * pixelsPerSecond),
-                height: DAWTheme.markerLaneHeight - 14
-            )
+            .frame(width: max(layout.width, layout.density == .dot ? 6 : 12), height: layout.height)
+            .clipShape(RoundedRectangle(cornerRadius: layout.cornerRadius))
             .offset(x: CGFloat(range.lowerBound) * pixelsPerSecond)
             .allowsHitTesting(false)
     }
@@ -184,55 +327,24 @@ private struct SectionMarkerGhostChipView: View {
     let section: ArrangementSection
     let startTime: TimeInterval
     let endTime: TimeInterval
-    let pixelsPerSecond: CGFloat
-
-    private var chipWidth: CGFloat {
-        max(56, CGFloat(max(0, endTime - startTime)) * pixelsPerSecond)
-    }
+    let layout: SectionMarkerLayout
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(section.name)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.92))
-                    .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    Text(TimeFormatting.format(startTime))
-                    Text("→")
-                    Text(TimeFormatting.format(endTime))
-                }
-                .font(.caption2.monospaced())
-                .foregroundStyle(.white.opacity(0.78))
-            }
-            .padding(.horizontal, 10)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        }
-        .frame(width: chipWidth, height: DAWTheme.markerLaneHeight - 14)
-        .background {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            section.color.opacity(0.52),
-                            section.color.opacity(0.34),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(section.color.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
-        }
-        .shadow(color: section.color.opacity(0.35), radius: 12, y: 6)
+        sectionChipSurface(
+            name: section.name,
+            startLabel: TimeFormatting.format(startTime),
+            endLabel: TimeFormatting.format(endTime),
+            color: section.color,
+            isSelected: false,
+            isDimmed: false,
+            layout: layout
+        )
     }
 }
 
 fileprivate struct SectionMarkerChipView: View {
     let section: ArrangementSection
+    let layout: SectionMarkerLayout
     @Bindable var viewModel: WorkspaceViewModel
     let isSelected: Bool
     let isDimmed: Bool
@@ -252,41 +364,73 @@ fileprivate struct SectionMarkerChipView: View {
         viewModel.project.sections.first(where: { $0.id == section.id }) ?? section
     }
 
-    private var chipWidth: CGFloat {
-        max(resizeHandleHitWidth * 2 + 20, CGFloat(liveSection.duration) * viewModel.pixelsPerSecond)
-    }
-
     var body: some View {
-        chipLabelBlock
-            .frame(width: chipWidth, height: DAWTheme.markerLaneHeight - 14, alignment: .leading)
-            .overlay(alignment: .leading) {
-                resizeHandle(edge: .start)
-            }
-            .overlay(alignment: .trailing) {
-                resizeHandle(edge: .end)
-            }
-            .opacity(isDimmed ? 0.28 : 1)
-        .background {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            liveSection.color.opacity(0.82),
-                            liveSection.color.opacity(0.58),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+        Group {
+            if layout.density == .dot {
+                Circle()
+                    .fill(liveSection.color.opacity(isDimmed ? 0.35 : 0.92))
+                    .overlay {
+                        Circle()
+                            .stroke(
+                                isSelected ? Color.white.opacity(0.95) : liveSection.color.opacity(0.9),
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    }
+                    .frame(width: layout.width, height: layout.width)
+                    .contentShape(Rectangle())
+                    .gesture(chipMoveOrTapGesture)
+            } else {
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: layout.cornerRadius)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    liveSection.color.opacity(isDimmed ? 0.35 : 0.82),
+                                    liveSection.color.opacity(isDimmed ? 0.22 : 0.58),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    SectionMarkerLabelContent(
+                        name: liveSection.name,
+                        startLabel: TimeFormatting.format(liveSection.startTime),
+                        endLabel: TimeFormatting.format(liveSection.endTime),
+                        layout: layout
                     )
+                    .padding(.horizontal, layout.horizontalTextPadding)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .gesture(chipMoveOrTapGesture)
+                }
+                .frame(width: layout.width, height: layout.height)
+                .clipShape(RoundedRectangle(cornerRadius: layout.cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: layout.cornerRadius)
+                        .stroke(
+                            isSelected ? Color.white.opacity(0.95) : liveSection.color.opacity(0.9),
+                            lineWidth: isSelected ? 2 : 1
+                        )
+                }
+                .overlay(alignment: .leading) {
+                    if layout.showsResizeHandles {
+                        resizeHandle(edge: .start)
+                    }
+                }
+                .overlay(alignment: .trailing) {
+                    if layout.showsResizeHandles {
+                        resizeHandle(edge: .end)
+                    }
+                }
+                .shadow(
+                    color: liveSection.color.opacity(layout.density == .full ? 0.25 : 0.12),
+                    radius: layout.density == .full ? 5 : 2,
+                    y: 2
                 )
+            }
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(
-                    isSelected ? Color.white.opacity(0.95) : liveSection.color.opacity(0.9),
-                    lineWidth: isSelected ? 2 : 1
-                )
-        }
-        .shadow(color: liveSection.color.opacity(0.25), radius: 5, y: 2)
+        .opacity(isDimmed ? 0.28 : 1)
         .simultaneousGesture(
             TapGesture(count: 2).onEnded {
                 viewModel.triggerSection(liveSection)
@@ -303,28 +447,6 @@ fileprivate struct SectionMarkerChipView: View {
 #if os(macOS)
         .help("Drag center to move · Drag edges to resize · Tap or double-click to trigger")
 #endif
-    }
-
-    private var chipLabelBlock: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(liveSection.name)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-
-            HStack(spacing: 6) {
-                Text(TimeFormatting.format(liveSection.startTime))
-                Text("→")
-                Text(TimeFormatting.format(liveSection.endTime))
-            }
-            .font(.caption2.monospaced())
-            .foregroundStyle(.white.opacity(0.85))
-        }
-        .padding(.leading, resizeHandleHitWidth)
-        .padding(.trailing, resizeHandleHitWidth)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .gesture(chipMoveOrTapGesture)
     }
 
     private var chipMoveOrTapGesture: some Gesture {
@@ -504,6 +626,56 @@ fileprivate struct SectionMarkerChipView: View {
 
                 viewModel.commitSectionDragPreview(sectionID: section.id, kind: kind)
             }
+    }
+}
+
+@ViewBuilder
+private func sectionChipSurface(
+    name: String,
+    startLabel: String,
+    endLabel: String,
+    color: Color,
+    isSelected: Bool,
+    isDimmed: Bool,
+    layout: SectionMarkerLayout
+) -> some View {
+    if layout.density == .dot {
+        Circle()
+            .fill(color.opacity(isDimmed ? 0.35 : 0.92))
+            .overlay {
+                Circle()
+                    .stroke(color.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
+            }
+            .frame(width: layout.width, height: layout.width)
+    } else {
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: layout.cornerRadius)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            color.opacity(0.52),
+                            color.opacity(0.34),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            SectionMarkerLabelContent(
+                name: name,
+                startLabel: startLabel,
+                endLabel: endLabel,
+                layout: layout
+            )
+            .padding(.horizontal, layout.horizontalTextPadding)
+        }
+        .frame(width: layout.width, height: layout.height)
+        .clipShape(RoundedRectangle(cornerRadius: layout.cornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: layout.cornerRadius)
+                .stroke(color.opacity(0.85), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
+        }
+        .shadow(color: color.opacity(0.35), radius: layout.density == .full ? 12 : 4, y: layout.density == .full ? 6 : 2)
     }
 }
 

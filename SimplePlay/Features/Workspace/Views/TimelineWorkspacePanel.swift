@@ -26,7 +26,7 @@ struct TimelineWorkspacePanel: View {
     }
 
     private var trackRowHeight: CGFloat {
-        isCompact ? DAWTheme.compactTrackRowHeight : DAWTheme.trackRowHeight
+        viewModel.trackRowHeight(isCompact: isCompact)
     }
 
     private var laneAreaHeight: CGFloat {
@@ -57,9 +57,12 @@ struct TimelineWorkspacePanel: View {
                         masterTimelineHorizontalScroll
                     }
                 }
+
+                trackRowZoomControl
             }
             .onAppear {
                 viewModel.updateTimelineViewportWidth(geometry.size.width - trackHeaderWidth)
+                viewModel.updateTrackRowHeightForInteraction(trackRowHeight)
             }
             .onChange(of: geometry.size.width) { _, newWidth in
                 viewModel.updateTimelineViewportWidth(newWidth - trackHeaderWidth)
@@ -67,8 +70,42 @@ struct TimelineWorkspacePanel: View {
             .onChange(of: horizontalSizeClass) { _, _ in
                 viewModel.updateTimelineViewportWidth(geometry.size.width - trackHeaderWidth)
             }
+            .onChange(of: trackRowHeight) { _, newHeight in
+                viewModel.updateTrackRowHeightForInteraction(newHeight)
+            }
+            .onChange(of: viewModel.trackRowZoom) { _, _ in
+                viewModel.updateTrackRowHeightForInteraction(trackRowHeight)
+            }
         }
         .background(DAWTheme.background)
+    }
+
+    private var trackRowZoomControl: some View {
+        HStack(spacing: isCompact ? 8 : 10) {
+            Image(systemName: "arrow.up.and.down")
+                .font(isCompact ? .caption : .subheadline)
+                .foregroundStyle(DAWTheme.textSecondary)
+                .accessibilityLabel("Track height")
+
+            Slider(
+                value: Binding(
+                    get: { viewModel.trackRowZoom },
+                    set: { viewModel.setTrackRowZoom($0) }
+                ),
+                in: DAWTheme.minTrackRowZoom...DAWTheme.maxTrackRowZoom
+            )
+
+            Text("\(Int((viewModel.trackRowZoom * 100).rounded()))%")
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(DAWTheme.textSecondary)
+                .frame(minWidth: 36, alignment: .trailing)
+        }
+        .padding(.horizontal, isCompact ? 10 : 14)
+        .padding(.vertical, isCompact ? 6 : 8)
+        .background(DAWTheme.surface)
+        .overlay(alignment: .top) {
+            Rectangle().fill(DAWTheme.border).frame(height: 1)
+        }
     }
 
     private var trackHeaderColumnTracksOnly: some View {

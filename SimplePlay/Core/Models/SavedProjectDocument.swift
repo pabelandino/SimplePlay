@@ -15,8 +15,32 @@ struct SavedProjectDocument: Codable, Sendable {
     struct WorkspaceSnapshot: Codable, Sendable, Equatable {
         var playheadTime: TimeInterval
         var zoom: Double
+        var trackRowZoom: Double
         var isPropertiesSidebarVisible: Bool
         var propertiesSidebarWidth: Double
+
+        init(
+            playheadTime: TimeInterval,
+            zoom: Double,
+            trackRowZoom: Double = 1.0,
+            isPropertiesSidebarVisible: Bool,
+            propertiesSidebarWidth: Double
+        ) {
+            self.playheadTime = playheadTime
+            self.zoom = zoom
+            self.trackRowZoom = trackRowZoom
+            self.isPropertiesSidebarVisible = isPropertiesSidebarVisible
+            self.propertiesSidebarWidth = propertiesSidebarWidth
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            playheadTime = try container.decode(TimeInterval.self, forKey: .playheadTime)
+            zoom = try container.decode(Double.self, forKey: .zoom)
+            trackRowZoom = try container.decodeIfPresent(Double.self, forKey: .trackRowZoom) ?? 1.0
+            isPropertiesSidebarVisible = try container.decode(Bool.self, forKey: .isPropertiesSidebarVisible)
+            propertiesSidebarWidth = try container.decode(Double.self, forKey: .propertiesSidebarWidth)
+        }
     }
 
     init(project: DAWProject, workspace: WorkspaceSnapshot) {
