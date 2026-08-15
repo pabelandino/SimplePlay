@@ -1,7 +1,7 @@
 # Graph Report - SimplePlay  (2026-08-14)
 
 ## Corpus Check
-- 125 files · ~66,229 words
+- 125 files · ~66,236 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -387,8 +387,8 @@ Cohesion: 0.20
 Nodes (11): .assignButton, .assignModeHeader, .assignModeToggle, .collapsedBarContent, .body, DAWTheme, .isPhone, Bool (+3 more)
 
 ### Community 63 - "TrackGroup"
-Cohesion: 0.14
-Nodes (16): CodingKey, CodingKeys, horizontalOffset, id, importedAt, name, pitchSemitones, volume (+8 more)
+Cohesion: 0.15
+Nodes (15): CodingKeys, horizontalOffset, id, importedAt, name, pitchSemitones, volume, Date (+7 more)
 
 ### Community 64 - "Bool"
 Cohesion: 0.21
@@ -503,8 +503,8 @@ Cohesion: 0.33
 Nodes (5): Panel, mainVolume, none, timelineScale, .body
 
 ### Community 115 - "CodingKeys"
-Cohesion: 0.29
-Nodes (7): CodingKeys, linkedSectionID, order, preview, slideID, tag, text
+Cohesion: 0.25
+Nodes (8): CodingKey, CodingKeys, linkedSectionID, order, preview, slideID, tag, text
 
 ### Community 120 - "AudioDropOverlay"
 Cohesion: 0.33
