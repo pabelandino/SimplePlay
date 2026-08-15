@@ -88,6 +88,12 @@ struct WorkspacePresentationModifier: ViewModifier {
             } message: {
                 Text("This section marker will be removed from the timeline.")
             }
+            .sheet(isPresented: $viewModel.isSectionLyricLinkSheetPresented) {
+                if let sectionID = viewModel.sectionIDForLyricLink,
+                   let section = viewModel.project.sections.first(where: { $0.id == sectionID }) {
+                    SectionLyricLinkSheet(viewModel: viewModel, section: section)
+                }
+            }
     }
 
     private var deleteSectionDialogTitle: String {

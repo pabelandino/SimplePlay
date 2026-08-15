@@ -61,27 +61,7 @@ struct SectionAssignSheetView: View {
 
     @ViewBuilder
     private var lyricStatusBanner: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(viewModel.isLyrioraReachable ? Color.green : Color.red)
-                .frame(width: 7, height: 7)
-
-            if viewModel.isLoadingLyricCatalog {
-                Text("Loading slides from Lyriora…")
-            } else if let catalog = viewModel.lyricCatalog {
-                Text("\(catalog.slides.count) slides · \(catalog.lyricTitle)")
-            } else {
-                Text(viewModel.lyricSyncErrorMessage ?? "Lyriora not found on this network")
-            }
-
-            Spacer(minLength: 0)
-        }
-        .font(.caption2)
-        .foregroundStyle(DAWTheme.textSecondary)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(DAWTheme.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        LyricPlaySyncStatusView(viewModel: viewModel, isCompact: true)
     }
 }
 
@@ -136,8 +116,36 @@ private struct SectionAssignCardView: View {
                 .padding(.vertical, 10)
             }
             .buttonStyle(.plain)
+
+            Rectangle().fill(DAWTheme.border).frame(height: 1)
+
+            Button {
+                viewModel.presentLyricLinkSheet(for: section.id)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "text.below.photo")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.playhead : DAWTheme.textSecondary)
+
+                    Text(slideLabel)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.textPrimary : DAWTheme.textSecondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+
+                    Spacer(minLength: 0)
+
+                    Text(section.hasLyricSlideLink ? "Change" : "Slide")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(DAWTheme.textSecondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.lyricCatalog == nil && !viewModel.isLoadingLyricCatalog)
         }
-        .frame(width: 148)
+        .frame(width: 168)
         .background(DAWTheme.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
@@ -155,5 +163,15 @@ private struct SectionAssignCardView: View {
             channel: section.midiChannel,
             usesControlChange: section.midiUsesControlChange
         ).displayName
+    }
+
+    private var slideLabel: String {
+        if viewModel.isLoadingLyricCatalog {
+            return "Loading slides…"
+        }
+        guard viewModel.lyricCatalog != nil else {
+            return "Lyriora unavailable"
+        }
+        return viewModel.lyricSlideLabel(for: section, catalog: viewModel.lyricCatalog)
     }
 }

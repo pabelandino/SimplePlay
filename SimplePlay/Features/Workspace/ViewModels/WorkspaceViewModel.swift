@@ -593,6 +593,8 @@ final class WorkspaceViewModel {
     var lyricCatalog: LyricSlideCatalog?
     var isLoadingLyricCatalog = false
     var lyricSyncErrorMessage: String?
+    var lyricConnectionState: LyricPlaySyncClient.ConnectionState = .idle
+    var isLyrioraSyncEnabled = true
 
     private let importService = AudioImportService()
     private let organizationService = TrackOrganizationService()
@@ -605,6 +607,7 @@ final class WorkspaceViewModel {
     private var arrangementSyncedToAudioThisTick = false
     private var suppressTimelineJumpRestartUntil: Date?
     private var lastLyricSyncedSectionID: UUID?
+    private var lastLyricSyncedSlideID: UUID?
     private var lastAudioRestartWallTime: TimeInterval = 0
     private var lastAudioRestartTimelineTime: TimeInterval = -1
     private var editHistory = ProjectEditHistory()
@@ -618,8 +621,17 @@ final class WorkspaceViewModel {
             self?.handleIncomingMIDI(event)
         }
         prepareMIDIInput()
-        lyricSync.startBrowsing()
-        lyricSync.startHeartbeat()
+        Task { [weak self] in
+            guard let self else { return }
+            await lyricSync.setConnectionStateHandler { [weak self] state in
+                Task { @MainActor in
+                    self?.lyricConnectionState = state
+                }
+            }
+            await MainActor.run {
+                self.setLyrioraSyncEnabled(true)
+            }
+        }
 #if !os(macOS)
         NotificationCenter.default.addObserver(
             forName: AVAudioSession.routeChangeNotification,
@@ -663,7 +675,36 @@ final class WorkspaceViewModel {
         isSectionLyricLinkSheetPresented = true
     }
 
+    func setLyrioraSyncEnabled(_ enabled: Bool) {
+        guard isLyrioraSyncEnabled != enabled else { return }
+
+        isLyrioraSyncEnabled = enabled
+
+        if enabled {
+            lyricSyncErrorMessage = nil
+            Task {
+                await lyricSync.startBrowsing()
+                await lyricSync.startHeartbeat()
+            }
+        } else {
+            Task {
+                await lyricSync.stopBrowsing()
+            }
+            lyricCatalog = nil
+            lyricSyncErrorMessage = nil
+            isLoadingLyricCatalog = false
+            lyricConnectionState = .idle
+            lastLyricSyncedSectionID = nil
+            lastLyricSyncedSlideID = nil
+        }
+    }
+
     func refreshLyricCatalog() async {
+        guard isLyrioraSyncEnabled else {
+            lyricCatalog = nil
+            lyricSyncErrorMessage = nil
+            return
+        }
         isLoadingLyricCatalog = true
         lyricSyncErrorMessage = nil
         defer { isLoadingLyricCatalog = false }
@@ -704,6 +745,16 @@ final class WorkspaceViewModel {
         }
     }
 
+    private func suspendLyricNetworkDuringPlayback() {
+        guard isLyrioraSyncEnabled else { return }
+        Task { await lyricSync.suspendHeartbeat() }
+    }
+
+    private func resumeLyricNetworkAfterPlayback() {
+        guard isLyrioraSyncEnabled else { return }
+        Task { await lyricSync.resumeHeartbeat() }
+    }
+
     func clearLyricSlideLink(for sectionID: UUID) {
         guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else { return }
 
@@ -717,7 +768,7 @@ final class WorkspaceViewModel {
         guard section.hasLyricSlideLink else { return "No slide" }
         if let catalog,
            let slide = catalog.slides.first(where: { $0.slideID == section.lyricSlideID }) {
-            let preview = slide.preview.trimmingCharacters(in: .whitespacesAndNewlines)
+            let preview = slide.displayText.trimmingCharacters(in: .whitespacesAndNewlines)
             if preview.isEmpty {
                 return "Slide \(slide.order + 1)"
             }
@@ -729,12 +780,38 @@ final class WorkspaceViewModel {
         return "Linked slide"
     }
 
+    func lyricSlideAssignmentState(
+        slide: LyricSlideCatalogItem,
+        for sectionID: UUID
+    ) -> LyricSlideAssignmentState {
+        if project.sections.first(where: { $0.id == sectionID })?.lyricSlideID == slide.slideID {
+            return .selectedHere
+        }
+
+        if let other = project.sections.first(where: {
+            $0.id != sectionID && $0.lyricSlideID == slide.slideID
+        }) {
+            return .usedByOtherSection(other.name)
+        }
+
+        if let linkedSectionID = slide.linkedSectionID,
+           linkedSectionID != sectionID,
+           let other = project.sections.first(where: { $0.id == linkedSectionID }) {
+            return .usedByOtherSection(other.name)
+        }
+
+        return .available
+    }
+
     var isLyrioraReachable: Bool {
-        if case .connected = lyricSync.connectionState { return true }
+        guard isLyrioraSyncEnabled else { return false }
+        if case .connected = lyricConnectionState { return true }
         return lyricCatalog != nil
     }
 
     private func resyncLyricLinksWithLyriora() async {
+        guard isLyrioraSyncEnabled else { return }
+
         for section in project.sections where section.hasLyricSlideLink {
             guard let lyricID = section.lyricDocumentID,
                   let slideID = section.lyricSlideID else { continue }
@@ -751,18 +828,22 @@ final class WorkspaceViewModel {
     }
 
     private func sendLyricSlideTrigger(for section: ArrangementSection) {
+        guard isLyrioraSyncEnabled else { return }
         guard section.hasLyricSlideLink else { return }
+
+        let slideID = section.lyricSlideID!
+        guard slideID != lastLyricSyncedSlideID else { return }
+
+        lastLyricSyncedSlideID = slideID
 
         let command = ShowSlideCommand(
             lyricID: section.lyricDocumentID!,
-            slideID: section.lyricSlideID!,
+            slideID: slideID,
             sectionID: section.id,
             projectID: project.id
         )
 
-        Task {
-            try? await lyricSync.showSlide(command)
-        }
+        Task { await lyricSync.showSlide(command) }
     }
 
     private func section(at time: TimeInterval) -> ArrangementSection? {
@@ -774,10 +855,13 @@ final class WorkspaceViewModel {
 
         guard let section = section(at: arrangementEngine.currentTime) else {
             lastLyricSyncedSectionID = nil
+            lastLyricSyncedSlideID = nil
             return
         }
 
-        guard force || section.id != lastLyricSyncedSectionID else { return }
+        guard section.hasLyricSlideLink else { return }
+
+        guard force || section.lyricSlideID != lastLyricSyncedSlideID else { return }
 
         lastLyricSyncedSectionID = section.id
         sendLyricSlideTrigger(for: section)
@@ -1263,6 +1347,7 @@ final class WorkspaceViewModel {
         applySavedMIDIDeviceConnection()
         clampZoomToTimelineLimits()
         lastLyricSyncedSectionID = nil
+        lastLyricSyncedSlideID = nil
         Task { await resyncLyricLinksWithLyriora() }
     }
 
@@ -1684,6 +1769,7 @@ final class WorkspaceViewModel {
         }
         clampZoomToTimelineLimits()
         lastLyricSyncedSectionID = nil
+        lastLyricSyncedSlideID = nil
         Task { await resyncLyricLinksWithLyriora() }
     }
 
@@ -2862,9 +2948,11 @@ final class WorkspaceViewModel {
         isPlaying = true
         loopPrebufferTriggered = false
         lastLyricSyncedSectionID = nil
+        lastLyricSyncedSlideID = nil
         lastAudioRestartTimelineTime = playheadTime
         lastAudioRestartWallTime = ProcessInfo.processInfo.systemUptime
         suppressTimelineJumpRestartUntil = Date().addingTimeInterval(1.0)
+        suspendLyricNetworkDuringPlayback()
         startPlaybackTimer()
         syncLyricSlideForCurrentPlayhead(force: true)
     }
@@ -2878,6 +2966,7 @@ final class WorkspaceViewModel {
         playheadPublishAccumulator = 0
         loopPrebufferTriggered = false
         stopPlaybackTimer()
+        resumeLyricNetworkAfterPlayback()
     }
 
     func stop() {
@@ -2889,7 +2978,9 @@ final class WorkspaceViewModel {
         audioEngine.stop()
         arrangementEngine.stop()
         lastLyricSyncedSectionID = nil
+        lastLyricSyncedSlideID = nil
         stopPlaybackTimer()
+        resumeLyricNetworkAfterPlayback()
         scrollTimelineToStart()
     }
 

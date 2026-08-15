@@ -10,6 +10,11 @@ struct SectionLyricLinkSheet: View {
     let section: ArrangementSection
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    private var isCompact: Bool {
+        horizontalSizeClass == .compact || DAWTheme.isPhone
+    }
 
     var body: some View {
         NavigationStack {
@@ -18,12 +23,12 @@ struct SectionLyricLinkSheet: View {
                     ProgressView("Loading slides from Lyriora…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let catalog = viewModel.lyricCatalog {
-                    catalogList(catalog)
+                    catalogContent(catalog)
                 } else {
                     unavailableState
                 }
             }
-            .navigationTitle("Assign Lyric Slide")
+            .navigationTitle("Assign Slide · \(section.name)")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -46,64 +51,34 @@ struct SectionLyricLinkSheet: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 420, minHeight: 480)
+        .frame(minWidth: 460, minHeight: 520)
         #endif
     }
 
-    private func catalogList(_ catalog: LyricSlideCatalog) -> some View {
-        List {
-            Section {
-                Text(catalog.lyricTitle)
-                    .font(.headline)
-                Text("\(catalog.slides.count) slides available")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+    private func catalogContent(_ catalog: LyricSlideCatalog) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: isCompact ? 10 : 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(catalog.lyricTitle)
+                        .font(isCompact ? .subheadline.weight(.semibold) : .headline)
+                    Text("\(catalog.slides.count) slides · tap to assign to \(section.name)")
+                        .font(.caption)
+                        .foregroundStyle(DAWTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Section("Slides") {
-                ForEach(catalog.slides) { slide in
-                    Button {
-                        viewModel.assignLyricSlide(
-                            sectionID: section.id,
-                            slide: slide,
-                            catalog: catalog
-                        )
-                        dismiss()
-                    } label: {
-                        HStack(spacing: 12) {
-                            Text("\(slide.order + 1)")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 28, alignment: .trailing)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(slide.preview)
-                                    .font(.body)
-                                    .foregroundStyle(DAWTheme.textPrimary)
-                                    .lineLimit(2)
-
-                                if !slide.tag.isEmpty, slide.tag != "unknown" {
-                                    Text(slide.tag.capitalized)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Spacer()
-
-                            if section.lyricSlideID == slide.slideID {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                            } else if slide.linkedSectionID == section.id {
-                                Image(systemName: "link.circle.fill")
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
+                LyricSlidePickerList(
+                    viewModel: viewModel,
+                    section: section,
+                    catalog: catalog,
+                    isCompact: isCompact
+                ) {
+                    dismiss()
                 }
             }
+            .padding(isCompact ? 12 : 16)
         }
+        .background(DAWTheme.background)
     }
 
     private var unavailableState: some View {

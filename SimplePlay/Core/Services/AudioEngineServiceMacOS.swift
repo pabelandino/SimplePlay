@@ -91,12 +91,18 @@ extension AudioEngineService {
     }
 
     func playbackMakeMacPlayAnchor() -> AVAudioTime? {
-        guard playbackRenderClockIsLive(),
-              let nodeTime = playbackEngine.outputNode.lastRenderTime,
-              nodeTime.isHostTimeValid else {
-            return nil
+        if let synchronized = playbackMakeSynchronizedAnchor() {
+            return synchronized
         }
-        let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+
+        if playbackRenderClockIsLive(),
+           let nodeTime = playbackEngine.outputNode.lastRenderTime,
+           nodeTime.isHostTimeValid {
+            let leadHost = nodeTime.hostTime &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
+            return AVAudioTime(hostTime: leadHost)
+        }
+
+        let leadHost = mach_absolute_time() &+ AVAudioTime.hostTime(forSeconds: Self.playbackLeadInSeconds)
         return AVAudioTime(hostTime: leadHost)
     }
 }

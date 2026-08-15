@@ -439,6 +439,16 @@ final class AudioEngineService {
             return false
         }
 
+        let orderedClips = orderedScheduledClips(for: project)
+
+        for scheduled in orderedClips {
+            safelyStopPlayer(scheduled.player)
+        }
+
+        for scheduled in orderedClips {
+            safelyResetPlayer(scheduled.player)
+        }
+
         guard platformPlayback.warmUpEngineForPlayback(in: self) else {
             lastPlaybackError = AudioEngineError.playbackUnavailable.errorDescription
             return false
@@ -460,17 +470,7 @@ final class AudioEngineService {
             sampleRate: clipRate
         )
 
-        let orderedClips = orderedScheduledClips(for: project)
-
-        for scheduled in orderedClips {
-            safelyStopPlayer(scheduled.player)
-        }
-
         var playersToStart: [AVAudioPlayerNode] = []
-
-        for scheduled in orderedClips {
-            safelyResetPlayer(scheduled.player)
-        }
 
         let playbackAnchor = platformPlayback.resolvePlaybackStartAnchor(in: self)
 

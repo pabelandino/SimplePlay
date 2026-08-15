@@ -18,6 +18,12 @@ struct iPhoneMIDIMappingBarView: View {
                !viewModel.isMIDIMappingAssignModeEnabled {
                 sectionQuickPads
             }
+
+            if viewModel.isMIDIMappingExpanded {
+                LyricPlaySyncStatusView(viewModel: viewModel, isCompact: true)
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 6)
+            }
         }
         .frame(minHeight: DAWTheme.phoneMappingBarHeight)
         .background(DAWTheme.surface)
@@ -56,6 +62,7 @@ struct iPhoneMIDIMappingBarView: View {
 
                 if viewModel.isMIDIMappingExpanded {
                     devicePickerButton
+                    lyrioraStatusButton
                 }
 
                 assignButton
@@ -90,6 +97,27 @@ struct iPhoneMIDIMappingBarView: View {
         .sheet(isPresented: $showsDevicePicker) {
             phoneDevicePickerSheet
         }
+    }
+
+    private var lyrioraStatusButton: some View {
+        Button {
+            viewModel.setLyrioraSyncEnabled(!viewModel.isLyrioraSyncEnabled)
+        } label: {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(viewModel.isLyrioraSyncEnabled && viewModel.isLyrioraReachable ? Color.green : DAWTheme.textSecondary.opacity(0.5))
+                    .frame(width: 7, height: 7)
+                Text(viewModel.isLyrioraSyncEnabled ? "Lyriora" : "Off")
+                    .font(.caption.weight(.medium))
+            }
+            .foregroundStyle(viewModel.isLyrioraSyncEnabled ? DAWTheme.textPrimary : DAWTheme.textSecondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(DAWTheme.surfaceElevated)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(viewModel.isLyrioraSyncEnabled ? "Disconnect Lyriora" : "Connect Lyriora")
     }
 
     private var assignButton: some View {

@@ -30,6 +30,9 @@ struct SimplePlayApp: App {
         WindowGroup {
             ContentView(viewModel: viewModel)
         }
+#if os(iOS)
+        .defaultSize(width: 1180, height: 820)
+#endif
 #if os(macOS)
         .defaultSize(width: 1280, height: 800)
         .windowStyle(.hiddenTitleBar)

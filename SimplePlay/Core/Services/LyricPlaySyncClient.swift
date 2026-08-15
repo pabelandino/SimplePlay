@@ -6,9 +6,10 @@
 import Foundation
 import Network
 
-@MainActor
-final class LyricPlaySyncClient {
-    enum ConnectionState: Equatable {
+/// Network client for Lyriora sync. Runs off the main thread so playback timers
+/// and audio clock sync are not blocked by TCP/Bonjour work.
+actor LyricPlaySyncClient {
+    enum ConnectionState: Equatable, Sendable {
         case idle
         case searching
         case connected(String)
@@ -20,13 +21,21 @@ final class LyricPlaySyncClient {
     private var browser: NWBrowser?
     private var resolvedEndpoint: NWEndpoint?
     private var heartbeatTask: Task<Void, Never>?
-    private let queue = DispatchQueue(label: "com.simpleplay.lyric-sync", qos: .userInitiated)
+    private var heartbeatSuspended = false
+    private let queue = DispatchQueue(label: "com.simpleplay.lyric-sync", qos: .utility)
 
     private static let browseTimeout: TimeInterval = 12
 
+    func setConnectionStateHandler(_ handler: @escaping @Sendable (ConnectionState) -> Void) {
+        onConnectionStateChange = handler
+        handler(connectionState)
+    }
+
+    private var onConnectionStateChange: (@Sendable (ConnectionState) -> Void)?
+
     func startBrowsing() {
         guard browser == nil else { return }
-        connectionState = .searching
+        updateConnectionState(.searching)
         resolvedEndpoint = nil
 
         let parameters = NWParameters.tcp
@@ -37,21 +46,14 @@ final class LyricPlaySyncClient {
         )
 
         browser.stateUpdateHandler = { [weak self] state in
-            Task { @MainActor in
-                switch state {
-                case .failed(let error):
-                    self?.connectionState = .failed(error.localizedDescription)
-                case .cancelled:
-                    self?.connectionState = .idle
-                default:
-                    break
-                }
+            Task {
+                await self?.handleBrowserState(state)
             }
         }
 
         browser.browseResultsChangedHandler = { [weak self] results, _ in
-            Task { @MainActor in
-                self?.handleBrowseResults(results)
+            Task {
+                await self?.handleBrowseResults(results)
             }
         }
 
@@ -62,24 +64,50 @@ final class LyricPlaySyncClient {
     func stopBrowsing() {
         heartbeatTask?.cancel()
         heartbeatTask = nil
+        heartbeatSuspended = false
         browser?.cancel()
         browser = nil
         resolvedEndpoint = nil
-        connectionState = .idle
+        updateConnectionState(.idle)
     }
 
     func startHeartbeat() {
         guard heartbeatTask == nil else { return }
-        heartbeatTask = Task {
+        heartbeatSuspended = false
+        heartbeatTask = Task(priority: .utility) { [weak self] in
             while !Task.isCancelled {
-                try? await sendPresence()
+                guard let self else { return }
+                let suspended = await self.isHeartbeatSuspended
+                if !suspended {
+                    try? await self.sendPresenceIfConnected()
+                }
                 try? await Task.sleep(for: .seconds(5))
             }
         }
     }
 
+    func suspendHeartbeat() {
+        heartbeatSuspended = true
+    }
+
+    func resumeHeartbeat() {
+        heartbeatSuspended = false
+    }
+
+    private var isHeartbeatSuspended: Bool {
+        heartbeatSuspended
+    }
+
+    private func sendPresenceIfConnected() async throws {
+        guard resolvedEndpoint != nil else { return }
+        try await sendPresence()
+    }
+
     func sendPresence() async throws {
-        let response = try await send(LyricPlaySyncMessage(kind: .presence))
+        let response = try await send(
+            LyricPlaySyncMessage(kind: .presence),
+            resolveHostIfNeeded: false
+        )
         guard response.kind == .presenceAck || response.kind == .linkSectionAck else {
             if response.kind == .error, let message = response.errorMessage {
                 throw LyricPlaySyncTransportError.serverError(message)
@@ -89,7 +117,10 @@ final class LyricPlaySyncClient {
     }
 
     func requestCatalog() async throws -> LyricSlideCatalog {
-        let response = try await send(LyricPlaySyncMessage(kind: .catalogRequest))
+        let response = try await send(
+            LyricPlaySyncMessage(kind: .catalogRequest),
+            resolveHostIfNeeded: true
+        )
         guard response.kind == .catalogResponse, let catalog = response.catalog else {
             if response.kind == .error, let message = response.errorMessage {
                 throw LyricPlaySyncTransportError.serverError(message)
@@ -99,15 +130,22 @@ final class LyricPlaySyncClient {
         return catalog
     }
 
-    func showSlide(_ command: ShowSlideCommand) async throws {
-        _ = try await send(
-            LyricPlaySyncMessage(kind: .showSlide, showSlide: command)
-        )
+    /// Sends showSlide on a short-lived connection without waiting for Lyriora's reply.
+    func showSlide(_ command: ShowSlideCommand) {
+        Task(priority: .utility) { [weak self] in
+            guard let self else { return }
+            _ = try? await self.send(
+                LyricPlaySyncMessage(kind: .showSlide, showSlide: command),
+                resolveHostIfNeeded: false,
+                waitForResponse: false
+            )
+        }
     }
 
     func linkSection(_ command: LinkSectionCommand) async throws {
         let response = try await send(
-            LyricPlaySyncMessage(kind: .linkSection, linkSection: command)
+            LyricPlaySyncMessage(kind: .linkSection, linkSection: command),
+            resolveHostIfNeeded: true
         )
         guard response.kind == .linkSectionAck else {
             if response.kind == .error, let message = response.errorMessage {
@@ -117,28 +155,51 @@ final class LyricPlaySyncClient {
         }
     }
 
+    private func handleBrowserState(_ state: NWBrowser.State) {
+        switch state {
+        case .failed(let error):
+            updateConnectionState(.failed(error.localizedDescription))
+        case .cancelled:
+            updateConnectionState(.idle)
+        default:
+            break
+        }
+    }
+
     private func handleBrowseResults(_ results: Set<NWBrowser.Result>) {
         guard let result = results.first else {
             if case .connected = connectionState {
                 return
             }
-            connectionState = .searching
+            updateConnectionState(.searching)
             resolvedEndpoint = nil
             return
         }
 
         switch result.endpoint {
         case .service(let name, _, _, _):
-            connectionState = .connected(name)
+            updateConnectionState(.connected(name))
         default:
-            connectionState = .connected(LyricPlaySync.serviceName)
+            updateConnectionState(.connected(LyricPlaySync.serviceName))
         }
 
         resolvedEndpoint = result.endpoint
     }
 
-    private func send(_ message: LyricPlaySyncMessage) async throws -> LyricPlaySyncMessage {
+    private func updateConnectionState(_ state: ConnectionState) {
+        connectionState = state
+        onConnectionStateChange?(state)
+    }
+
+    private func send(
+        _ message: LyricPlaySyncMessage,
+        resolveHostIfNeeded: Bool,
+        waitForResponse: Bool = true
+    ) async throws -> LyricPlaySyncMessage {
         if resolvedEndpoint == nil {
+            if !resolveHostIfNeeded {
+                throw LyricPlaySyncTransportError.noLyrioraHost
+            }
             startBrowsing()
             try await waitForEndpoint(timeout: Self.browseTimeout)
         }
@@ -169,9 +230,16 @@ final class LyricPlaySyncClient {
                         connection.send(content: payload, completion: .contentProcessed { error in
                             if let error {
                                 resumeOnce(with: .failure(error))
+                                return
                             }
+
+                            if !waitForResponse {
+                                resumeOnce(with: .success(LyricPlaySyncMessage(kind: .presenceAck)))
+                                return
+                            }
+
+                            receiveResponse()
                         })
-                        receiveResponse()
                     } catch {
                         resumeOnce(with: .failure(error))
                     }

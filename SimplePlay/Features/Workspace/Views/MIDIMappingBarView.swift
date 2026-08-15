@@ -481,33 +481,7 @@ struct MIDIMappingBarView: View {
 
     @ViewBuilder
     private var lyricCatalogStatus: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(viewModel.isLyrioraReachable ? Color.green : Color.red)
-                .frame(width: 7, height: 7)
-
-            if viewModel.isLoadingLyricCatalog {
-                Text("Loading slides from Lyriora…")
-            } else if let catalog = viewModel.lyricCatalog {
-                Text("\(catalog.slides.count) slides · \(catalog.lyricTitle)")
-            } else {
-                Text(viewModel.lyricSyncErrorMessage ?? "Lyriora not found on this network")
-            }
-
-            Spacer(minLength: 0)
-
-            Button("Refresh") {
-                Task { await viewModel.refreshLyricCatalog() }
-            }
-            .buttonStyle(DAWSecondaryButtonStyle())
-            .disabled(viewModel.isLoadingLyricCatalog)
-        }
-        .font(.caption2)
-        .foregroundStyle(DAWTheme.textSecondary)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(DAWTheme.background.opacity(0.45))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        LyricPlaySyncStatusView(viewModel: viewModel, isCompact: isCompact)
     }
 
     @ViewBuilder
@@ -761,34 +735,13 @@ struct MIDIMappingBarView: View {
 
     @ViewBuilder
     private func sectionLyricAssignRow(_ section: ArrangementSection) -> some View {
-        if let catalog = viewModel.lyricCatalog {
-            Menu {
-                ForEach(catalog.slides) { slide in
-                    Button {
-                        viewModel.assignLyricSlide(
-                            sectionID: section.id,
-                            slide: slide,
-                            catalog: catalog
-                        )
-                    } label: {
-                        Text(lyricSlideMenuTitle(slide))
-                    }
-                }
-
-                if section.hasLyricSlideLink {
-                    Divider()
-                    Button("Clear Slide Link", role: .destructive) {
-                        viewModel.clearLyricSlideLink(for: section.id)
-                    }
-                }
-            } label: {
-                sectionLyricAssignLabel(section)
-            }
-            .buttonStyle(SectionMappingAssignButtonStyle(isLearning: false))
-        } else {
+        Button {
+            viewModel.presentLyricLinkSheet(for: section.id)
+        } label: {
             sectionLyricAssignLabel(section)
-                .opacity(0.72)
         }
+        .buttonStyle(SectionMappingAssignButtonStyle(isLearning: false))
+        .disabled(!viewModel.isLyrioraSyncEnabled || (viewModel.lyricCatalog == nil && !viewModel.isLoadingLyricCatalog))
     }
 
     private func sectionLyricAssignLabel(_ section: ArrangementSection) -> some View {
@@ -800,7 +753,8 @@ struct MIDIMappingBarView: View {
             Text(viewModel.lyricSlideLabel(for: section, catalog: viewModel.lyricCatalog))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.textPrimary : DAWTheme.textSecondary)
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
 
             Spacer(minLength: 0)
 
@@ -821,14 +775,6 @@ struct MIDIMappingBarView: View {
         .padding(.vertical, 9)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DAWTheme.background.opacity(0.45))
-    }
-
-    private func lyricSlideMenuTitle(_ slide: LyricSlideCatalogItem) -> String {
-        let preview = slide.preview.trimmingCharacters(in: .whitespacesAndNewlines)
-        if preview.isEmpty {
-            return "Slide \(slide.order + 1)"
-        }
-        return "Slide \(slide.order + 1) · \(preview)"
     }
 
     private func sectionTimeRange(_ section: ArrangementSection) -> String {
