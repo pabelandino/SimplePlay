@@ -569,6 +569,19 @@ final class WorkspaceViewModel {
     var connectedMIDISourceName: String?
     var isMIDIMappingExpanded = false
     var isMIDIMappingAssignModeEnabled = false
+    /// iPad/mac: all tracks by default; true = stack into one lane.
+    var isTimelineWrappedCompact = false
+    /// iPhone: single lane by default; true = show all track lanes.
+    var isPhoneTimelineExpanded = false
+    var isPhoneSectionAssignSheetPresented = false
+
+    var showsSingleTimelineLaneOnPhone: Bool {
+        !isPhoneTimelineExpanded
+    }
+
+    var showsSingleTimelineLaneOnStandard: Bool {
+        isTimelineWrappedCompact
+    }
 
     let audioEngine = AudioEngineService()
     let arrangementEngine = ArrangementPlaybackEngine()
@@ -1757,6 +1770,22 @@ final class WorkspaceViewModel {
         trackRowZoom = min(DAWTheme.maxTrackRowZoom, max(DAWTheme.minTrackRowZoom, value))
     }
 
+    func toggleTimelineWrappedCompact() {
+        isTimelineWrappedCompact.toggle()
+    }
+
+    func togglePhoneTimelineExpanded() {
+        isPhoneTimelineExpanded.toggle()
+    }
+
+    func phoneTrackRowHeight(for trackID: UUID) -> CGFloat {
+        DAWTheme.phoneTrackRowHeight
+    }
+
+    func singleLaneRowHeight(isPhone: Bool) -> CGFloat {
+        SingleLaneTimelineViews.rowHeight(isPhone: isPhone)
+    }
+
     func trackRowHeight(isCompact: Bool) -> CGFloat {
         let base = isCompact ? DAWTheme.compactTrackRowHeight : DAWTheme.trackRowHeight
         return max(DAWTheme.minTrackRowHeight, base * trackRowZoom)
@@ -2761,6 +2790,11 @@ final class WorkspaceViewModel {
     func setMIDIMappingAssignModeEnabled(_ enabled: Bool) {
         isMIDIMappingAssignModeEnabled = enabled
         isMIDIMappingExpanded = enabled
+#if os(iOS)
+        if DAWTheme.isPhone {
+            isPhoneSectionAssignSheetPresented = enabled
+        }
+#endif
         if enabled {
             Task { await refreshLyricCatalog() }
         } else {

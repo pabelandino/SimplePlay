@@ -31,6 +31,8 @@ private struct SectionMarkerLayout {
     let showsName: Bool
     let showsTimeRange: Bool
     let showsResizeHandles: Bool
+    let showsFloatingName: Bool
+    let showsPlayTrigger: Bool
     let horizontalTextPadding: CGFloat
 
     var cornerRadius: CGFloat {
@@ -71,15 +73,26 @@ private struct SectionMarkerLayout {
             availableWidth = min(naturalWidth, max(0, gapToNext))
         }
 
-        let zoomScale = min(1, max(0.22, pixelsPerSecond / 48))
-        let height = max(6, laneContentHeight * zoomScale)
+        let zoomScale = min(1, max(0.45, pixelsPerSecond / 48))
+        let height = max(DAWTheme.isPhone ? 28 : 20, laneContentHeight * zoomScale)
 
-        let showsHandles = availableWidth >= 120 && height >= 32
-        let textPadding = showsHandles ? resizeHandleReserve : 6
-        let innerWidth = max(0, availableWidth - textPadding * 2)
+        let minWidthForHandles: CGFloat = DAWTheme.isPhone ? 64 : 120
+        let minHeightForHandles: CGFloat = DAWTheme.isPhone ? 26 : 32
+
+        let handleReserve: CGFloat = {
+            if availableWidth >= minWidthForHandles && height >= minHeightForHandles { return resizeHandleReserve }
+            if availableWidth >= 72 { return 12 }
+            return 4
+        }()
+
+        let showsHandles = availableWidth >= minWidthForHandles && height >= minHeightForHandles
+        let showsPlayTrigger = DAWTheme.isPhone && availableWidth >= 40
+        let playButtonReserve: CGFloat = showsPlayTrigger ? 28 : 0
+        let textPadding = showsHandles ? handleReserve : 4
+        let innerWidth = max(0, availableWidth - textPadding - textPadding - playButtonReserve)
 
         let showsTimeRange = innerWidth >= 108 && height >= 38
-        let showsName = innerWidth >= 34 && height >= (showsTimeRange ? 38 : 14)
+        let showsName = innerWidth >= 18 && height >= 16
 
         let density: SectionMarkerDensity
         let width: CGFloat
@@ -104,7 +117,9 @@ private struct SectionMarkerLayout {
             density: density,
             showsName: showsName,
             showsTimeRange: showsTimeRange,
-            showsResizeHandles: showsHandles && density == .full,
+            showsResizeHandles: showsHandles && (density == .full || (DAWTheme.isPhone && density == .compact)),
+            showsFloatingName: !showsName && availableWidth >= 4,
+            showsPlayTrigger: showsPlayTrigger,
             horizontalTextPadding: textPadding
         )
     }
@@ -143,8 +158,13 @@ private struct SectionMarkerLabelContent: View {
 struct SectionMarkerLaneView: View {
     @Bindable var viewModel: WorkspaceViewModel
     let contentWidth: CGFloat
+    @Environment(\.workspaceLayout) private var workspaceLayout
 
     @State private var dragSession: SectionDragSession?
+
+    private var laneContentHeight: CGFloat {
+        max(12, workspaceLayout.markerLaneHeight - 14)
+    }
 
     private var creationDragMinimumDistance: CGFloat {
         2
@@ -173,6 +193,7 @@ struct SectionMarkerLaneView: View {
                 SectionCreationPreviewView(
                     range: preview,
                     pixelsPerSecond: viewModel.pixelsPerSecond,
+                    laneContentHeight: laneContentHeight,
                     name: viewModel.preferredMarkerPreset,
                     color: Color(
                         hex: SectionMarkerPalette.nextDistinctHex(
@@ -194,7 +215,7 @@ struct SectionMarkerLaneView: View {
                         endTime: section.endTime,
                         sections: viewModel.project.sections,
                         pixelsPerSecond: viewModel.pixelsPerSecond,
-                        laneContentHeight: DAWTheme.markerLaneHeight - 14,
+                        laneContentHeight: laneContentHeight,
                         excludingSectionID: dragSession?.sectionID == section.id && dragSession?.kind == .move
                             ? section.id
                             : nil
@@ -223,7 +244,7 @@ struct SectionMarkerLaneView: View {
                         endTime: ghostEnd,
                         sections: viewModel.project.sections,
                         pixelsPerSecond: viewModel.pixelsPerSecond,
-                        laneContentHeight: DAWTheme.markerLaneHeight - 14,
+                        laneContentHeight: laneContentHeight,
                         excludingSectionID: session.sectionID
                     )
                 )
@@ -242,7 +263,7 @@ struct SectionMarkerLaneView: View {
                     .allowsHitTesting(false)
             }
         }
-        .frame(width: contentWidth, height: DAWTheme.markerLaneHeight - 8)
+        .frame(width: contentWidth, height: workspaceLayout.markerLaneHeight - 8)
         .padding(.vertical, 4)
         .coordinateSpace(name: sectionLaneCoordinateSpace)
         .onChange(of: dragSession) { _, newValue in
@@ -300,6 +321,7 @@ struct SectionMarkerLaneView: View {
 private struct SectionCreationPreviewView: View {
     let range: ClosedRange<TimeInterval>
     let pixelsPerSecond: CGFloat
+    let laneContentHeight: CGFloat
     let name: String
     let color: Color
 
@@ -309,7 +331,7 @@ private struct SectionCreationPreviewView: View {
             endTime: range.upperBound,
             sections: [],
             pixelsPerSecond: pixelsPerSecond,
-            laneContentHeight: DAWTheme.markerLaneHeight - 14
+            laneContentHeight: laneContentHeight
         )
 
         RoundedRectangle(cornerRadius: layout.cornerRadius)
@@ -442,7 +464,31 @@ fileprivate struct SectionMarkerChipView: View {
                 )
             }
         }
+        .overlay {
+            if DAWTheme.isPhone, !isDimmed, layout.showsPlayTrigger || layout.density == .dot {
+                sectionPlayTriggerOverlay
+            }
+        }
         .opacity(isDimmed ? 0.28 : 1)
+        .overlay(alignment: .topLeading) {
+            if layout.showsFloatingName {
+                Text(liveSection.name)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(liveSection.color.opacity(0.94))
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                    }
+                    .offset(y: -12)
+                    .allowsHitTesting(false)
+            }
+        }
         .simultaneousGesture(
             TapGesture(count: 2).onEnded {
                 viewModel.triggerSection(liveSection)
@@ -531,6 +577,59 @@ fileprivate struct SectionMarkerChipView: View {
 #else
         28
 #endif
+    }
+
+    @ViewBuilder
+    private var sectionPlayTriggerOverlay: some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 0)
+            sectionPlayTriggerButton
+            if layout.showsResizeHandles {
+                Color.clear.frame(width: resizeHandleHitWidth)
+            }
+        }
+    }
+
+    private var sectionPlayTriggerButton: some View {
+        let status = viewModel.sectionPlaybackStatus(for: liveSection)
+
+        return Button {
+            viewModel.triggerSection(liveSection)
+        } label: {
+            Image(systemName: sectionPlayIcon(for: status))
+                .font(.system(size: layout.density == .dot ? 7 : 9, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(
+                    width: layout.density == .dot ? 18 : 24,
+                    height: layout.density == .dot ? 18 : 24
+                )
+                .background(playTriggerBackground(for: status))
+                .clipShape(Circle())
+                .overlay {
+                    Circle().stroke(Color.white.opacity(status == .idle ? 0.35 : 0.7), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .zIndex(3)
+        .accessibilityLabel("Play \(liveSection.name)")
+    }
+
+    private func sectionPlayIcon(for status: WorkspaceViewModel.SectionPlaybackStatus) -> String {
+        switch status {
+        case .idle: "play.fill"
+        case .playing: "speaker.wave.2.fill"
+        case .queued: "arrow.right.to.line"
+        case .repeatingAtEnd: "repeat.1"
+        }
+    }
+
+    private func playTriggerBackground(for status: WorkspaceViewModel.SectionPlaybackStatus) -> Color {
+        switch status {
+        case .idle: Color.black.opacity(0.45)
+        case .playing: DAWTheme.playhead.opacity(0.92)
+        case .queued: DAWTheme.accent.opacity(0.85)
+        case .repeatingAtEnd: DAWTheme.accent.opacity(0.75)
+        }
     }
 
     private func resizeHandle(edge: ResizeEdge) -> some View {

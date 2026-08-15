@@ -11,6 +11,7 @@ import UIKit
 struct TopToolbarView: View {
     @Bindable var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.workspaceLayout) private var workspaceLayout
 
     private var isCompact: Bool {
         horizontalSizeClass == .compact
@@ -118,6 +119,9 @@ struct TopToolbarView: View {
 
     private var actionButtons: some View {
         HStack(spacing: usesCompactToolbarActions ? 4 : 8) {
+            if !usesCompactToolbarActions {
+                wrapLayoutButton
+            }
             TrackPitchControlView(viewModel: viewModel, compact: usesCompactToolbarActions)
 
             settingsButton
@@ -272,6 +276,26 @@ struct TopToolbarView: View {
         .buttonStyle(DAWLabeledToolbarButtonStyle())
         .help(help)
         .accessibilityLabel(help)
+    }
+
+    @ViewBuilder
+    private var wrapLayoutButton: some View {
+        Button {
+            viewModel.toggleTimelineWrappedCompact()
+        } label: {
+            Image(systemName: viewModel.isTimelineWrappedCompact
+                ? "rectangle.expand.vertical"
+                : "rectangle.compress.vertical")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(viewModel.isTimelineWrappedCompact ? DAWTheme.accent : DAWTheme.textSecondary)
+        }
+        .buttonStyle(DAWIconToolbarButtonStyle())
+        .accessibilityLabel(viewModel.isTimelineWrappedCompact
+            ? "Expand all track lanes"
+            : "Stack stems into one lane")
+        .help(viewModel.isTimelineWrappedCompact
+            ? "Show every track in its own lane"
+            : "Stack all stems into a single compact lane")
     }
 
     private func toolbarIconButton(

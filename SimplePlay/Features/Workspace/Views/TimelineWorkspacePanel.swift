@@ -10,6 +10,8 @@ import UniformTypeIdentifiers
 struct TimelineWorkspacePanel: View {
     @Bindable var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.workspaceLayout) private var workspaceLayout
     @State private var scrollCoordinator = TimelineScrollCoordinator()
     @State private var isDropTargeted = false
     @State private var magnificationAnchor: Double?
@@ -18,19 +20,30 @@ struct TimelineWorkspacePanel: View {
     @State private var timelineScrollPosition = ScrollPosition(x: 0)
 
     private var isCompact: Bool {
-        horizontalSizeClass == .compact
+        workspaceLayout.usesCompactTrackHeaders
     }
 
     private var trackHeaderWidth: CGFloat {
-        isCompact ? DAWTheme.compactTrackHeaderWidth : DAWTheme.trackHeaderWidth
+        workspaceLayout.trackHeaderWidth
+    }
+
+    private var showsSingleLane: Bool {
+        viewModel.showsSingleTimelineLaneOnStandard
+    }
+
+    private var singleLaneHeight: CGFloat {
+        viewModel.singleLaneRowHeight(isPhone: false)
     }
 
     private var trackRowHeight: CGFloat {
-        viewModel.trackRowHeight(isCompact: isCompact)
+        workspaceLayout.trackRowHeight(trackRowZoom: viewModel.trackRowZoom)
     }
 
     private var laneAreaHeight: CGFloat {
-        CGFloat(max(viewModel.project.tracks.count, 1)) * trackRowHeight
+        if showsSingleLane {
+            return singleLaneHeight
+        }
+        return CGFloat(max(viewModel.project.tracks.count, 1)) * trackRowHeight
     }
 
     private var timelineDropOverlayMessage: String {
@@ -48,16 +61,20 @@ struct TimelineWorkspacePanel: View {
                     viewModel: viewModel,
                     scrollCoordinator: scrollCoordinator,
                     trackHeaderWidth: trackHeaderWidth,
-                    isCompact: isCompact
+                    markerLaneHeight: workspaceLayout.markerLaneHeight,
+                    isCompact: isCompact,
+                    showsSingleLane: showsSingleLane,
+                    onToggleSingleLane: { viewModel.toggleTimelineWrappedCompact() }
                 )
 
-                ScrollView(.vertical, showsIndicators: true) {
+                ScrollView(.vertical, showsIndicators: !showsSingleLane) {
                     HStack(alignment: .top, spacing: 0) {
                         trackHeaderColumnTracksOnly
                         masterTimelineHorizontalScroll
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.isTimelineWrappedCompact)
             .onAppear {
                 viewModel.updateTimelineViewportWidth(geometry.size.width - trackHeaderWidth)
                 viewModel.updateTrackRowHeightForInteraction(trackRowHeight)
@@ -74,55 +91,80 @@ struct TimelineWorkspacePanel: View {
             .onChange(of: viewModel.trackRowZoom) { _, _ in
                 viewModel.updateTrackRowHeightForInteraction(trackRowHeight)
             }
+            .onChange(of: viewModel.isTimelineWrappedCompact) { _, _ in
+                viewModel.updateTrackRowHeightForInteraction(
+                    showsSingleLane ? singleLaneHeight : trackRowHeight
+                )
+            }
+            .onChange(of: verticalSizeClass) { _, _ in
+                viewModel.updateTrackRowHeightForInteraction(trackRowHeight)
+            }
         }
         .background(DAWTheme.background)
     }
 
+    @ViewBuilder
     private var trackHeaderColumnTracksOnly: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
-                TrackHeaderRowView(track: track, viewModel: viewModel, rowHeight: trackRowHeight)
-                    .offset(y: viewModel.trackDragVisualOffset(for: track.id))
-                    .overlay(alignment: .top) {
-                        if viewModel.showsTrackDropIndicator(at: index) {
-                            Rectangle()
-                                .fill(track.color)
-                                .frame(height: 2)
+        if showsSingleLane {
+            SingleLaneTrackHeaderCell(
+                viewModel: viewModel,
+                width: trackHeaderWidth,
+                rowHeight: singleLaneHeight,
+                isPhone: false,
+                showsAllTracks: !viewModel.showsSingleTimelineLaneOnStandard,
+                onToggle: { viewModel.toggleTimelineWrappedCompact() }
+            )
+        } else {
+            VStack(spacing: 0) {
+                ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
+                    TrackHeaderRowView(track: track, viewModel: viewModel, rowHeight: trackRowHeight)
+                        .offset(y: viewModel.trackDragVisualOffset(for: track.id))
+                        .overlay(alignment: .top) {
+                            if viewModel.showsTrackDropIndicator(at: index) {
+                                Rectangle()
+                                    .fill(track.color)
+                                    .frame(height: 2)
+                            }
                         }
-                    }
-                    .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
-                    .frame(height: trackRowHeight)
-            }
+                        .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
+                        .frame(height: trackRowHeight)
+                }
 
-            Button {
-                viewModel.addEmptyTrack()
-            } label: {
-                Label(isCompact ? "Empty" : "Empty Track", systemImage: "rectangle.dashed")
-                    .font(isCompact ? .caption : .subheadline)
-                    .foregroundStyle(DAWTheme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, isCompact ? 8 : 12)
-                    .frame(height: isCompact ? 32 : 36)
+                trackHeaderActions
             }
-            .buttonStyle(.plain)
+            .frame(width: trackHeaderWidth)
+            .background(DAWTheme.surface)
+            .overlay(alignment: .trailing) {
+                Rectangle().fill(DAWTheme.border).frame(width: 1)
+            }
+        }
+    }
 
-            Button {
-                viewModel.presentAddTrackImport()
-            } label: {
-                Label(isCompact ? "Add" : "Import Track", systemImage: "plus")
-                    .font(isCompact ? .caption : .subheadline)
-                    .foregroundStyle(DAWTheme.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, isCompact ? 8 : 12)
-                    .frame(height: isCompact ? 36 : 44)
-            }
-            .buttonStyle(.plain)
+    @ViewBuilder
+    private var trackHeaderActions: some View {
+        Button {
+            viewModel.addEmptyTrack()
+        } label: {
+            Label(isCompact ? "Empty" : "Empty Track", systemImage: "rectangle.dashed")
+                .font(isCompact ? .caption : .subheadline)
+                .foregroundStyle(DAWTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, isCompact ? 8 : 12)
+                .frame(height: isCompact ? 32 : 36)
         }
-        .frame(width: trackHeaderWidth)
-        .background(DAWTheme.surface)
-        .overlay(alignment: .trailing) {
-            Rectangle().fill(DAWTheme.border).frame(width: 1)
+        .buttonStyle(.plain)
+
+        Button {
+            viewModel.presentAddTrackImport()
+        } label: {
+            Label(isCompact ? "Add" : "Import Track", systemImage: "plus")
+                .font(isCompact ? .caption : .subheadline)
+                .foregroundStyle(DAWTheme.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, isCompact ? 8 : 12)
+                .frame(height: isCompact ? 36 : 44)
         }
+        .buttonStyle(.plain)
     }
 
     private var masterTimelineHorizontalScroll: some View {
@@ -132,6 +174,8 @@ struct TimelineWorkspacePanel: View {
             timelineScrollPosition: $timelineScrollPosition,
             trackRowHeight: trackRowHeight,
             laneAreaHeight: laneAreaHeight,
+            showsSingleLane: showsSingleLane,
+            singleLaneHeight: singleLaneHeight,
             isDropTargeted: $isDropTargeted,
             timelineDropOverlayMessage: timelineDropOverlayMessage,
             onZoomChange: { oldZoom, newZoom in
@@ -236,7 +280,10 @@ private struct PinnedTimelineHeaderStrip: View {
     @Bindable var viewModel: WorkspaceViewModel
     var scrollCoordinator: TimelineScrollCoordinator
     let trackHeaderWidth: CGFloat
+    let markerLaneHeight: CGFloat
     let isCompact: Bool
+    var showsSingleLane: Bool = false
+    var onToggleSingleLane: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -264,7 +311,7 @@ private struct PinnedTimelineHeaderStrip: View {
                 TimelineHorizontalMirror(
                     offset: scrollCoordinator.horizontalOffset,
                     contentWidth: viewModel.timelineContentWidth,
-                    height: DAWTheme.markerLaneHeight
+                    height: markerLaneHeight
                 ) {
                     SectionMarkerLaneView(
                         viewModel: viewModel,
@@ -295,7 +342,22 @@ private struct PinnedTimelineHeaderStrip: View {
             }
     }
 
+    @ViewBuilder
     private var markerHeaderRow: some View {
+        if showsSingleLane, let onToggleSingleLane {
+            SingleLaneMarkerHeaderCell(
+                width: trackHeaderWidth,
+                height: markerLaneHeight,
+                isPhone: false,
+                showsAllTracks: !viewModel.showsSingleTimelineLaneOnStandard,
+                onToggle: onToggleSingleLane
+            )
+        } else {
+            standardMarkerHeaderRow
+        }
+    }
+
+    private var standardMarkerHeaderRow: some View {
         HStack(spacing: isCompact ? 4 : 8) {
             Image(systemName: "flag.fill")
                 .font(.caption2)
@@ -330,7 +392,7 @@ private struct PinnedTimelineHeaderStrip: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, isCompact ? 8 : 12)
-        .frame(width: trackHeaderWidth, height: DAWTheme.markerLaneHeight)
+        .frame(width: trackHeaderWidth, height: markerLaneHeight)
         .background(DAWTheme.surface.opacity(0.95))
         .overlay(alignment: .trailing) {
             Rectangle().fill(DAWTheme.border).frame(width: 1)
@@ -346,6 +408,8 @@ private struct TimelineTrackScrollArea: View {
     @Binding var timelineScrollPosition: ScrollPosition
     let trackRowHeight: CGFloat
     let laneAreaHeight: CGFloat
+    var showsSingleLane: Bool = false
+    var singleLaneHeight: CGFloat = DAWTheme.singleLaneRowHeight
     @Binding var isDropTargeted: Bool
     let timelineDropOverlayMessage: String
     let onZoomChange: (Double, Double) -> Void
@@ -355,38 +419,46 @@ private struct TimelineTrackScrollArea: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: true) {
             ZStack(alignment: .topLeading) {
-                TimelineTrackLaneBackground(
-                    trackCount: viewModel.project.tracks.count,
-                    rowHeight: trackRowHeight,
-                    pixelsPerSecond: viewModel.pixelsPerSecond,
-                    snapInterval: viewModel.project.snapInterval,
-                    isSnapEnabled: viewModel.project.isSnapEnabled,
-                    onSeek: { time in viewModel.seek(to: time) }
-                )
-                .equatable()
+                if showsSingleLane {
+                    SingleLaneStackedClipsLane(
+                        viewModel: viewModel,
+                        contentWidth: viewModel.timelineContentWidth,
+                        rowHeight: singleLaneHeight
+                    )
+                } else {
+                    TimelineTrackLaneBackground(
+                        trackCount: viewModel.project.tracks.count,
+                        rowHeight: trackRowHeight,
+                        pixelsPerSecond: viewModel.pixelsPerSecond,
+                        snapInterval: viewModel.project.snapInterval,
+                        isSnapEnabled: viewModel.project.isSnapEnabled,
+                        onSeek: { time in viewModel.seek(to: time) }
+                    )
+                    .equatable()
 
-                VStack(spacing: 0) {
-                    ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
-                        TrackLaneView(
-                            track: track,
-                            viewModel: viewModel,
-                            contentWidth: viewModel.timelineContentWidth,
-                            rowHeight: trackRowHeight,
-                            isTimelineScrolling: scrollCoordinator.isScrolling
-                        )
-                        .offset(y: viewModel.trackDragVisualOffset(for: track.id))
-                        .overlay(alignment: .top) {
-                            if viewModel.showsTrackDropIndicator(at: index) {
-                                Rectangle()
-                                    .fill(track.color)
-                                    .frame(height: 2)
+                    VStack(spacing: 0) {
+                        ForEach(Array(viewModel.project.tracks.enumerated()), id: \.element.id) { index, track in
+                            TrackLaneView(
+                                track: track,
+                                viewModel: viewModel,
+                                contentWidth: viewModel.timelineContentWidth,
+                                rowHeight: trackRowHeight,
+                                isTimelineScrolling: scrollCoordinator.isScrolling
+                            )
+                            .offset(y: viewModel.trackDragVisualOffset(for: track.id))
+                            .overlay(alignment: .top) {
+                                if viewModel.showsTrackDropIndicator(at: index) {
+                                    Rectangle()
+                                        .fill(track.color)
+                                        .frame(height: 2)
+                                }
                             }
+                            .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
+                            .frame(height: trackRowHeight)
                         }
-                        .zIndex(viewModel.draggingTrackID == track.id ? 1 : 0)
-                        .frame(height: trackRowHeight)
                     }
+                    .frame(width: viewModel.timelineContentWidth, alignment: .leading)
                 }
-                .frame(width: viewModel.timelineContentWidth, alignment: .leading)
 
                 if let guides = viewModel.activeSectionEdgeGuides {
                     SectionEdgeGuideOverlay(

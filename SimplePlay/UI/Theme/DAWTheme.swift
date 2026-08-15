@@ -43,6 +43,10 @@ enum DAWTheme {
 
     static let rulerHeight: CGFloat = 28
     static let markerLaneHeight: CGFloat = 68
+    static let phoneLandscapeMarkerLaneHeight: CGFloat = 36
+    static let wrappedMarkerLaneHeight: CGFloat = 28
+    static let wrappedTrackHeaderWidth: CGFloat = 88
+    static let wrappedTrackRowHeight: CGFloat = 46
     static let trackHeaderWidth: CGFloat = 268
     static let propertiesMinWidth: CGFloat = 220
     static let propertiesMaxWidth: CGFloat = 380
@@ -54,6 +58,14 @@ enum DAWTheme {
     static let compactTransportHeight: CGFloat = 96
     static let phoneTransportDockHeight: CGFloat = 82
     static let phoneMixerStripHeight: CGFloat = 206
+    static let phoneTrackHeaderWidth: CGFloat = 78
+    static let phoneSingleLaneRowHeight: CGFloat = 48
+    static let phoneTrackRowHeight: CGFloat = 84
+    static let singleLaneRowHeight: CGFloat = 56
+    static let phoneTrackControlSize: CGFloat = 32
+    static let phoneTimelineRulerHeight: CGFloat = 24
+    static let phoneMarkerLaneHeight: CGFloat = 58
+    static let phoneMappingBarHeight: CGFloat = 38
     static let transportHeight: CGFloat = 96
     static let toolbarHeight: CGFloat = 52
 #if os(macOS)
