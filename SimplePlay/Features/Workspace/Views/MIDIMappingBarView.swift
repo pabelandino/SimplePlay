@@ -13,11 +13,23 @@ import AppKit
 struct MIDIMappingBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.workspaceLayout) private var workspaceLayout
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsDevicePicker = false
 
     private var isCompact: Bool {
-        horizontalSizeClass == .compact
+        horizontalSizeClass == .compact || workspaceLayout.usesWrappedLayout
+    }
+
+    private var isPhoneLandscape: Bool {
+        workspaceLayout.isPhoneLandscape
+    }
+
+    private var expandedPanelMaxHeight: CGFloat? {
+        if isPhoneLandscape { return 88 }
+        if DAWTheme.isPhone { return 132 }
+        return nil
     }
 
     private var mappingPanelAnimation: Animation {
@@ -32,7 +44,8 @@ struct MIDIMappingBarView: View {
     }
 
     private var sectionQuickPadMinHeight: CGFloat {
-        isCompact ? 46 : 42
+        if isPhoneLandscape { return 34 }
+        return isCompact ? 46 : 42
     }
 
     var body: some View {
@@ -98,7 +111,8 @@ struct MIDIMappingBarView: View {
             .frame(minHeight: isCompact ? 34 : 44)
 
             if !viewModel.project.sections.isEmpty,
-               !viewModel.isMIDIMappingAssignModeEnabled {
+               !viewModel.isMIDIMappingAssignModeEnabled,
+               !shouldHideSectionQuickPads {
                 sectionQuickPads
                     .frame(minHeight: sectionQuickPadMinHeight)
             }
@@ -108,6 +122,11 @@ struct MIDIMappingBarView: View {
         .padding(.leading, DAWTheme.macTrafficLightLeadingInset - 16)
 #endif
         .padding(.vertical, isCompact ? 4 : 8)
+    }
+
+    private var shouldHideSectionQuickPads: Bool {
+        viewModel.isMIDIMappingAssignModeEnabled
+            || (isPhoneLandscape && viewModel.isMIDIMappingExpanded)
     }
 
     private var collapsedBarContent: some View {
@@ -133,6 +152,15 @@ struct MIDIMappingBarView: View {
             }
 
             assignModeToggle
+
+            if viewModel.isMIDIMappingAssignModeEnabled {
+                Button("Done") {
+                    viewModel.setMIDIMappingAssignModeEnabled(false)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(DAWTheme.accent)
+                .buttonStyle(.plain)
+            }
 
             if viewModel.isMIDILearnActive {
                 Label("Assigning…", systemImage: "dot.radiowaves.left.and.right")
@@ -388,12 +416,16 @@ struct MIDIMappingBarView: View {
     }
 
     private var expandedPanel: some View {
-        VStack(alignment: .leading, spacing: isCompact ? 8 : 12) {
+        VStack(alignment: .leading, spacing: isCompact ? 6 : 12) {
+            if viewModel.isMIDIMappingAssignModeEnabled {
+                assignModeHeader
+            }
+
             if viewModel.isMIDILearnActive {
                 learnBanner
             }
 
-            if !isCompact {
+            if !isCompact && !viewModel.isMIDIMappingAssignModeEnabled {
                 Text("Assign a MIDI pad and a Lyriora slide for each section card.")
                     .font(.caption2)
                     .foregroundStyle(DAWTheme.textSecondary)
@@ -418,14 +450,32 @@ struct MIDIMappingBarView: View {
                 }
             }
         }
+        .frame(maxHeight: expandedPanelMaxHeight)
         .padding(.horizontal, isCompact ? 10 : 16)
 #if os(macOS)
         .padding(.leading, DAWTheme.macTrafficLightLeadingInset - 16)
 #endif
-        .padding(.bottom, isCompact ? 8 : 12)
+        .padding(.bottom, isCompact ? 6 : 12)
         .task(id: viewModel.isMIDIMappingAssignModeEnabled) {
             guard viewModel.isMIDIMappingAssignModeEnabled else { return }
             await viewModel.refreshLyricCatalog()
+        }
+    }
+
+    private var assignModeHeader: some View {
+        HStack(spacing: 8) {
+            Text("Assign sections")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(DAWTheme.textPrimary)
+
+            Spacer(minLength: 0)
+
+            Button("Done") {
+                viewModel.setMIDIMappingAssignModeEnabled(false)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(DAWTheme.accent)
+            .buttonStyle(.plain)
         }
     }
 
@@ -546,7 +596,7 @@ struct MIDIMappingBarView: View {
                 sectionLyricAssignRow(section)
             }
         }
-        .frame(width: isCompact ? 148 : 176)
+        .frame(width: isCompact ? (isPhoneLandscape ? 128 : 148) : 176)
         .background(cardBackground(for: section, status: status, isLearning: isLearning))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {

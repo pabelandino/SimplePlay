@@ -14,9 +14,10 @@ struct TransportBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
     var style: TransportBarStyle = .standard
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.workspaceLayout) private var workspaceLayout
 
     private var isCompact: Bool {
-        horizontalSizeClass == .compact
+        horizontalSizeClass == .compact || workspaceLayout.usesWrappedLayout
     }
 
     private var usesPhoneDock: Bool {
