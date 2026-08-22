@@ -69,7 +69,11 @@ final class ArrangementPlaybackEngine {
         case .waitingToJump:
             if let current = activeSection {
                 syncActiveSectionToPlayhead(current: current, at: time)
-                state = .playingSection(activeSection ?? current)
+                // Still inside the section: drop wait-to-jump so play() is linear in-section.
+                // Seeking past it must stay `continuingTimeline` — do not recap at the old end.
+                if case .waitingToJump = state {
+                    state = .playingSection(activeSection ?? current)
+                }
             }
         case .idle, .continuingTimeline:
             guard let playheadSection = sectionContaining(time: time) else { return }
@@ -342,14 +346,19 @@ final class ArrangementPlaybackEngine {
     }
 
     private func syncActiveSectionToPlayhead(current: ArrangementSection, at time: TimeInterval) {
-        // Nested markers must not replace repeat-at-end on the parent section.
-        if case .repeatingSectionAtEnd = state {
+        // Nested markers must not replace repeat-at-end on the parent while still inside it.
+        if case .repeatingSectionAtEnd(let repeating) = state, repeating.contains(time: time) {
             return
         }
 
         guard let playheadSection = sectionContaining(time: time) else {
             if !current.contains(time: time) {
+                // Playhead left the section (user seek / play later). Staying in
+                // `playingSection` would cap audio at the old end → empty schedule
+                // → "Audio playback is unavailable".
                 activeSection = nil
+                pendingSection = nil
+                state = .continuingTimeline
             }
             return
         }

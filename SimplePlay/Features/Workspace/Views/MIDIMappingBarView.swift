@@ -318,7 +318,7 @@ struct MIDIMappingBarView: View {
                 SectionCueQueueBadge(
                     color: section.color,
                     progress: cueQueue.progress(for: section.id),
-                    isVisible: cueQueue.isQueuing(sectionID: section.id)
+                    isVisible: cueQueue.visibleQueuingSectionID == section.id
                 )
                 .allowsHitTesting(false)
             }
@@ -770,34 +770,13 @@ struct MIDIMappingBarView: View {
 
     @ViewBuilder
     private func sectionLyricAssignRow(_ section: ArrangementSection) -> some View {
-        if let catalog = viewModel.lyricCatalog {
-            Menu {
-                ForEach(catalog.slides) { slide in
-                    Button {
-                        viewModel.assignLyricSlide(
-                            sectionID: section.id,
-                            slide: slide,
-                            catalog: catalog
-                        )
-                    } label: {
-                        Text(lyricSlideMenuTitle(slide))
-                    }
-                }
-
-                if section.hasLyricSlideLink {
-                    Divider()
-                    Button("Clear Slide Link", role: .destructive) {
-                        viewModel.clearLyricSlideLink(for: section.id)
-                    }
-                }
-            } label: {
-                sectionLyricAssignLabel(section)
-            }
-            .buttonStyle(SectionMappingAssignButtonStyle(isLearning: false))
-        } else {
+        Button {
+            viewModel.presentLyricLinkSheet(for: section.id)
+        } label: {
             sectionLyricAssignLabel(section)
-                .opacity(0.72)
         }
+        .buttonStyle(SectionMappingAssignButtonStyle(isLearning: false))
+        .accessibilityLabel(section.hasLyricSlideLink ? "Change Lyriora slide for \(section.name)" : "Assign Lyriora slide for \(section.name)")
     }
 
     private func sectionLyricAssignLabel(_ section: ArrangementSection) -> some View {
@@ -809,7 +788,8 @@ struct MIDIMappingBarView: View {
             Text(viewModel.lyricSlideLabel(for: section, catalog: viewModel.lyricCatalog))
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.textPrimary : DAWTheme.textSecondary)
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
 
             Spacer(minLength: 0)
 
@@ -830,14 +810,6 @@ struct MIDIMappingBarView: View {
         .padding(.vertical, 9)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DAWTheme.background.opacity(0.45))
-    }
-
-    private func lyricSlideMenuTitle(_ slide: LyricSlideCatalogItem) -> String {
-        let preview = slide.preview.trimmingCharacters(in: .whitespacesAndNewlines)
-        if preview.isEmpty {
-            return "Slide \(slide.order + 1)"
-        }
-        return "Slide \(slide.order + 1) · \(preview)"
     }
 
     private func sectionTimeRange(_ section: ArrangementSection) -> String {

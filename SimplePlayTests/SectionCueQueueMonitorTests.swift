@@ -57,4 +57,16 @@ struct SectionCueQueueMonitorTests {
         monitor.completeOne(sectionID: first, generation: firstGeneration)
         #expect(abs(monitor.overallProgress - 0.125) < 0.001)
     }
+
+    @Test func visibleQueuingSectionIsTheOldestActiveJob() {
+        let monitor = SectionCueQueueMonitor()
+        let first = UUID()
+        let second = UUID()
+        let firstGeneration = monitor.begin(sectionID: first, total: 2)
+        monitor.begin(sectionID: second, total: 2)
+        #expect(monitor.visibleQueuingSectionID == first)
+        monitor.completeOne(sectionID: first, generation: firstGeneration)
+        monitor.completeOne(sectionID: first, generation: firstGeneration)
+        #expect(monitor.visibleQueuingSectionID == second)
+    }
 }

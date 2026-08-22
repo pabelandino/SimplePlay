@@ -309,6 +309,25 @@ struct ArrangementPlaybackEngineTests {
         #expect(engine.currentTime == 0)
     }
 
+    @Test func seekingPastSectionLeavesPlayingSectionForLinearPlay() async {
+        let engine = ArrangementPlaybackEngine()
+        let verse = makeSection(name: "Verse", start: 32.5, end: 36.4, note: 60)
+
+        engine.configure(sections: [verse])
+        engine.triggerSection(verse)
+        engine.play()
+        engine.currentTime = 34
+        _ = engine.triggerSection(verse)
+        engine.completeRepeatAtEndBoundary(for: verse)
+        #expect(engine.state == .playingSection(verse))
+
+        engine.seek(to: 50)
+        engine.ensureSectionPlaybackContext(at: 50)
+
+        #expect(engine.state == .continuingTimeline)
+        #expect(engine.activeSection == nil)
+    }
+
     private func makeSection(
         name: String,
         start: TimeInterval,

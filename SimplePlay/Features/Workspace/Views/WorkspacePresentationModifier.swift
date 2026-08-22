@@ -88,6 +88,9 @@ struct WorkspacePresentationModifier: ViewModifier {
             } message: {
                 Text("This section marker will be removed from the timeline.")
             }
+            .sheet(isPresented: workspaceLyricLinkSheetBinding, onDismiss: dismissLyricLinkSheet) {
+                lyricLinkSheet
+            }
     }
 
     private var deleteSectionDialogTitle: String {
@@ -106,5 +109,30 @@ struct WorkspacePresentationModifier: ViewModifier {
                 }
             }
         )
+    }
+
+    /// iPhone assign already presents this sheet from `SectionAssignSheetView`.
+    private var workspaceLyricLinkSheetBinding: Binding<Bool> {
+        Binding(
+            get: {
+                if viewModel.isPhoneSectionAssignSheetPresented {
+                    return false
+                }
+                return viewModel.isSectionLyricLinkSheetPresented
+            },
+            set: { viewModel.isSectionLyricLinkSheetPresented = $0 }
+        )
+    }
+
+    @ViewBuilder
+    private var lyricLinkSheet: some View {
+        if let section = viewModel.sectionForLyricLink {
+            SectionLyricLinkSheet(viewModel: viewModel, section: section)
+        }
+    }
+
+    private func dismissLyricLinkSheet() {
+        viewModel.sectionIDForLyricLink = nil
+        viewModel.isSectionLyricLinkSheetPresented = false
     }
 }

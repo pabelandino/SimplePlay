@@ -383,7 +383,6 @@ fileprivate struct SectionMarkerChipView: View {
     let isSelected: Bool
     let isDimmed: Bool
     @Binding var dragSession: SectionDragSession?
-    @Bindable private var cueQueue = SectionCueQueueMonitor.shared
 
 #if os(iOS)
     private let chipTapThreshold: CGFloat = 12
@@ -456,16 +455,6 @@ fileprivate struct SectionMarkerChipView: View {
                 .overlay(alignment: .trailing) {
                     if layout.showsResizeHandles {
                         resizeHandle(edge: .end)
-                    }
-                }
-                .overlay(alignment: .bottom) {
-                    if !isDimmed {
-                        SectionCueQueueBadge(
-                            color: liveSection.color,
-                            progress: cueQueue.progress(for: liveSection.id),
-                            isVisible: cueQueue.isQueuing(sectionID: liveSection.id)
-                        )
-                        .allowsHitTesting(false)
                     }
                 }
                 .shadow(

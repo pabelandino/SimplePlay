@@ -34,22 +34,27 @@ enum SectionPlaybackCoordinator {
     }
 
     /// Caps linear `play()` scheduling so audio cannot run past the active section while repeat is pending.
+    /// If `playheadTime` is already at or past that cap, return nil so a seek later in the song
+    /// is not scheduled as an empty range (`playbackUnavailable`).
     static func linearScheduleCap(
         arrangementState: ArrangementPlaybackEngine.PlaybackState,
         activeSection: ArrangementSection?,
-        pendingSection: ArrangementSection?
+        pendingSection: ArrangementSection?,
+        playheadTime: TimeInterval? = nil
     ) -> TimeInterval? {
+        let cap: TimeInterval?
         switch arrangementState {
         case .playingSection(let section), .repeatingSectionAtEnd(let section):
-            return section.endTime
+            cap = section.endTime
         case .waitingToJump:
-            return activeSection?.endTime
+            cap = activeSection?.endTime
         case .idle, .continuingTimeline:
-            if let pendingSection {
-                return pendingSection.endTime
-            }
+            cap = pendingSection?.endTime
+        }
+        if let cap, let playheadTime, playheadTime >= cap - boundaryEpsilon {
             return nil
         }
+        return cap
     }
 
     static func repeatLoopContext(

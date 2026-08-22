@@ -617,6 +617,10 @@ final class AudioEngineService {
         loopPlayAnchor = nil
         syncClipLayout(from: project)
 
+        // A stale section cap at or before `time` schedules an empty range and
+        // surfaces as "Audio playback is unavailable" after looping then seeking later.
+        let effectiveScheduleUntil = scheduleUntil.flatMap { $0 > time + 0.001 ? $0 : nil }
+
         guard !scheduledClips.isEmpty else {
             lastPlaybackError = AudioEngineError.playbackUnavailable.errorDescription
             return false
@@ -655,17 +659,15 @@ final class AudioEngineService {
                 live: scheduled.player,
                 standby: scheduled.standby
             )
-        }
-
-        var playersToStart: [AVAudioPlayerNode] = []
-
-        if !engine.isRunning {
-            for scheduled in orderedClips {
-                safelyResetPlayer(scheduled.player)
-                safelyResetPlayer(scheduled.standby)
-            }
+            // Full restart: clear the live FIFO even while the engine stays running
+            // (iPad). After a section loop, stop-without-reset + play(at:) is
+            // HALC `got N want: 1` and the next play reports playbackUnavailable.
+            safelyResetPlayer(scheduled.player)
+            safelyResetPlayer(scheduled.standby)
         }
         sectionStandby.clearPrimes()
+
+        var playersToStart: [AVAudioPlayerNode] = []
 
         let playbackAnchor = platformPlayback.resolvePlaybackStartAnchor(in: self)
         if sectionLoop != nil {
@@ -694,7 +696,7 @@ final class AudioEngineService {
                 guard scheduleClip(
                     scheduled,
                     from: playbackStartTime,
-                    scheduleUntil: scheduleUntil,
+                    scheduleUntil: effectiveScheduleUntil,
                     playerStartAnchor: playbackAnchor
                 ) else { continue }
                 playersToStart.append(scheduled.player)

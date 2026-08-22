@@ -30,6 +30,17 @@ import Testing
         #expect(cap == 20)
     }
 
+    @Test func linearCapDroppedWhenPlayheadIsPastSectionEnd() {
+        let section = makeSection(start: 10, end: 20)
+        let cap = SectionPlaybackCoordinator.linearScheduleCap(
+            arrangementState: .playingSection(section),
+            activeSection: section,
+            pendingSection: nil,
+            playheadTime: 50
+        )
+        #expect(cap == nil)
+    }
+
     @Test func linearCapWhileRepeatArmed() {
         let section = makeSection(start: 10, end: 20)
         let cap = SectionPlaybackCoordinator.linearScheduleCap(

@@ -26,6 +26,14 @@ final class SectionCueQueueMonitor {
         jobs.values.contains { $0.total > 0 && $0.completed < $0.total }
     }
 
+    /// Oldest in-flight job. UI shows a loader only on this section's play pad.
+    var visibleQueuingSectionID: UUID? {
+        jobs
+            .filter { $0.value.total > 0 && $0.value.completed < $0.value.total }
+            .min(by: { $0.value.generation < $1.value.generation })?
+            .key
+    }
+
     var overallProgress: Double {
         let active = jobs.values.filter { $0.total > 0 && $0.completed < $0.total }
         guard !active.isEmpty else { return 0 }

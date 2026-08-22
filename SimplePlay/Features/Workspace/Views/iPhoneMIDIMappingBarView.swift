@@ -167,7 +167,7 @@ struct iPhoneMIDIMappingBarView: View {
                 SectionCueQueueBadge(
                     color: section.color,
                     progress: cueQueue.progress(for: section.id),
-                    isVisible: cueQueue.isQueuing(sectionID: section.id)
+                    isVisible: cueQueue.visibleQueuingSectionID == section.id
                 )
                 .allowsHitTesting(false)
             }

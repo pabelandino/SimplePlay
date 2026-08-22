@@ -670,6 +670,11 @@ final class WorkspaceViewModel {
         isSectionLyricLinkSheetPresented = true
     }
 
+    var sectionForLyricLink: ArrangementSection? {
+        guard let sectionIDForLyricLink else { return nil }
+        return project.sections.first(where: { $0.id == sectionIDForLyricLink })
+    }
+
     func refreshLyricCatalog() async {
         isLoadingLyricCatalog = true
         lyricSyncErrorMessage = nil
@@ -698,6 +703,19 @@ final class WorkspaceViewModel {
         project.linkedLyricDocumentID = catalog.lyricID
         project.linkedLyricTitle = catalog.lyricTitle
 
+        if var updatedCatalog = lyricCatalog {
+            updatedCatalog.slides = updatedCatalog.slides.map { item in
+                var next = item
+                if item.slideID == slide.slideID {
+                    next.linkedSectionID = sectionID
+                } else if item.linkedSectionID == sectionID {
+                    next.linkedSectionID = nil
+                }
+                return next
+            }
+            lyricCatalog = updatedCatalog
+        }
+
         let command = LinkSectionCommand(
             lyricID: catalog.lyricID,
             slideID: slide.slideID,
@@ -718,6 +736,8 @@ final class WorkspaceViewModel {
         project.sections[index].lyricDocumentID = nil
         project.sections[index].lyricSlideID = nil
         project.sections[index].lyricSlideOrder = nil
+
+        lyricCatalog = lyricCatalog?.clearingSectionLinks(sectionID)
     }
 
     func lyricSlideLabel(for section: ArrangementSection, catalog: LyricSlideCatalog?) -> String {
@@ -734,6 +754,18 @@ final class WorkspaceViewModel {
             return "Slide \(order + 1)"
         }
         return "Linked slide"
+    }
+
+    func lyricSlideAssignmentState(
+        slide: LyricSlideCatalogItem,
+        for sectionID: UUID
+    ) -> LyricSlideAssignmentState {
+        LyricSlideAssignment.state(
+            slideID: slide.slideID,
+            currentSectionID: sectionID,
+            sections: project.sections,
+            catalogLinkedSectionID: slide.linkedSectionID
+        )
     }
 
     var isLyrioraReachable: Bool {
@@ -1426,7 +1458,8 @@ final class WorkspaceViewModel {
             ? SectionPlaybackCoordinator.linearScheduleCap(
                 arrangementState: arrangementEngine.state,
                 activeSection: arrangementEngine.activeSection,
-                pendingSection: arrangementEngine.pendingSection
+                pendingSection: arrangementEngine.pendingSection,
+                playheadTime: time
             )
             : nil
 
@@ -2684,12 +2717,27 @@ final class WorkspaceViewModel {
 
     func deleteSection(_ sectionID: UUID) {
         recordEditSnapshot()
+        purgeReferences(forDeletedSection: sectionID)
         project.sections.removeAll { $0.id == sectionID }
         if selectedSectionID == sectionID {
             selectedSectionID = project.sections.first?.id
         }
         arrangementEngine.configure(sections: project.sections)
         audioEngine.cancelGaplessCuts(for: sectionID)
+    }
+
+    private func purgeReferences(forDeletedSection sectionID: UUID) {
+        if case .section(let targetID) = midiLearnTarget, targetID == sectionID {
+            cancelMIDILearn()
+        }
+        if lastLyricSyncedSectionID == sectionID {
+            lastLyricSyncedSectionID = nil
+        }
+        if sectionIDForLyricLink == sectionID {
+            sectionIDForLyricLink = nil
+            isSectionLyricLinkSheetPresented = false
+        }
+        lyricCatalog = lyricCatalog?.clearingSectionLinks(sectionID)
     }
 
     func requestDeleteSection(_ sectionID: UUID) {
@@ -2778,7 +2826,8 @@ final class WorkspaceViewModel {
         let seamlessCap = SectionPlaybackCoordinator.linearScheduleCap(
             arrangementState: arrangementEngine.state,
             activeSection: arrangementEngine.activeSection,
-            pendingSection: arrangementEngine.pendingSection
+            pendingSection: arrangementEngine.pendingSection,
+            playheadTime: playheadTime
         )
         let started: Bool
         if audioEngine.isAnyPlayerPlaying,

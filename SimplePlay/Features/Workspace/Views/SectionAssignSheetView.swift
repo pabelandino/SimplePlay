@@ -54,6 +54,13 @@ struct SectionAssignSheetView: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .sheet(isPresented: $viewModel.isSectionLyricLinkSheetPresented, onDismiss: {
+            viewModel.sectionIDForLyricLink = nil
+        }) {
+            if let section = viewModel.sectionForLyricLink {
+                SectionLyricLinkSheet(viewModel: viewModel, section: section)
+            }
+        }
         .task {
             await viewModel.refreshLyricCatalog()
         }
@@ -136,8 +143,35 @@ private struct SectionAssignCardView: View {
                 .padding(.vertical, 10)
             }
             .buttonStyle(.plain)
+
+            Rectangle().fill(DAWTheme.border).frame(height: 1)
+
+            Button {
+                viewModel.presentLyricLinkSheet(for: section.id)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "text.below.photo")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.playhead : DAWTheme.textSecondary)
+
+                    Text(slideLabel)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(section.hasLyricSlideLink ? DAWTheme.textPrimary : DAWTheme.textSecondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+
+                    Spacer(minLength: 0)
+
+                    Text(section.hasLyricSlideLink ? "Change" : "Slide")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(DAWTheme.textSecondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+            }
+            .buttonStyle(.plain)
         }
-        .frame(width: 148)
+        .frame(width: 168)
         .background(DAWTheme.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
@@ -155,5 +189,15 @@ private struct SectionAssignCardView: View {
             channel: section.midiChannel,
             usesControlChange: section.midiUsesControlChange
         ).displayName
+    }
+
+    private var slideLabel: String {
+        if viewModel.isLoadingLyricCatalog {
+            return "Loading slides…"
+        }
+        guard viewModel.lyricCatalog != nil else {
+            return "Lyriora unavailable"
+        }
+        return viewModel.lyricSlideLabel(for: section, catalog: viewModel.lyricCatalog)
     }
 }

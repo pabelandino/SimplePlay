@@ -42,14 +42,13 @@ struct PropertiesSidebarView: View {
             monospaced: false
         )
 
-        Button("Open Assign Sections") {
-            viewModel.selectedSectionID = section.id
-            viewModel.setMIDIMappingAssignModeEnabled(true)
+        Button(section.hasLyricSlideLink ? "Change Lyric Slide" : "Assign Lyric Slide") {
+            viewModel.presentLyricLinkSheet(for: section.id)
         }
         .buttonStyle(DAWSecondaryButtonStyle())
 
         SettingsFootnote(
-            text: "Use Assign Sections in the mapping bar to link MIDI pads and Lyriora slides."
+            text: "Slide cards show the selected lyric and which section already uses it."
         )
     }
 

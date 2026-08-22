@@ -21,6 +21,7 @@ Arrangement state lives in `ArrangementPlaybackEngine.triggerSection`. Tests: `A
 | Tap again **during the extra cycle** | `enabledRepeatAtEnd` again | Arm **one more** wrap. |
 | Tap while `repeatingSectionAtEnd` **before** the wrap | `disabledRepeatAtEnd` → `playingSection` | Cancel the pending wrap. **Must not** play an extra loop. Playhead stays on the audio clock. |
 | Tap a **different** section with wait-for-end | `queuedForEnd` → `waitingToJump` | Current section finishes, then jump. Destination plays once unless its pad is tapped again. |
+| **Seek / play later** after a loop, past the section | `continuingTimeline` | Must **not** keep `playingSection` or `scheduleUntil` at the old end. That schedules an empty range and shows `Audio playback is unavailable`. |
 
 Immediate jump (`waitForCurrentToFinish == false`) is `activatedImmediately` and restarts audio at the destination. That path is not the live-FIFO wrap/jump described below.
 
@@ -166,6 +167,7 @@ You cannot unschedule `AVAudioPlayerNode` buffers without `stop()`. That is why 
 | `appendLivePlayback` the rest of the song (`sliced into 23 × 8s`) | Same, worse |
 | Splice 12 extra PCM buffers **in the wrap quantum** | HAL skip on the wrap that was already gapless |
 | Set `isLinearContinuationQueued` from `live-jump` | Next section exits into silence |
+| Keep `playingSection` after seeking past the section | `play()` caps at the old end, schedules nothing, `Audio playback is unavailable` |
 | Set `loopPrebufferTriggered` on metadata-only arm | Next wrap finds an empty FIFO (second wrap silent) |
 | `append live-cont` on disable after a queued body | Extra loop + playhead jumps to section end |
 | Reanchor playhead to section end when continuation is already playing | Visual gap; audio still in the extra cycle |

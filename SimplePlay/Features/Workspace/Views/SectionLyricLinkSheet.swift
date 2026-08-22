@@ -11,99 +11,93 @@ struct SectionLyricLinkSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private var liveSection: ArrangementSection {
+        viewModel.project.sections.first(where: { $0.id == section.id }) ?? section
+    }
+
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            header
+                .zIndex(1)
+
             Group {
-                if viewModel.isLoadingLyricCatalog {
+                if viewModel.isLoadingLyricCatalog, viewModel.lyricCatalog == nil {
                     ProgressView("Loading slides from Lyriora…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let catalog = viewModel.lyricCatalog {
-                    catalogList(catalog)
+                    catalogContent(catalog)
                 } else {
                     unavailableState
                 }
             }
-            .navigationTitle("Assign Lyric Slide")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-
-                if section.hasLyricSlideLink {
-                    ToolbarItem(placement: .destructiveAction) {
-                        Button("Clear Link", role: .destructive) {
-                            viewModel.clearLyricSlideLink(for: section.id)
-                            dismiss()
-                        }
-                    }
-                }
-            }
-            .task {
-                await viewModel.refreshLyricCatalog()
-            }
         }
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 480)
-        #endif
+        .background(DAWTheme.background)
+        .dawGlassBorder(cornerRadius: DAWGlassChrome.windowCornerRadius, lineWidth: 1.25)
+        .preferredColorScheme(.dark)
+        .task {
+            await viewModel.refreshLyricCatalog()
+        }
+#if os(iOS)
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(DAWGlassChrome.windowCornerRadius)
+#endif
+#if os(macOS)
+        .frame(minWidth: 520, idealWidth: 640, minHeight: 560, idealHeight: 720)
+#endif
     }
 
-    private func catalogList(_ catalog: LyricSlideCatalog) -> some View {
-        List {
-            Section {
-                Text(catalog.lyricTitle)
-                    .font(.headline)
-                Text("\(catalog.slides.count) slides available")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+    private var header: some View {
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Assign Slide")
+                    .font(.title3.bold())
+                    .foregroundStyle(DAWTheme.textPrimary)
+
+                Text(headerSubtitle)
+                    .font(.caption)
+                    .foregroundStyle(DAWTheme.textSecondary)
+                    .lineLimit(2)
             }
 
-            Section("Slides") {
-                ForEach(catalog.slides) { slide in
-                    Button {
-                        viewModel.assignLyricSlide(
-                            sectionID: section.id,
-                            slide: slide,
-                            catalog: catalog
-                        )
-                        dismiss()
-                    } label: {
-                        HStack(spacing: 12) {
-                            Text("\(slide.order + 1)")
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 28, alignment: .trailing)
+            Spacer(minLength: 0)
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(slide.preview)
-                                    .font(.body)
-                                    .foregroundStyle(DAWTheme.textPrimary)
-                                    .lineLimit(2)
-
-                                if !slide.tag.isEmpty, slide.tag != "unknown" {
-                                    Text(slide.tag.capitalized)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-
-                            Spacer()
-
-                            if section.lyricSlideID == slide.slideID {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                            } else if slide.linkedSectionID == section.id {
-                                Image(systemName: "link.circle.fill")
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+            if liveSection.hasLyricSlideLink {
+                Button("Clear Link", role: .destructive, action: clearLink)
+                    .buttonStyle(DAWSecondaryButtonStyle())
             }
+
+            Button("Close", action: dismiss.callAsFunction)
+                .buttonStyle(DAWPrimaryButtonStyle())
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .dawSettingsHeaderChrome()
+    }
+
+    private var headerSubtitle: String {
+        if let catalog = viewModel.lyricCatalog {
+            return "\(liveSection.name) · \(catalog.lyricTitle) · \(catalog.slides.count) slides"
+        }
+        return "Link a Lyriora slide to \(liveSection.name)"
+    }
+
+    private func catalogContent(_ catalog: LyricSlideCatalog) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Tap a card to assign it to \(liveSection.name).")
+                    .font(.caption)
+                    .foregroundStyle(DAWTheme.textSecondary)
+
+                LyricSlidePickerList(
+                    viewModel: viewModel,
+                    sectionID: section.id,
+                    catalog: catalog
+                )
+            }
+            .padding(16)
+        }
+        .scrollContentBackground(.hidden)
+        .background(DAWTheme.background)
     }
 
     private var unavailableState: some View {
@@ -117,5 +111,9 @@ struct SectionLyricLinkSheet: View {
             }
             .buttonStyle(DAWPrimaryButtonStyle())
         }
+    }
+
+    private func clearLink() {
+        viewModel.clearLyricSlideLink(for: section.id)
     }
 }
