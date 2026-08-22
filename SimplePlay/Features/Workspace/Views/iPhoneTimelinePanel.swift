@@ -13,6 +13,7 @@ struct iPhoneTimelinePanel: View {
     @State private var magnificationAnchor: Double?
     @State private var zoomAnchorTime: TimeInterval?
     @State private var zoomAnchorViewportX: CGFloat?
+    private let zoomGestureQuantization = 0.08
 
     private let trackHeaderWidth = DAWTheme.phoneTrackHeaderWidth
 
@@ -230,13 +231,21 @@ struct iPhoneTimelinePanel: View {
         }
     }
 
-    private func applyTimelineScroll(offsetX: CGFloat) {
+    private func applyTimelineScroll(offsetX: CGFloat, flushVisibleOffset: Bool = true) {
         let viewport = max(1, viewModel.timelineViewportWidth)
         let maxOffset = max(0, viewModel.timelineContentWidth - viewport)
         let clampedOffset = min(max(0, offsetX), maxOffset)
         scrollCoordinator.syncHorizontalOffset(clampedOffset)
         timelineScrollPosition = ScrollPosition(x: clampedOffset)
-        viewModel.flushTimelineVisibleOffset(clampedOffset)
+        if flushVisibleOffset {
+            viewModel.flushTimelineVisibleOffset(clampedOffset)
+        }
+    }
+
+    private func quantizedGestureZoom(base: Double, magnification: CGFloat) -> Double {
+        let raw = base * magnification
+        let step = zoomGestureQuantization
+        return (raw / step).rounded() * step
     }
 
     @ViewBuilder
@@ -284,14 +293,18 @@ struct iPhoneTimelinePanel: View {
         }
     }
 
-    private func applyTimelineScrollPreservingTime(_ anchorTime: TimeInterval, focalViewportX: CGFloat) {
+    private func applyTimelineScrollPreservingTime(
+        _ anchorTime: TimeInterval,
+        focalViewportX: CGFloat,
+        flushVisibleOffset: Bool = true
+    ) {
         if viewModel.zoom <= viewModel.minimumTimelineZoom + 0.001 {
-            applyTimelineScroll(offsetX: 0)
+            applyTimelineScroll(offsetX: 0, flushVisibleOffset: flushVisibleOffset)
             return
         }
 
         let targetOffset = CGFloat(anchorTime) * viewModel.pixelsPerSecond - focalViewportX
-        applyTimelineScroll(offsetX: targetOffset)
+        applyTimelineScroll(offsetX: targetOffset, flushVisibleOffset: flushVisibleOffset)
     }
 
     private var magnificationGesture: some Gesture {
@@ -299,6 +312,7 @@ struct iPhoneTimelinePanel: View {
             .onChanged { value in
                 if magnificationAnchor == nil {
                     magnificationAnchor = viewModel.zoom
+                    scrollCoordinator.setZooming(true)
                     zoomAnchorViewportX = value.startLocation.x
                     let oldPixelsPerSecond = DAWTheme.pixelsPerSecond * viewModel.zoom
                     zoomAnchorTime = TimeInterval(
@@ -306,12 +320,19 @@ struct iPhoneTimelinePanel: View {
                     )
                 }
 
-                viewModel.setZoom((magnificationAnchor ?? 1) * value.magnification)
+                let quantizedZoom = quantizedGestureZoom(
+                    base: magnificationAnchor ?? 1,
+                    magnification: value.magnification
+                )
+                guard abs(quantizedZoom - viewModel.zoom) >= zoomGestureQuantization * 0.5 else { return }
+
+                viewModel.setZoom(quantizedZoom)
 
                 if let anchorTime = zoomAnchorTime {
                     applyTimelineScrollPreservingTime(
                         anchorTime,
-                        focalViewportX: zoomAnchorViewportX ?? value.startLocation.x
+                        focalViewportX: zoomAnchorViewportX ?? value.startLocation.x,
+                        flushVisibleOffset: false
                     )
                 }
             }
@@ -319,6 +340,11 @@ struct iPhoneTimelinePanel: View {
                 magnificationAnchor = nil
                 zoomAnchorTime = nil
                 zoomAnchorViewportX = nil
+                scrollCoordinator.setZooming(false)
+                applyTimelineScroll(
+                    offsetX: scrollCoordinator.horizontalOffset,
+                    flushVisibleOffset: true
+                )
             }
     }
 }
@@ -369,7 +395,7 @@ private struct iPhoneMultitrackLaneContent: View {
                         viewModel: viewModel,
                         contentWidth: viewModel.timelineContentWidth,
                         rowHeight: DAWTheme.phoneTrackRowHeight,
-                        isTimelineScrolling: scrollCoordinator.isScrolling
+                        isTimelineScrolling: scrollCoordinator.isInteracting
                     )
                     .frame(height: DAWTheme.phoneTrackRowHeight)
                     .clipped()

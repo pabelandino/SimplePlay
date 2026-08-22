@@ -64,6 +64,10 @@ final class IOSPlaybackStrategy: PlatformPlaybackStrategy {
         AVAudioTime(sampleTime: 0, atRate: engine.playbackPrimaryClipSampleRate ?? 48_000)
     }
 
+    func capturePlaybackStartAnchor(in engine: AudioEngineService) -> AVAudioTime? {
+        engine.playbackMakeIOSPlayAnchor()
+    }
+
     func segmentScheduleTime(
         offsetSamplesFromPlayhead: AVAudioFramePosition,
         sampleRate: Double,
@@ -84,6 +88,15 @@ final class IOSPlaybackStrategy: PlatformPlaybackStrategy {
         guard framesFromNow >= 0, sampleRate > 0 else { return nil }
 
         if Double(framesFromNow) / sampleRate <= 0.1 {
+            if player.isPlaying,
+               let nodeTime = player.lastRenderTime,
+               nodeTime.isSampleTimeValid,
+               nodeTime.sampleRate > 0 {
+                return AVAudioTime(
+                    sampleTime: nodeTime.sampleTime + max(1, framesFromNow),
+                    atRate: nodeTime.sampleRate
+                )
+            }
             return nil
         }
 
@@ -131,13 +144,19 @@ final class IOSPlaybackStrategy: PlatformPlaybackStrategy {
         startingFrame: AVAudioFramePosition,
         frameCount: AVAudioFrameCount,
         at: AVAudioTime?,
+        completionHandler: (@Sendable () -> Void)?,
         in engine: AudioEngineService
     ) {
+        let wrappedCompletion: ((AVAudioPlayerNodeCompletionCallbackType) -> Void)? = completionHandler.map { handler in
+            { _ in handler() }
+        }
         player.scheduleSegment(
             file,
             startingFrame: startingFrame,
             frameCount: frameCount,
-            at: at
+            at: at,
+            completionCallbackType: .dataPlayedBack,
+            completionHandler: wrappedCompletion
         )
     }
 }

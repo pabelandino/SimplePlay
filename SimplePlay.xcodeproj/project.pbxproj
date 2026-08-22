@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B905E1C2302ED62C00648C41 /* LyrioraPlayIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = B905E1C1302ED62C00648C41 /* LyrioraPlayIcon.icon */; };
+		B95D3CDE30366A2900DC7848 /* LyrioraPlayIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = B95D3CDD30366A2900DC7848 /* LyrioraPlayIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,7 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		B905E1C1302ED62C00648C41 /* LyrioraPlayIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = LyrioraPlayIcon.icon; sourceTree = "<group>"; };
+		B95D3CDD30366A2900DC7848 /* LyrioraPlayIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = LyrioraPlayIcon.icon; sourceTree = "<group>"; };
 		B9D0ECE03028340300E5464D /* SimplePlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SimplePlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B9D0ECEF3028340500E5464D /* SimplePlayTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SimplePlayTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B9D0ECF93028340500E5464D /* SimplePlayUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SimplePlayUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -84,7 +84,7 @@
 				B9D0ECF23028340500E5464D /* SimplePlayTests */,
 				B9D0ECFC3028340500E5464D /* SimplePlayUITests */,
 				B9D0ECE13028340300E5464D /* Products */,
-				B905E1C1302ED62C00648C41 /* LyrioraPlayIcon.icon */,
+				B95D3CDD30366A2900DC7848 /* LyrioraPlayIcon.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -218,7 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B905E1C2302ED62C00648C41 /* LyrioraPlayIcon.icon in Resources */,
+				B95D3CDE30366A2900DC7848 /* LyrioraPlayIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

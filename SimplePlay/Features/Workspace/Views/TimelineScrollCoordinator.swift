@@ -11,6 +11,9 @@ import SwiftUI
 final class TimelineScrollCoordinator {
     private(set) var horizontalOffset: CGFloat = 0
     private(set) var isScrolling = false
+    private(set) var isZooming = false
+
+    var isInteracting: Bool { isScrolling || isZooming }
 
     func syncHorizontalOffset(_ offset: CGFloat) {
         horizontalOffset = max(0, offset)
@@ -18,6 +21,10 @@ final class TimelineScrollCoordinator {
 
     func setScrolling(_ scrolling: Bool) {
         isScrolling = scrolling
+    }
+
+    func setZooming(_ zooming: Bool) {
+        isZooming = zooming
     }
 }
 

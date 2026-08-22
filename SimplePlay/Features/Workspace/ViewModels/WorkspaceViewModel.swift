@@ -320,6 +320,7 @@ final class WorkspaceViewModel {
         clipMovePreview = nil
         updateSelectionRangeFromClips()
         audioEngine.syncClipLayout(from: project)
+        audioEngine.prepareGaplessCuts(for: project)
         resyncPlaybackIfNeeded()
     }
 
@@ -599,16 +600,22 @@ final class WorkspaceViewModel {
     private let projectPersistence = ProjectPersistenceService()
     private var playbackTimer: Timer?
     private var playheadPublishAccumulator: TimeInterval = 0
-    private let playheadPublishInterval: TimeInterval = 1.0 / 10.0
     private var isApplicationActive = true
-    private var loopPrebufferTriggered = false
-    private var arrangementSyncedToAudioThisTick = false
-    private var suppressTimelineJumpRestartUntil: Date?
+    private var transportState = PlaybackTransportController.TickState(
+        loopPrebufferTriggered: false,
+        suppressTimelineJumpRestartUntil: nil,
+        skipSectionExitHandlingUntil: nil,
+        lastAudioTimelineTime: nil,
+        lastTransportReanchorWallTime: nil
+    )
+    private var transportDisplayClock = TransportDisplayClock()
+    private var playheadDisplayTimer: Timer?
     private var lastLyricSyncedSectionID: UUID?
     private var lastAudioRestartWallTime: TimeInterval = 0
     private var lastAudioRestartTimelineTime: TimeInterval = -1
     private var editHistory = ProjectEditHistory()
     private var isApplyingEditHistory = false
+    private var isSectionTriggerInProgress = false
 
     var canUndo: Bool { editHistory.canUndo }
     var canRedo: Bool { editHistory.canRedo }
@@ -798,10 +805,9 @@ final class WorkspaceViewModel {
     }
 
     private var playbackTickInterval: TimeInterval {
-        if !isApplicationActive {
-            return 1.0 / 10.0
-        }
-        return 1.0 / 30.0
+        isApplicationActive
+            ? TransportClock.activeDisplayInterval
+            : TransportClock.backgroundDisplayInterval
     }
 
     func syncMeterMonitoring() {
@@ -1131,6 +1137,7 @@ final class WorkspaceViewModel {
         arrangementEngine.configure(sections: project.sections)
         configureAudioEngine()
         WaveformLoadMonitor.shared.reset()
+        SectionCueQueueMonitor.shared.reset()
         WaveformClipPeakStore.reset()
         clampZoomToTimelineLimits()
     }
@@ -1226,8 +1233,14 @@ final class WorkspaceViewModel {
 
         stopPlaybackTimer()
         isPlaying = false
-        suppressTimelineJumpRestartUntil = nil
-        loopPrebufferTriggered = false
+        transportState = PlaybackTransportController.TickState(
+            loopPrebufferTriggered: false,
+            suppressTimelineJumpRestartUntil: nil,
+            skipSectionExitHandlingUntil: nil,
+            lastAudioTimelineTime: nil,
+            lastTransportReanchorWallTime: nil
+        )
+        transportDisplayClock.clear()
         lastAudioRestartTimelineTime = -1
         lastAudioRestartWallTime = 0
 
@@ -1235,6 +1248,7 @@ final class WorkspaceViewModel {
         arrangementEngine.pause()
 
         WaveformLoadMonitor.shared.reset()
+        SectionCueQueueMonitor.shared.reset()
         WaveformClipPeakStore.reset()
 
         project = restored
@@ -1257,6 +1271,7 @@ final class WorkspaceViewModel {
         }
 
         updateSelectionRangeFromClips()
+        normalizeStoredSectionBounds()
         arrangementEngine.configure(sections: project.sections)
         arrangementEngine.seek(to: playheadTime)
         _ = configureAudioEngine()
@@ -1269,6 +1284,7 @@ final class WorkspaceViewModel {
     private func replaceProject(with newProject: DAWProject) {
         stop()
         WaveformLoadMonitor.shared.reset()
+        SectionCueQueueMonitor.shared.reset()
         WaveformClipPeakStore.reset()
         editHistory.clear()
 
@@ -1377,30 +1393,9 @@ final class WorkspaceViewModel {
             guard configureAudioEngine() else { return false }
         }
 
-        let loop = currentSectionLoopContext(at: time)
-
-        if let loop {
-            if attemptAudioPlayback(from: time, sectionLoop: loop) {
-                SectionTriggerDiagnostics.logAudioStart(
-                    source: "startAudioPlayback",
-                    time: time,
-                    started: true,
-                    sectionLoop: true,
-                    error: nil
-                )
-                return true
-            }
-            let restarted = configureAudioEngine() && attemptAudioPlayback(from: time, sectionLoop: loop)
-            SectionTriggerDiagnostics.logAudioStart(
-                source: "startAudioPlayback(reconfigure)",
-                time: time,
-                started: restarted,
-                sectionLoop: true,
-                error: audioEngine.lastPlaybackError
-            )
-            return restarted
-        }
-
+        // Always play linearly, capped at the section boundary.
+        // Loop repetitions are armed with 2 file-segment cycles on the live FIFO
+        // (`adoptSectionLoopDuringPlayback`); do not dump cached PCM or pre-queue 16 cycles.
         if attemptAudioPlayback(from: time, sectionLoop: nil) {
             SectionTriggerDiagnostics.logAudioStart(
                 source: "startAudioPlayback",
@@ -1425,9 +1420,16 @@ final class WorkspaceViewModel {
 
     private func attemptAudioPlayback(
         from time: TimeInterval,
-        sectionLoop: SectionLoopContext?,
-        scheduleUntil: TimeInterval? = nil
+        sectionLoop: SectionLoopContext?
     ) -> Bool {
+        let scheduleUntil = sectionLoop == nil
+            ? SectionPlaybackCoordinator.linearScheduleCap(
+                arrangementState: arrangementEngine.state,
+                activeSection: arrangementEngine.activeSection,
+                pendingSection: arrangementEngine.pendingSection
+            )
+            : nil
+
         let started = audioEngine.play(
             from: time,
             project: project,
@@ -1440,6 +1442,89 @@ final class WorkspaceViewModel {
             reportError("Could not start audio playback.")
         }
         return started
+    }
+
+    @discardableResult
+    private func armRepeatAudio(loop: SectionLoopContext, playheadTime: TimeInterval) -> Bool {
+        let armed: Bool
+        if audioEngine.isSectionLoopPlaybackActive {
+            // Must actually append. Returning true without a new body leaves
+            // `loopPrebufferTriggered` set, so the next wrap finds an empty FIFO.
+            armed = audioEngine.appendSectionLoopCycles(project: project, loop: loop)
+        } else {
+            armed = audioEngine.adoptSectionLoopDuringPlayback(
+                project: project,
+                loop: loop,
+                playheadTime: playheadTime
+            )
+        }
+        if armed {
+            SectionTriggerDiagnostics.log(
+                String(format: "armRepeatAudio — live FIFO at:nil at %.3fs -> %.3fs", loop.endTime, loop.startTime)
+            )
+        }
+        return armed
+    }
+
+    private func completeRepeatAtBoundary(section: ArrangementSection, loop: SectionLoopContext) {
+        transportState.loopPrebufferTriggered = false
+        let destination = loop.startTime
+
+        SectionLoopDiagnostics.log(String(
+            format: "audio-led repeat boundary %.6fs -> %.6fs",
+            loop.endTime,
+            destination
+        ))
+
+        transportState.suppressTimelineJumpRestartUntil = Date().addingTimeInterval(
+            TransportClock.boundaryRestartSuppression
+        )
+        transportState.skipSectionExitHandlingUntil = Date().addingTimeInterval(
+            TransportClock.sectionExitSuppression
+        )
+
+        arrangementEngine.completeRepeatAtEndBoundary(for: section)
+
+        let preScheduled = audioEngine.hasQueuedLoopBody
+
+        if preScheduled {
+            audioEngine.completeRepeatBoundaryJump(at: destination)
+            // One-shot wrap: drop loop bookkeeping so the extra cycle is linear
+            // `playingSection`. Continuation is armed near the extra cycle's end
+            // (`armLinearContinuation`); a pad tap during that cycle can arm
+            // another wrap because the FIFO still only holds the extra body.
+            audioEngine.releaseRepeatBoundaryLoopMetadata()
+            transportState.loopPrebufferTriggered = false
+            forcePlaybackClocks(to: destination)
+            publishPlayheadTime(destination, force: true)
+            syncLyricSlideForCurrentPlayhead()
+            SectionLoopDiagnostics.log(
+                "one-shot wrap consumed — extra cycle is playingSection (no further loop)"
+            )
+            return
+        }
+
+        audioEngine.clearSectionLoopState()
+        audioEngine.cancelArmedBoundaryJump(flushScheduledAudio: false)
+
+        let restarted = audioEngine.seamlessJumpPlayback(
+            to: destination,
+            project: project,
+            scheduleUntil: loop.endTime
+        )
+        if !restarted, !restartAudioPlayback(from: destination) {
+            SectionLoopDiagnostics.log(String(
+                format: "repeat boundary audio restart failed at %.6fs",
+                destination
+            ))
+            pause()
+            return
+        }
+
+        forcePlaybackClocks(to: destination)
+        publishPlayheadTime(destination, force: true)
+        syncLyricSlideForCurrentPlayhead()
+        audioEngine.releaseRepeatBoundaryLoopMetadata()
     }
 
     private func currentSectionLoopContext(at time: TimeInterval) -> SectionLoopContext? {
@@ -1473,64 +1558,63 @@ final class WorkspaceViewModel {
         )
     }
 
-    private func isSectionLoopWrap(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
-        guard newTime + 0.001 < previousTime else { return false }
+    private func releaseAudioSectionLoopContinuingLinear() {
+        guard audioEngine.isSectionLoopPlaybackActive else { return }
 
-        let loop = currentSectionLoopContext(at: newTime)
-            ?? currentSectionLoopContext(at: previousTime)
-        guard let loop else { return false }
+        let projectTimelineTime = arrangementEngine.currentTime
 
-        let nearEnd = abs(previousTime - loop.endTime) <= playbackTickInterval * 3
-            || previousTime >= loop.endTime - 0.001
-        guard nearEnd else { return false }
-        return abs(newTime - loop.startTime) <= playbackTickInterval * 3
+        transportState.loopPrebufferTriggered = false
+        transportState.lastAudioTimelineTime = projectTimelineTime
+
+        audioEngine.detachSectionLoopKeepingPlayback(at: projectTimelineTime)
     }
 
-    /// Arrangement repeat-at-end wrap (second tap on section pad) back to section start.
-    private func isSectionRepeatWrap(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
-        guard newTime + 0.001 < previousTime else { return false }
-
-        return project.sections.contains { section in
-            abs(newTime - section.startTime) <= playbackTickInterval * 3
-                && abs(previousTime - section.endTime) <= playbackTickInterval * 3
-        }
+    private func forcePlaybackClocks(to time: TimeInterval) {
+        arrangementEngine.seek(to: time)
+        transportState.lastAudioTimelineTime = time
+        lastAudioRestartTimelineTime = time
+        playheadTime = time
+        playheadPublishAccumulator = 0
+        lastAudioRestartWallTime = ProcessInfo.processInfo.systemUptime
+        transportDisplayClock.reset(to: time, wallTime: lastAudioRestartWallTime)
     }
 
-    private func appendSectionLoopAudioIfNeeded(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
-        guard let loop = currentSectionLoopContext(at: newTime) else { return false }
+    @discardableResult
+    private func resolveTimelineAudioJump(to newTime: TimeInterval) -> Bool {
+        if audioEngine.hasArmedBoundaryJump(matchingDestination: newTime) {
+            transportState.suppressTimelineJumpRestartUntil = Date().addingTimeInterval(
+                TransportClock.boundaryRestartSuppression
+            )
+            transportState.skipSectionExitHandlingUntil = Date().addingTimeInterval(
+                TransportClock.sectionExitSuppression
+            )
 
-        SectionLoopDiagnostics.logTimelineWrap(
-            previousTime: previousTime,
-            newTime: newTime,
-            loop: loop,
-            action: "append audio cycles (no restart)"
-        )
+            if audioEngine.isAnyPlayerPlaying {
+                audioEngine.completeSectionBoundaryJump(at: newTime)
+            } else {
+                audioEngine.startAllPrimedStandbys(allowImmediateStart: false)
+                audioEngine.completeSectionBoundaryJump(at: newTime)
+            }
+            transportState.loopPrebufferTriggered = false
+            forcePlaybackClocks(to: newTime)
 
-        return audioEngine.appendSectionLoopCycles(project: project, loop: loop)
-    }
-
-    /// True when the playhead jumps between arrangement sections (pad trigger, continue-to-next, pending jump).
-    private func isArrangementSectionTransition(from previousTime: TimeInterval, to newTime: TimeInterval) -> Bool {
-        guard abs(newTime - previousTime) > 0.05 else { return false }
-
-        // continueTimeline / repeatSection exit keeps the same audio running — only the playhead advances.
-        if case .continuingTimeline = arrangementEngine.state {
-            return false
+            if !audioEngine.isAnyPlayerPlaying {
+                // Destination players are stopped (pre-arm scheduled into a stopped player,
+                // or continuation was queued ahead). Use restartAudioPlayback so audio is
+                // capped at linearScheduleCap — this keeps loop arm scheduling compatible.
+                SectionLoopDiagnostics.log(String(
+                    format: "section jump boundary silent — restart to %.6fs",
+                    newTime
+                ))
+                return restartAudioPlayback(from: newTime)
+            }
+            return true
         }
 
-        let previousSection = project.sections.first(where: { $0.contains(time: previousTime) })
-        let newSection = project.sections.first(where: { $0.contains(time: newTime) })
-
-        if let previousSection, let newSection {
-            return previousSection.id != newSection.id
-        }
-
-        switch arrangementEngine.state {
-        case .playingSection(let section):
-            return abs(newTime - section.startTime) <= playbackTickInterval * 2
-        default:
-            return previousSection != nil && newSection == nil
-        }
+        // No pre-armed jump: restart with linearScheduleCap so any subsequent loop arm
+        // can schedule its cycle at the correct player-relative sample offset.
+        audioEngine.clearSectionLoopState()
+        return restartAudioPlayback(from: newTime)
     }
 
     @discardableResult
@@ -1657,6 +1741,7 @@ final class WorkspaceViewModel {
     private func applyLoadedProject(_ document: SavedProjectDocument) {
         stop()
         WaveformLoadMonitor.shared.reset()
+        SectionCueQueueMonitor.shared.reset()
         WaveformClipPeakStore.reset()
         editHistory.clear()
 
@@ -1840,7 +1925,11 @@ final class WorkspaceViewModel {
     }
 
     func scrollTimelineToPlayhead(alignment: TimelineScrollAlignment = .center) {
-        let playheadX = CGFloat(playheadTime) * pixelsPerSecond
+        scrollTimelineToTime(playheadTime, alignment: alignment)
+    }
+
+    func scrollTimelineToTime(_ time: TimeInterval, alignment: TimelineScrollAlignment = .center) {
+        let playheadX = CGFloat(time) * pixelsPerSecond
         let viewport = max(1, timelineViewportWidth)
         let maxOffset = max(0, timelineContentWidth - viewport)
 
@@ -1855,6 +1944,17 @@ final class WorkspaceViewModel {
         }
 
         requestTimelineScroll(offsetX: target)
+    }
+
+    func scrollTimelineToTimeIfOffScreen(_ time: TimeInterval) {
+        guard TransportClock.isPlayheadOffScreen(
+            time: time,
+            pixelsPerSecond: Double(pixelsPerSecond),
+            visibleOffsetX: Double(timelineVisibleOffsetX),
+            viewportWidth: Double(timelineViewportWidth)
+        ) else { return }
+
+        scrollTimelineToTime(time, alignment: .center)
     }
 
     func scrollTimelineToStart() {
@@ -2238,6 +2338,7 @@ final class WorkspaceViewModel {
         project.sections.append(section)
         selectedSectionID = section.id
         arrangementEngine.configure(sections: project.sections)
+        audioEngine.prepareGaplessCuts(for: section, in: project)
     }
 
     func beginSectionCreation(atX x: CGFloat) {
@@ -2299,6 +2400,26 @@ final class WorkspaceViewModel {
             normalizedStart,
             max(normalizedStart + TimelineSampleGrid.sampleDuration(sampleRate: timelineSampleRate), normalizedEnd)
         )
+    }
+
+    /// Re-aligns stored section edges so arrangement, UI, and audio loop share the same boundaries.
+    private func normalizeStoredSectionBounds() {
+        var didChange = false
+        for index in project.sections.indices {
+            let normalized = normalizedSectionRange(
+                start: project.sections[index].startTime,
+                end: project.sections[index].endTime
+            )
+            if project.sections[index].startTime != normalized.start
+                || project.sections[index].endTime != normalized.end {
+                project.sections[index].startTime = normalized.start
+                project.sections[index].endTime = normalized.end
+                didChange = true
+            }
+        }
+        if didChange {
+            arrangementEngine.configure(sections: project.sections)
+        }
     }
 
     /// Prefer the sample rate of loaded clips so section edges align with audible content.
@@ -2387,7 +2508,9 @@ final class WorkspaceViewModel {
     }
 
     func updateSectionDragPreview(start: TimeInterval, end: TimeInterval) {
-        sectionDragPreviewRange = min(start, end)...max(start, end)
+        let lower = max(0, min(start, end))
+        let upper = max(0, max(start, end))
+        sectionDragPreviewRange = lower...upper
     }
 
     func updateSectionDragPreview(
@@ -2446,7 +2569,19 @@ final class WorkspaceViewModel {
         }
     }
 
-    /// Commits the live drag preview exactly as shown (no snap or recomputation).
+    private func committedSectionRange(from preview: ClosedRange<TimeInterval>) -> (start: TimeInterval, end: TimeInterval) {
+        let sampleRate = timelineSampleRate
+        let start = TimelineSampleGrid.quantize(preview.lowerBound, sampleRate: sampleRate)
+        let end = TimelineSampleGrid.quantize(preview.upperBound, sampleRate: sampleRate)
+        let minimumDuration = max(
+            project.snapInterval,
+            0.25,
+            TimelineSampleGrid.sampleDuration(sampleRate: sampleRate)
+        )
+        return (start, max(end, start + minimumDuration))
+    }
+
+    /// Commits the live drag preview with sample-accurate boundaries (no edit-grid snap).
     func commitSectionDragPreview(sectionID: UUID, kind: SectionDragKind) {
         guard let index = project.sections.firstIndex(where: { $0.id == sectionID }) else {
             clearSectionDragState()
@@ -2464,13 +2599,67 @@ final class WorkspaceViewModel {
 
         if let previewRange {
             recordEditSnapshot()
-            project.sections[index].startTime = previewRange.lowerBound
-            project.sections[index].endTime = previewRange.upperBound
+            let oldSection = project.sections[index]
+            let committed = committedSectionRange(from: previewRange)
+            project.sections[index].startTime = committed.start
+            project.sections[index].endTime = committed.end
             arrangementEngine.configure(sections: project.sections)
+
+            syncPlaybackAfterSectionBoundsChange(
+                oldSection: oldSection,
+                newSection: project.sections[index],
+                kind: kind
+            )
+            audioEngine.prepareGaplessCuts(for: project.sections[index], in: project)
         }
 
         clearSectionDragState()
         clearSectionMovePreview()
+    }
+
+    private func syncPlaybackAfterSectionBoundsChange(
+        oldSection: ArrangementSection,
+        newSection: ArrangementSection,
+        kind: SectionDragKind
+    ) {
+        guard isPlaying else { return }
+
+        let current = arrangementEngine.currentTime
+        let wasPlayingThisSection: Bool = {
+            switch arrangementEngine.state {
+            case .playingSection(let active), .repeatingSectionAtEnd(let active):
+                return active.id == oldSection.id
+            default:
+                return oldSection.contains(time: current)
+            }
+        }()
+
+        if kind == .move, wasPlayingThisSection {
+            let delta = newSection.startTime - oldSection.startTime
+            let shifted = max(0, current + delta)
+            arrangementEngine.seek(to: shifted)
+            publishPlayheadTime(shifted, force: true)
+        } else if kind == .resizeStart || kind == .resizeEnd {
+            let seekTime = arrangementEngine.currentTime
+            if seekTime < newSection.startTime {
+                arrangementEngine.seek(to: newSection.startTime)
+                publishPlayheadTime(newSection.startTime, force: true)
+            } else if seekTime >= newSection.endTime {
+                let clamped = max(newSection.startTime, newSection.endTime - 0.001)
+                arrangementEngine.seek(to: clamped)
+                publishPlayheadTime(clamped, force: true)
+            }
+        }
+
+        if audioEngine.isSectionLoopPlaybackActive {
+            releaseAudioSectionLoopContinuingLinear()
+        }
+
+        transportState.lastAudioTimelineTime = nil
+        let seekTime = arrangementEngine.currentTime
+        if !restartAudioPlayback(from: seekTime, force: true) {
+            pause()
+        }
     }
 
     private func clearSectionDragState() {
@@ -2500,6 +2689,7 @@ final class WorkspaceViewModel {
             selectedSectionID = project.sections.first?.id
         }
         arrangementEngine.configure(sections: project.sections)
+        audioEngine.cancelGaplessCuts(for: sectionID)
     }
 
     func requestDeleteSection(_ sectionID: UUID) {
@@ -2533,13 +2723,33 @@ final class WorkspaceViewModel {
             return false
         }
 
-        lastAudioRestartTimelineTime = time
-        lastAudioRestartWallTime = ProcessInfo.processInfo.systemUptime
+        syncArrangementAndPlaybackClock(fallbackTime: time)
 
         if shouldResumeTimer {
             startPlaybackTimer()
         }
         return true
+    }
+
+    /// After any audio restart/jump, arrangement and UI clocks must match the engine clock.
+    private func syncArrangementAndPlaybackClock(fallbackTime: TimeInterval) {
+        let wallTime = ProcessInfo.processInfo.systemUptime
+        if audioEngine.isSamplePlaybackClockEstablished,
+           let resolved = audioEngine.currentTimelineTime() {
+            arrangementEngine.seek(to: resolved)
+            transportState.lastAudioTimelineTime = resolved
+            lastAudioRestartTimelineTime = resolved
+            playheadTime = resolved
+            transportDisplayClock.reset(to: resolved, wallTime: wallTime)
+        } else {
+            arrangementEngine.seek(to: fallbackTime)
+            transportState.lastAudioTimelineTime = fallbackTime
+            lastAudioRestartTimelineTime = fallbackTime
+            playheadTime = fallbackTime
+            transportDisplayClock.reset(to: fallbackTime, wallTime: wallTime)
+        }
+        lastAudioRestartWallTime = wallTime
+        playheadPublishAccumulator = 0
     }
 
     /// Starts audio for a section trigger using the same path as transport play (reliable on iPad).
@@ -2554,25 +2764,38 @@ final class WorkspaceViewModel {
 
         playheadTime = time
         playheadPublishAccumulator = 0
-        suppressTimelineJumpRestartUntil = Date().addingTimeInterval(1.0)
+        transportState.suppressTimelineJumpRestartUntil = Date().addingTimeInterval(1.0)
         arrangementEngine.seek(to: playheadTime)
         arrangementEngine.play()
         arrangementEngine.ensureSectionPlaybackContext(at: playheadTime)
         audioEngine.clearSectionLoopState()
 
-        guard restartAudioPlayback(from: playheadTime, force: true) else {
-            SectionTriggerDiagnostics.log("resumeSectionTriggerPlayback restartAudioPlayback failed")
+        // Seamless is preferred: stops/resets all players and reschedules with an 8 ms
+        // lead-in anchor, avoiding a full engine warm-up cycle. scheduleUntil must match
+        // linearScheduleCap so capped segments end at the section boundary — this lets
+        // adoptSectionLoopDuringPlayback queue file-segment loop cycles at the correct
+        // player-relative sample offset without conflicting with an uncapped segment.
+        let seamlessCap = SectionPlaybackCoordinator.linearScheduleCap(
+            arrangementState: arrangementEngine.state,
+            activeSection: arrangementEngine.activeSection,
+            pendingSection: arrangementEngine.pendingSection
+        )
+        let started: Bool
+        if audioEngine.isAnyPlayerPlaying,
+           audioEngine.seamlessJumpPlayback(to: playheadTime, project: project, scheduleUntil: seamlessCap) {
+            syncArrangementAndPlaybackClock(fallbackTime: playheadTime)
+            started = true
+        } else {
+            started = restartAudioPlayback(from: playheadTime)
+        }
+
+        guard started else {
+            SectionTriggerDiagnostics.log("resumeSectionTriggerPlayback audio start failed")
             return false
         }
 
-        if let syncedTime = audioEngine.currentTimelineTime() {
-            playheadTime = syncedTime
-            arrangementEngine.seek(to: syncedTime)
-            lastAudioRestartTimelineTime = syncedTime
-        }
-
         isPlaying = true
-        loopPrebufferTriggered = false
+        transportState.loopPrebufferTriggered = false
         if playbackTimer == nil {
             startPlaybackTimer()
         }
@@ -2610,13 +2833,13 @@ final class WorkspaceViewModel {
     func triggerSection(_ section: ArrangementSection) {
         isSelectionLoopEnabled = false
         selectedSectionID = section.id
-
-        if isPlaying {
-            arrangementEngine.ensureSectionPlaybackContext(at: arrangementEngine.currentTime)
-        }
+        isSectionTriggerInProgress = true
+        defer { isSectionTriggerInProgress = false }
 
         if preparesImmediateSectionJump(to: section) {
-            suppressTimelineJumpRestartUntil = Date().addingTimeInterval(0.5)
+            audioEngine.cancelArmedBoundaryJump(flushScheduledAudio: false)
+            audioEngine.clearSectionLoopState()
+            transportState.suppressTimelineJumpRestartUntil = Date().addingTimeInterval(0.5)
         }
 
         let result = arrangementEngine.triggerSection(section)
@@ -2637,13 +2860,29 @@ final class WorkspaceViewModel {
 
         switch result {
         case .queuedForEnd:
-            if isPlaying {
-                loopPrebufferTriggered = true
+            if isPlaying,
+               let active = arrangementEngine.activeSection,
+               let pending = arrangementEngine.pendingSection {
+
+                transportState.loopPrebufferTriggered = audioEngine.armTimelineJumpAtBoundary(
+                    boundaryTime: active.endTime,
+                    destinationTime: pending.startTime,
+                    playheadTime: arrangementEngine.currentTime,
+                    destinationEndTime: pending.endTime,
+                    destinationSectionID: pending.id
+                )
                 SectionTriggerDiagnostics.logEarlyReturn("queuedForEnd while playing", sectionName: section.name)
                 return
             }
         case .enabledRepeatAtEnd:
             if isPlaying {
+                transportState.suppressTimelineJumpRestartUntil = Date().addingTimeInterval(
+                    TransportClock.boundaryRestartSuppression
+                )
+                transportState.skipSectionExitHandlingUntil = Date().addingTimeInterval(
+                    TransportClock.sectionExitSuppression
+                )
+                transportState.loopPrebufferTriggered = false
                 if !audioEngine.isAnyPlayerPlaying {
                     SectionTriggerDiagnostics.log(
                         "enabledRepeatAtEnd with silent audio — restarting playback"
@@ -2652,22 +2891,76 @@ final class WorkspaceViewModel {
                         pause()
                     }
                 } else if let loop = currentSectionLoopContext(at: arrangementEngine.currentTime) {
-                    loopPrebufferTriggered = audioEngine.adoptSectionLoopDuringPlayback(
-                        project: project,
-                        loop: loop,
-                        playheadTime: arrangementEngine.currentTime
-                    )
+                    let playhead = arrangementEngine.currentTime
+                    let remaining = loop.endTime - playhead
+                    if remaining <= SectionPlaybackCoordinator.repeatPrearmLeadTime {
+                        transportState.loopPrebufferTriggered = armRepeatAudio(
+                            loop: loop,
+                            playheadTime: playhead
+                        )
+                        SectionTriggerDiagnostics.log(
+                            "enabledRepeatAtEnd — spliced loop body onto live FIFO (at:nil)"
+                        )
+                    } else {
+                        audioEngine.armLoopBoundaryMetadataOnly(loop: loop)
+                        transportState.loopPrebufferTriggered = false
+                        SectionTriggerDiagnostics.log(
+                            "enabledRepeatAtEnd — metadata only (body spliced near boundary)"
+                        )
+                    }
+                } else {
                     SectionTriggerDiagnostics.log(
-                        "enabledRepeatAtEnd — adopted loop cycles without restart"
+                        "enabledRepeatAtEnd — no loop context at playhead"
                     )
                 }
                 return
             }
+        case .disabledRepeatAtEnd:
+            if isPlaying {
+                transportState.suppressTimelineJumpRestartUntil = Date().addingTimeInterval(
+                    TransportClock.boundaryRestartSuppression
+                )
+                transportState.skipSectionExitHandlingUntil = Date().addingTimeInterval(
+                    TransportClock.sectionExitSuppression
+                )
+                transportState.loopPrebufferTriggered = false
+
+                let playhead = audioEngine.currentTimelineTime() ?? arrangementEngine.currentTime
+                if audioEngine.hasQueuedLoopBody {
+                    // The extra cycle is already in the FIFO and cannot be unscheduled.
+                    // Rebuild linear audio from the real playhead so we do not play that
+                    // body (visual ahead / audio looping once more).
+                    let restarted = audioEngine.exitSectionLoopToLinearPlayback(
+                        at: playhead,
+                        project: project
+                    ) || restartAudioPlayback(from: playhead)
+                    if restarted {
+                        forcePlaybackClocks(to: playhead)
+                        publishPlayheadTime(playhead, force: true)
+                        SectionTriggerDiagnostics.log(
+                            String(format: "disabledRepeatAtEnd — flushed extra cycle, linear from %.3fs", playhead)
+                        )
+                    } else {
+                        SectionTriggerDiagnostics.log(
+                            "disabledRepeatAtEnd — linear rebuild failed"
+                        )
+                        pause()
+                    }
+                } else {
+                    audioEngine.cancelArmedBoundaryJump(flushScheduledAudio: false)
+                    audioEngine.clearSectionLoopState()
+                    SectionTriggerDiagnostics.log(
+                        "disabledRepeatAtEnd — metadata cleared, live audio uninterrupted"
+                    )
+                }
+            }
+            return
         case .activatedImmediately:
             break
         }
 
         playheadTime = arrangementEngine.currentTime
+        scrollTimelineToTimeIfOffScreen(playheadTime)
         scrollTimelineToPlayhead(alignment: .center)
 
         if isPlaying {
@@ -2678,6 +2971,7 @@ final class WorkspaceViewModel {
                 pause()
                 return
             }
+            publishPlayheadTime(playheadTime, force: true)
         } else {
             play()
         }
@@ -2825,15 +3119,6 @@ final class WorkspaceViewModel {
         midiLearnStatusMessage = nil
     }
 
-    private var isArrangementSectionControllingPlayback: Bool {
-        switch arrangementEngine.state {
-        case .playingSection, .repeatingSectionAtEnd, .waitingToJump:
-            return true
-        case .idle, .continuingTimeline:
-            return false
-        }
-    }
-
     func togglePlayback() {
         if isPlaying {
             pause()
@@ -2860,32 +3145,40 @@ final class WorkspaceViewModel {
         }
 
         isPlaying = true
-        loopPrebufferTriggered = false
+        transportState.loopPrebufferTriggered = false
+        transportState.lastAudioTimelineTime = nil
+        transportState.lastTransportReanchorWallTime = nil
+        transportDisplayClock.reset(to: playheadTime, wallTime: ProcessInfo.processInfo.systemUptime)
         lastLyricSyncedSectionID = nil
         lastAudioRestartTimelineTime = playheadTime
         lastAudioRestartWallTime = ProcessInfo.processInfo.systemUptime
-        suppressTimelineJumpRestartUntil = Date().addingTimeInterval(1.0)
+        transportState.suppressTimelineJumpRestartUntil = Date().addingTimeInterval(1.0)
         startPlaybackTimer()
         syncLyricSlideForCurrentPlayhead(force: true)
     }
 
     func pause() {
         isPlaying = false
-        suppressTimelineJumpRestartUntil = nil
+        transportState.suppressTimelineJumpRestartUntil = nil
+        transportState.skipSectionExitHandlingUntil = nil
         audioEngine.pause()
         arrangementEngine.pause()
         playheadTime = arrangementEngine.currentTime
         playheadPublishAccumulator = 0
-        loopPrebufferTriggered = false
+        transportState.loopPrebufferTriggered = false
+        transportState.lastAudioTimelineTime = nil
+        transportState.lastTransportReanchorWallTime = nil
         stopPlaybackTimer()
     }
 
     func stop() {
         isPlaying = false
-        suppressTimelineJumpRestartUntil = nil
+        transportState.suppressTimelineJumpRestartUntil = nil
+        transportState.skipSectionExitHandlingUntil = nil
         playheadTime = 0
         playheadPublishAccumulator = 0
-        loopPrebufferTriggered = false
+        transportState.loopPrebufferTriggered = false
+        transportState.lastAudioTimelineTime = nil
         audioEngine.stop()
         arrangementEngine.stop()
         lastLyricSyncedSectionID = nil
@@ -2916,27 +3209,15 @@ final class WorkspaceViewModel {
         }
     }
 
-    private func shouldSuppressTimelineJumpRestart() -> Bool {
-        suppressTimelineJumpRestartUntil.map { Date() < $0 } ?? false
-    }
-
-    private func playbackTimelineDidJump(
-        from previousTime: TimeInterval,
-        to newTime: TimeInterval,
-        delta: TimeInterval
-    ) -> Bool {
-        abs(newTime - (previousTime + delta)) > max(0.05, delta * 0.5)
-    }
-
     private func publishPlayheadTime(_ time: TimeInterval, force: Bool = false) {
-        if force {
+        if force || isPlaying {
             playheadPublishAccumulator = 0
             playheadTime = time
             return
         }
 
         playheadPublishAccumulator += playbackTickInterval
-        guard playheadPublishAccumulator >= playheadPublishInterval else { return }
+        guard playheadPublishAccumulator >= TransportClock.backgroundDisplayInterval else { return }
         playheadPublishAccumulator = 0
         playheadTime = time
     }
@@ -2944,6 +3225,7 @@ final class WorkspaceViewModel {
     private func startPlaybackTimer() {
         stopPlaybackTimer()
         playheadPublishAccumulator = 0
+        startPlayheadDisplayTimer()
 
         let timer = Timer(timeInterval: playbackTickInterval, repeats: true) { [weak self] _ in
             guard let self else { return }
@@ -2956,140 +3238,262 @@ final class WorkspaceViewModel {
     private func stopPlaybackTimer() {
         playbackTimer?.invalidate()
         playbackTimer = nil
+        stopPlayheadDisplayTimer()
     }
 
-    private func computePlaybackDelta(previousTime: TimeInterval) -> TimeInterval {
-        guard isPlaying else { return 0 }
+    private func resolvedTransportTime(wallTime: TimeInterval = ProcessInfo.processInfo.systemUptime) -> TimeInterval? {
+        let sampleTime = audioEngine.currentTimelineTime()
+        if let sampleTime {
+            transportDisplayClock.commitSample(sampleTime, wallTime: wallTime)
+        }
+        return transportDisplayClock.resolvedTime(
+            isPlaying: isPlaying,
+            wallTime: wallTime,
+            sampleTime: sampleTime
+        ) ?? arrangementEngine.currentTime
+    }
 
-        guard let audioTime = audioEngine.currentTimelineTime() else {
-            return 0
-        }
+    private func tickPlayheadDisplayOnly() {
+        guard isPlaying else { return }
+        guard let time = resolvedTransportTime() else { return }
+        playheadTime = time
+    }
 
-        let rawDelta = audioTime - previousTime
-        if rawDelta >= 0, rawDelta <= 0.5 {
-            return rawDelta
+    private func startPlayheadDisplayTimer() {
+        stopPlayheadDisplayTimer()
+        let timer = Timer(timeInterval: TransportClock.activeDisplayInterval, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.tickPlayheadDisplayOnly()
         }
-        if rawDelta > 0.5, rawDelta <= 1.0, audioTime <= project.duration + 0.25 {
-            arrangementEngine.seek(to: audioTime)
-            arrangementSyncedToAudioThisTick = true
-            SectionTriggerDiagnostics.log(String(
-                format: "audio drift sync %.3fs -> %.3fs (delta %.3fs)",
-                previousTime,
-                audioTime,
-                rawDelta
-            ))
-        } else if rawDelta > 1.0 {
-            SectionTriggerDiagnostics.log(String(
-                format: "ignored stale audio clock jump %.3fs -> %.3fs (delta %.3fs)",
-                previousTime,
-                audioTime,
-                rawDelta
-            ))
-        }
-        return 0
+        playheadDisplayTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func stopPlayheadDisplayTimer() {
+        playheadDisplayTimer?.invalidate()
+        playheadDisplayTimer = nil
+    }
+
+    private func makeTransportTickInput() -> PlaybackTransportController.TickInput {
+        let wallTime = ProcessInfo.processInfo.systemUptime
+        let suppressFlags = PlaybackTransportController.resolveSuppressFlags(
+            now: Date(),
+            state: transportState
+        )
+        let transportTime = resolvedTransportTime(wallTime: wallTime)
+
+        return PlaybackTransportController.TickInput(
+            isPlaying: isPlaying,
+            projectDuration: project.duration,
+            sampleRate: timelineSampleRate,
+            isSelectionLoopEnabled: isSelectionLoopEnabled,
+            selectionRange: selectionRange,
+            audioTime: transportTime,
+            arrangementState: arrangementEngine.state,
+            arrangementTime: arrangementEngine.currentTime,
+            arrangementIsPlaying: arrangementEngine.isPlaying,
+            activeSection: arrangementEngine.activeSection,
+            pendingSection: arrangementEngine.pendingSection,
+            loopPrebufferTriggered: transportState.loopPrebufferTriggered,
+            lastAudioTime: transportState.lastAudioTimelineTime,
+            suppressTimelineJumpRestart: suppressFlags.suppressJump,
+            skipSectionExitHandling: suppressFlags.skipExit,
+            isSectionLoopActive: audioEngine.isSectionLoopPlaybackActive,
+            isAnyPlayerPlaying: audioEngine.isAnyPlayerPlaying,
+            hasArmedBoundaryJump: audioEngine.hasArmedBoundaryJump
+                || audioEngine.isCachedSectionLoopActive,
+            isSampleClockEstablished: audioEngine.isSamplePlaybackClockEstablished,
+            sections: project.sections,
+            wallTime: wallTime
+        )
     }
 
     private func tickPlayback() {
-        arrangementSyncedToAudioThisTick = false
-        let previousTime = arrangementEngine.currentTime
-        let delta = computePlaybackDelta(previousTime: previousTime)
-        let inSectionLoop = currentSectionLoopContext(at: previousTime) != nil
+        let output = PlaybackTransportController.tick(
+            input: makeTransportTickInput(),
+            state: transportState
+        ) { [arrangementEngine] time, duration in
+            arrangementEngine.advance(to: time, projectDuration: duration)
+        }
 
-        if isSelectionLoopEnabled,
-           let range = selectionRange,
-           range.upperBound > range.lowerBound,
-           !isArrangementSectionControllingPlayback {
-            var nextTime = arrangementEngine.currentTime + delta
-            if nextTime >= range.upperBound {
-                nextTime = range.lowerBound
-                if !restartSelectionLoopAudio(at: range.lowerBound, range: range) {
+        transportState = output.state
+        applyTransportCommands(output.commands)
+        if isPlaying {
+            audioEngine.refillLinearContinuation(
+                playheadTime: audioEngine.currentTimelineTime() ?? arrangementEngine.currentTime,
+                project: project
+            )
+        }
+    }
+
+    private func applyTransportCommands(_ commands: [PlaybackTransportController.TickCommand]) {
+        for command in commands {
+            switch command {
+            case .none:
+                break
+
+            case .pauseTransport:
+                pause()
+
+            case .publishPlayhead(let time, let force):
+                publishPlayheadTime(time, force: force)
+
+            case .seekArrangement(let time):
+                arrangementEngine.seek(to: time)
+
+            case .syncLyrics:
+                syncLyricSlideForCurrentPlayhead()
+
+            case .scrollToTimeIfOffScreen(let time):
+                scrollTimelineToTimeIfOffScreen(time)
+
+            case .completeRepeatBoundary(let section, let loop):
+                completeRepeatAtBoundary(section: section, loop: loop)
+
+            case .armRepeatAudio(let loop, let playheadTime):
+                transportState.loopPrebufferTriggered = armRepeatAudio(
+                    loop: loop,
+                    playheadTime: playheadTime
+                )
+
+            case .resolveTimelineAudioJump(let time):
+                if !resolveTimelineAudioJump(to: time) {
                     pause()
-                    return
                 }
+
+            case .reanchorTransport(let time):
+                audioEngine.reanchorPlaybackTimeline(at: time)
+                forcePlaybackClocks(to: time)
+                transportDisplayClock.reset(to: time, wallTime: ProcessInfo.processInfo.systemUptime)
+
+            case .restartAudioAfterSectionExit(let time, let hadActiveLoop):
+                resumeLinearPlaybackAfterSectionExit(at: time, hadActiveLoop: hadActiveLoop)
+
+            case .restartSelectionLoop(at: let time, range: let range):
+                if !restartSelectionLoopAudio(at: time, range: range) {
+                    pause()
+                }
+
+            case .armQueuedSectionJump(let boundary, let destination, let playhead):
+                guard !audioEngine.hasArmedBoundaryJump else { break }
+                let destEndTime = arrangementEngine.pendingSection?.endTime
+                    ?? project.sections.first(where: { abs($0.startTime - destination) < 0.001 })?.endTime
+                transportState.loopPrebufferTriggered = audioEngine.armTimelineJumpAtBoundary(
+                    boundaryTime: boundary,
+                    destinationTime: destination,
+                    playheadTime: playhead,
+                    destinationEndTime: destEndTime,
+                    destinationSectionID: arrangementEngine.pendingSection?.id
+                        ?? project.sections.first(where: { abs($0.startTime - destination) < 0.001 })?.id
+                )
+
+            case .armContinueToNextJump:
+                guard !audioEngine.hasArmedBoundaryJump else { break }
+                guard case .playingSection(let section) = arrangementEngine.state,
+                      section.playbackMode == .continueToNext,
+                      let nextID = section.nextSectionID,
+                      let next = project.sections.first(where: { $0.id == nextID }) else { break }
+
+                transportState.loopPrebufferTriggered = audioEngine.armTimelineJumpAtBoundary(
+                    boundaryTime: section.endTime,
+                    destinationTime: next.startTime,
+                    playheadTime: arrangementEngine.currentTime,
+                    destinationEndTime: next.endTime,
+                    destinationSectionID: next.id
+                )
+
+            case .armLinearContinuation(let sectionEnd, let playheadTime):
+                guard !audioEngine.hasArmedBoundaryJump else { break }
+                guard !audioEngine.isLinearContinuationQueued else { break }
+                if audioEngine.armLinearContinuationAtSectionEnd(
+                    sectionEnd: sectionEnd,
+                    playheadTime: playheadTime,
+                    sectionID: arrangementEngine.activeSection?.id
+                ) {
+                    transportState.loopPrebufferTriggered = true
+                }
+
             }
-            arrangementEngine.seek(to: nextTime)
-            publishPlayheadTime(nextTime, force: true)
+        }
+    }
+
+    private func resumeLinearPlaybackAfterSectionExit(at time: TimeInterval, hadActiveLoop: Bool) {
+        // Loop/continuation now live on the same FIFO. If players are still
+        // rendering, only reanchor the clock — never play() standbys (got N want: 1).
+        if audioEngine.isAnyPlayerPlaying {
+            if hadActiveLoop {
+                audioEngine.releaseRepeatBoundaryLoopMetadata()
+            }
+            if audioEngine.isLinearContinuationQueued {
+                // Continuation is already on the live FIFO. Reanchoring to section
+                // end here (and dumping more file segments) gaps the join.
+                syncArrangementAndPlaybackClock(
+                    fallbackTime: audioEngine.currentTimelineTime() ?? time
+                )
+            } else {
+                audioEngine.reanchorPlaybackTimeline(at: time)
+                audioEngine.clearLinearContinuationQueuedFlag()
+                syncArrangementAndPlaybackClock(fallbackTime: time)
+            }
+            SectionLoopDiagnostics.log(String(
+                format: "section exit — live FIFO continue at %.6fs",
+                time
+            ))
             return
         }
 
-        arrangementEngine.tick(delta: delta, projectDuration: project.duration)
-        let newTime = arrangementEngine.currentTime
-
-        let didJumpTimeline = playbackTimelineDidJump(
-            from: previousTime,
-            to: newTime,
-            delta: delta
-        )
-        publishPlayheadTime(newTime, force: didJumpTimeline || inSectionLoop)
-        syncLyricSlideForCurrentPlayhead()
-
-        if didJumpTimeline, newTime + 0.5 < previousTime {
-            scrollTimelineToPlayhead(alignment: .center)
-        }
-
-        if isPlaying,
-           didJumpTimeline,
-           !arrangementSyncedToAudioThisTick {
-            if isSectionLoopWrap(from: previousTime, to: newTime)
-                || isSectionRepeatWrap(from: previousTime, to: newTime) {
-                loopPrebufferTriggered = false
-                audioEngine.reanchorPlaybackTimeline(at: newTime)
-                let canAppend = audioEngine.isSectionLoopPlaybackActive
-                    && appendSectionLoopAudioIfNeeded(from: previousTime, to: newTime)
-                if !canAppend {
-                    if !restartAudioPlayback(from: newTime, force: true) {
-                        pause()
-                        return
-                    }
+        if audioEngine.hasPrimedStandbyTakeover {
+            audioEngine.startAllPrimedStandbys(allowImmediateStart: false)
+            if audioEngine.isAnyPlayerPlaying {
+                if hadActiveLoop {
+                    audioEngine.releaseRepeatBoundaryLoopMetadata()
                 }
-            } else if isArrangementSectionTransition(from: previousTime, to: newTime) {
-                guard !shouldSuppressTimelineJumpRestart() else { return }
-                loopPrebufferTriggered = false
+                audioEngine.reanchorPlaybackTimeline(at: time)
+                audioEngine.clearLinearContinuationQueuedFlag()
+                syncArrangementAndPlaybackClock(fallbackTime: time)
                 SectionLoopDiagnostics.log(String(
-                    format: "section transition restart %.6fs -> %.6fs",
-                    previousTime,
-                    newTime
+                    format: "section exit — standby takeover at %.6fs",
+                    time
                 ))
-                if !restartAudioPlayback(from: newTime, force: true) {
-                    pause()
-                    return
-                }
-            } else if !shouldSuppressTimelineJumpRestart(),
-                      audioEngine.isSamplePlaybackClockEstablished {
-                SectionTriggerDiagnostics.log(String(
-                    format: "timeline jump restart %.6fs -> %.6fs",
-                    previousTime,
-                    newTime
-                ))
-                if !restartAudioPlayback(from: newTime) {
-                    pause()
-                    return
-                }
+                return
             }
         }
 
-        if isPlaying,
-           arrangementEngine.pendingSection == nil,
-           let loop = currentSectionLoopContext(at: newTime) {
-            let remaining = loop.endTime - newTime
-            if remaining > 0, remaining <= 0.12, !loopPrebufferTriggered {
-                loopPrebufferTriggered = true
-                _ = audioEngine.appendSectionLoopCycles(project: project, loop: loop)
+        if audioEngine.isAnyPlayerPlaying && audioEngine.isLinearContinuationQueued {
+            if hadActiveLoop {
+                audioEngine.releaseRepeatBoundaryLoopMetadata()
             }
-        } else if !isPlaying {
-            loopPrebufferTriggered = false
-        }
-
-        if newTime >= project.duration,
-           project.duration > 0,
-           !isArrangementSectionControllingPlayback {
-            publishPlayheadTime(newTime, force: true)
-            pause()
+            audioEngine.reanchorPlaybackTimeline(at: time)
+            audioEngine.clearLinearContinuationQueuedFlag()
+            syncArrangementAndPlaybackClock(fallbackTime: time)
+            SectionLoopDiagnostics.log(String(
+                format: "section exit — reanchor in-flight audio at %.6fs",
+                time
+            ))
             return
         }
 
-        if !arrangementEngine.isPlaying {
-            publishPlayheadTime(newTime, force: true)
+        if hadActiveLoop {
+            audioEngine.clearSectionLoopState()
+        } else {
+            releaseAudioSectionLoopContinuingLinear()
+        }
+
+        // Seamless path (~8 ms lead-in) only when continuation was not pre-queued.
+        if audioEngine.seamlessJumpPlayback(to: time, project: project) {
+            syncArrangementAndPlaybackClock(fallbackTime: time)
+            SectionLoopDiagnostics.log(String(
+                format: "section exit — seamless continue at %.6fs",
+                time
+            ))
+            return
+        }
+
+        SectionLoopDiagnostics.log(String(
+            format: "section exit — full restart at %.6fs",
+            time
+        ))
+        if !restartAudioPlayback(from: time) {
             pause()
         }
     }

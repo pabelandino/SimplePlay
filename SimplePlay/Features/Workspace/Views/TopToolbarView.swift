@@ -10,6 +10,7 @@ import UIKit
 
 struct TopToolbarView: View {
     @Bindable var viewModel: WorkspaceViewModel
+    @Bindable private var cueQueue = SectionCueQueueMonitor.shared
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.workspaceLayout) private var workspaceLayout
 
@@ -59,9 +60,16 @@ struct TopToolbarView: View {
 #endif
         .background(DAWTheme.surface)
         .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(DAWTheme.border)
-                .frame(height: 1)
+            VStack(spacing: 0) {
+                SectionCueQueueBadge(
+                    color: DAWTheme.accent,
+                    progress: cueQueue.overallProgress,
+                    isVisible: cueQueue.isAnySectionQueuing
+                )
+                Rectangle()
+                    .fill(DAWTheme.border)
+                    .frame(height: 1)
+            }
         }
     }
 

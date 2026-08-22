@@ -11,7 +11,7 @@ alwaysApply: false
 
 # Audio engine guardrails
 
-**Mandatory:** read `SimplePlay/Core/Services/AUDIO_ENGINE_AGENT_GUIDE.md` before any edit in the globs above.
+**Mandatory:** read `SimplePlay/Core/Services/AUDIO_ENGINE_AGENT_GUIDE.md` before any edit in the globs above. For pads, section loop, queued jumps, or section-exit audio, also read `SECTION_PLAYBACK_AGENT_GUIDE.md` — that FIFO contract is core and must not be “simplified.”
 
 ## Do not
 
@@ -26,5 +26,13 @@ alwaysApply: false
 - Sync / anchor / latency → `IOSPlaybackStrategy` / `MacOSPlaybackStrategy`.
 - Validate unavailable saved interfaces in UI/ViewModel before `loadProject` / `apply(settings:)`.
 - Run `graphify query` before exploring; `graphify update .` after Swift changes.
+- After any audio restart/jump: sync arrangement + `lastAudioTimelineTime` + `playheadTime` (see `syncArrangementAndPlaybackClock` in `WorkspaceViewModel`).
+- Keep `computePlaybackDelta` rules in `PlaybackDeltaPolicy.swift`; run `PlaybackDeltaPolicyTests` when touching sync or section jumps.
+
+## Playback sync (mandatory)
+
+Read **Playback sync invariants** in `AUDIO_ENGINE_AGENT_GUIDE.md` before editing section loops, triggers, or `tickPlayback`.
+
+Never merge a change that only reanchors the timeline (`reanchorPlaybackTimeline`, `completeArmedBoundaryJump`) without verifying the player queue actually switched — that causes visual/audio desync.
 
 Stable playback reference: commit `584a4ad`.

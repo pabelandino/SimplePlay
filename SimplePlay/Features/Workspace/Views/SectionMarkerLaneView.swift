@@ -383,6 +383,7 @@ fileprivate struct SectionMarkerChipView: View {
     let isSelected: Bool
     let isDimmed: Bool
     @Binding var dragSession: SectionDragSession?
+    @Bindable private var cueQueue = SectionCueQueueMonitor.shared
 
 #if os(iOS)
     private let chipTapThreshold: CGFloat = 12
@@ -457,6 +458,16 @@ fileprivate struct SectionMarkerChipView: View {
                         resizeHandle(edge: .end)
                     }
                 }
+                .overlay(alignment: .bottom) {
+                    if !isDimmed {
+                        SectionCueQueueBadge(
+                            color: liveSection.color,
+                            progress: cueQueue.progress(for: liveSection.id),
+                            isVisible: cueQueue.isQueuing(sectionID: liveSection.id)
+                        )
+                        .allowsHitTesting(false)
+                    }
+                }
                 .shadow(
                     color: liveSection.color.opacity(layout.density == .full ? 0.25 : 0.12),
                     radius: layout.density == .full ? 5 : 2,
@@ -494,17 +505,39 @@ fileprivate struct SectionMarkerChipView: View {
                 viewModel.triggerSection(liveSection)
             }
         )
+#if os(macOS)
         .contextMenu {
-            Button("Assign MIDI Pad") {
-                viewModel.startMIDILearn(for: .section(section.id))
-            }
-            Button("Delete Marker", role: .destructive) {
-                viewModel.requestDeleteSection(section.id)
+            sectionMarkerMenuButtons
+        }
+        .help("Drag center to move · Drag edges to resize · Tap or double-click to trigger")
+#else
+        .overlay(alignment: .topTrailing) {
+            if dragSession == nil, isSelected, layout.density != .dot {
+                Menu {
+                    sectionMarkerMenuButtons
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(width: 22, height: 22)
+                        .background(Color.black.opacity(0.35))
+                        .clipShape(Circle())
+                }
+                .menuStyle(.borderlessButton)
+                .padding(4)
             }
         }
-#if os(macOS)
-        .help("Drag center to move · Drag edges to resize · Tap or double-click to trigger")
 #endif
+    }
+
+    @ViewBuilder
+    private var sectionMarkerMenuButtons: some View {
+        Button("Assign MIDI Pad") {
+            viewModel.startMIDILearn(for: .section(liveSection.id))
+        }
+        Button("Delete Marker", role: .destructive) {
+            viewModel.requestDeleteSection(liveSection.id)
+        }
     }
 
     private var chipMoveOrTapGesture: some Gesture {
@@ -676,7 +709,7 @@ fileprivate struct SectionMarkerChipView: View {
     }
 
     private func sectionDragGesture(kind: WorkspaceViewModel.SectionDragKind) -> some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .named(sectionLaneCoordinateSpace))
+        DragGesture(minimumDistance: 4, coordinateSpace: .named(sectionLaneCoordinateSpace))
             .onChanged { value in
                 guard dragSession == nil
                     || (dragSession?.sectionID == section.id && dragSession?.kind == kind) else {

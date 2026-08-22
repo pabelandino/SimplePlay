@@ -12,6 +12,7 @@ import AppKit
 
 struct MIDIMappingBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
+    @Bindable private var cueQueue = SectionCueQueueMonitor.shared
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.workspaceLayout) private var workspaceLayout
@@ -312,6 +313,14 @@ struct MIDIMappingBarView: View {
             .overlay {
                 RoundedRectangle(cornerRadius: sectionQuickPadCornerRadius, style: .continuous)
                     .stroke(statusBorder(for: section, status: status), lineWidth: status == .idle ? 1 : 1.5)
+            }
+            .overlay(alignment: .bottom) {
+                SectionCueQueueBadge(
+                    color: section.color,
+                    progress: cueQueue.progress(for: section.id),
+                    isVisible: cueQueue.isQueuing(sectionID: section.id)
+                )
+                .allowsHitTesting(false)
             }
         }
         .buttonStyle(.plain)

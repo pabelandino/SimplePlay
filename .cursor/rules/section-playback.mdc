@@ -1,0 +1,43 @@
+---
+description: Core section pad / loop / jump / exit FIFO — do not simplify or restart over live nodes
+globs:
+  - SimplePlay/Core/Services/AudioEngineService.swift
+  - SimplePlay/Core/Services/ArrangementPlaybackEngine.swift
+  - SimplePlay/Core/Services/PlaybackTransportController.swift
+  - SimplePlay/Core/Services/TransportClock.swift
+  - SimplePlay/Core/Services/SectionPlaybackCoordinator.swift
+  - SimplePlay/Core/Services/SectionAudioCache.swift
+  - SimplePlay/Core/Services/SectionStandbyCoordinator.swift
+  - SimplePlay/Core/Utils/SectionCueClock.swift
+  - SimplePlay/Core/Utils/PlaybackDeltaPolicy.swift
+  - SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift
+  - SimplePlay/Core/Services/SECTION_PLAYBACK_AGENT_GUIDE.md
+  - SimplePlayTests/ArrangementPlaybackEngine*.swift
+  - SimplePlayTests/PlaybackTransportControllerTests.swift
+  - SimplePlayTests/SectionPlaybackCoordinatorTests.swift
+alwaysApply: false
+---
+
+# Section playback (core)
+
+**Mandatory:** read `SimplePlay/Core/Services/SECTION_PLAYBACK_AGENT_GUIDE.md` before any edit in the globs above. The loop, queued jump, and linear exit are correct.
+
+## Contract
+
+- Tap 1: play section once, then continue the timeline.
+- Tap 2: arm **one** wrap. Wrap consumes repeat (`playingSection`). Extra cycle is linear unless tapped again.
+- Disable before wrap: no extra cycle; playhead stays on the audio clock.
+
+## Do not
+
+- `play()` / `stop()` / `play(at:)` on a live node at wrap, jump, or section exit (`HALC got N want: 1`).
+- Dump 12 file segments or the rest of the song at a cut. Use cached PCM `scheduleBuffer(…, at: nil)`.
+- Mark `live-jump` as `isLinearContinuationQueued` (next section exits into silence).
+- Set `loopPrebufferTriggered` unless a loop **body** is actually on the FIFO.
+- Append `live-cont` on disable after a queued body.
+
+## Do
+
+- Loop/jump/exit: splice onto the **live FIFO** with `at: nil`. Wrap is clock-only.
+- Continuation: cached tails ~1 s before section end; refill 8 s while playing.
+- After edits: run the test command and manual checklist in the guide. Unit tests cannot hear HAL skips.

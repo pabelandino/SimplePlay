@@ -9,6 +9,24 @@ import Testing
 
 @MainActor
 struct ArrangementPlaybackEngineTests {
+    @Test func firstPadTapDoesNotEnterRepeat() async {
+        let engine = ArrangementPlaybackEngine()
+        let verse = makeSection(name: "Verse", start: 13.24, end: 17.96, note: 60)
+
+        engine.configure(sections: [verse])
+        #expect(engine.triggerSection(verse) == .activatedImmediately)
+        engine.play()
+
+        engine.currentTime = 15
+        engine.tick(delta: 0.2, projectDuration: 60)
+        #expect(engine.state == .playingSection(verse))
+
+        engine.currentTime = 17.9
+        engine.tick(delta: 0.2, projectDuration: 60)
+        #expect(engine.state == .continuingTimeline)
+        #expect(engine.activeSection == nil)
+    }
+
     @Test func doesNotRepeatWithoutSamePadPress() async {
         let engine = ArrangementPlaybackEngine()
         let chorus = makeSection(name: "Chorus", start: 10, end: 20, note: 62)
@@ -84,6 +102,9 @@ struct ArrangementPlaybackEngineTests {
 
         engine.currentTime = 19.9
         engine.tick(delta: 0.2, projectDuration: 60)
+        #expect(engine.currentTime == 20)
+
+        engine.completeRepeatAtEndBoundary(for: section)
 
         #expect(engine.currentTime == 10)
         #expect(engine.activeSection?.id == section.id)
@@ -102,7 +123,52 @@ struct ArrangementPlaybackEngineTests {
 
         engine.currentTime = 19.9
         engine.tick(delta: 0.2, projectDuration: 60)
+        #expect(engine.currentTime == 20)
+        engine.completeRepeatAtEndBoundary(for: section)
         #expect(engine.currentTime == 10)
+        #expect(engine.state == .playingSection(section))
+
+        engine.currentTime = 19.9
+        engine.tick(delta: 0.2, projectDuration: 60)
+
+        #expect(engine.state == .continuingTimeline)
+        #expect(engine.activeSection == nil)
+    }
+
+    @Test func tapDuringExtraCycleArmsAnotherWrap() async {
+        let engine = ArrangementPlaybackEngine()
+        let section = makeSection(name: "Chorus", start: 10, end: 20, note: 62)
+
+        engine.configure(sections: [section])
+        engine.triggerSection(section)
+        engine.play()
+        engine.currentTime = 15
+        _ = engine.triggerSection(section)
+
+        engine.completeRepeatAtEndBoundary(for: section)
+        #expect(engine.state == .playingSection(section))
+
+        engine.currentTime = 15
+        #expect(engine.triggerSection(section) == .enabledRepeatAtEnd)
+        #expect(engine.state == .repeatingSectionAtEnd(section))
+
+        engine.completeRepeatAtEndBoundary(for: section)
+        #expect(engine.state == .playingSection(section))
+        #expect(engine.currentTime == 10)
+    }
+
+    @Test func disablingRepeatBeforeBoundaryContinuesLinearly() async {
+        let engine = ArrangementPlaybackEngine()
+        let section = makeSection(name: "Chorus", start: 10, end: 20, note: 62)
+
+        engine.configure(sections: [section])
+        engine.triggerSection(section)
+        engine.play()
+        engine.currentTime = 15
+        #expect(engine.triggerSection(section) == .enabledRepeatAtEnd)
+        #expect(engine.triggerSection(section) == .disabledRepeatAtEnd)
+        #expect(engine.state == .playingSection(section))
+        #expect(engine.currentTime == 15)
 
         engine.currentTime = 19.9
         engine.tick(delta: 0.2, projectDuration: 60)
@@ -142,14 +208,21 @@ struct ArrangementPlaybackEngineTests {
         engine.play()
 
         _ = engine.triggerSection(section)
+        #expect(engine.state == .playingSection(section))
+        #expect(engine.currentTime == 10)
 
+        _ = engine.triggerSection(section)
         #expect(engine.state == .repeatingSectionAtEnd(section))
 
         engine.currentTime = 19.9
         engine.tick(delta: 0.2, projectDuration: 60)
+        #expect(engine.currentTime == 20)
+
+        engine.completeRepeatAtEndBoundary(for: section)
 
         #expect(engine.currentTime == 10)
         #expect(engine.activeSection?.id == section.id)
+        #expect(engine.state == .playingSection(section))
     }
 
     @Test func queuesJumpWhenPlaybackStartedWithTransport() async {

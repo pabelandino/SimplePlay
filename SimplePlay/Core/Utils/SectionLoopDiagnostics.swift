@@ -72,6 +72,67 @@ enum SectionLoopDiagnostics {
         ))
 #endif
     }
+
+    static func logPlayerClockSnapshot(
+        reason: String,
+        destinationTime: TimeInterval?,
+        playbackStartTime: TimeInterval,
+        engineTime: TimeInterval?,
+        referenceSample: AVAudioFramePosition?,
+        outputSample: AVAudioFramePosition?,
+        liveCount: Int,
+        playingCount: Int,
+        sampleRange: (AVAudioFramePosition, AVAudioFramePosition)?,
+        timelineRange: (TimeInterval, TimeInterval)?,
+        exampleName: String?,
+        examplePlaying: Bool?,
+        exampleSample: AVAudioFramePosition?,
+        exampleElapsed: TimeInterval?,
+        exampleTimeline: TimeInterval?
+    ) {
+        let dest = destinationTime.map { String(format: "%.6f", $0) } ?? "n/a"
+        let engine = engineTime.map { String(format: "%.6f", $0) } ?? "n/a"
+        let ref = referenceSample.map { String($0) } ?? "nil"
+        let output = outputSample.map { String($0) } ?? "nil"
+        let samples: String
+        if let sampleRange {
+            samples = "[\(sampleRange.0),\(sampleRange.1)]"
+        } else {
+            samples = "n/a"
+        }
+        let timelines: String
+        if let timelineRange {
+            timelines = String(format: "[%.6f,%.6f]", timelineRange.0, timelineRange.1)
+        } else {
+            timelines = "n/a"
+        }
+        log(String(
+            format: "clock-snap %@ dest=%@ start=%.6f engineTime=%@ refSample=%@ outputSample=%@ live=%d playing=%d sample=%@ timeline=%@",
+            reason,
+            dest,
+            playbackStartTime,
+            engine,
+            ref,
+            output,
+            liveCount,
+            playingCount,
+            samples,
+            timelines
+        ))
+        if let exampleName, let examplePlaying, let exampleSample {
+            let elapsed = exampleElapsed.map { String(format: "%.6f", $0) } ?? "no-ref"
+            let timeline = exampleTimeline.map { String(format: "%.6f", $0) } ?? "no-ref"
+            log(String(
+                format: "clock-snap %@ example \"%@\" playing=%d sample=%lld elapsed=%@s timeline=%@",
+                reason,
+                exampleName,
+                examplePlaying ? 1 : 0,
+                exampleSample,
+                elapsed,
+                timeline
+            ))
+        }
+    }
 }
 
 enum SectionTriggerDiagnostics {
@@ -138,6 +199,7 @@ enum SectionTriggerDiagnostics {
         case .activatedImmediately: return "activatedImmediately"
         case .queuedForEnd: return "queuedForEnd"
         case .enabledRepeatAtEnd: return "enabledRepeatAtEnd"
+        case .disabledRepeatAtEnd: return "disabledRepeatAtEnd"
         }
     }
 }

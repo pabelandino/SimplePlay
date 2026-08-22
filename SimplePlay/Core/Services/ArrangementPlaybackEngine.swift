@@ -54,6 +54,7 @@ final class ArrangementPlaybackEngine {
         case activatedImmediately
         case queuedForEnd
         case enabledRepeatAtEnd
+        case disabledRepeatAtEnd
     }
 
     /// When playback was started with the transport (not a section pad), the engine stays in
@@ -78,23 +79,33 @@ final class ArrangementPlaybackEngine {
         }
     }
 
+    /// Pad contract: first tap plays the section once (no loop). A second tap
+    /// while that section is playing arms one wrap at section end. When the wrap
+    /// starts, repeat is consumed (`playingSection`) — it will not wrap again
+    /// unless the pad is tapped again during playback.
+    /// Full FIFO / exit / jump rules: `SECTION_PLAYBACK_AGENT_GUIDE.md`.
     func triggerSection(_ section: ArrangementSection) -> SectionTriggerResult {
         if shouldJumpImmediatelyAfterSectionExit(to: section) {
             activate(section)
             return .activatedImmediately
         }
 
+        let wasAlreadyPlayingThisSection = isPlayingSameSection(section)
+
         ensureSectionPlaybackContext(at: currentTime)
 
-        if canRepeatSameSectionAtEnd(section) {
-            if case .repeatingSectionAtEnd = state {
-                return .enabledRepeatAtEnd
-            }
-            if case .playingSection(let current) = state {
-                state = .repeatingSectionAtEnd(current)
-                pendingSection = nil
-                return .enabledRepeatAtEnd
-            }
+        if case .repeatingSectionAtEnd(let current) = state, current.id == section.id {
+            state = .playingSection(current)
+            pendingSection = nil
+            return .disabledRepeatAtEnd
+        }
+
+        if wasAlreadyPlayingThisSection,
+           case .playingSection(let current) = state,
+           current.id == section.id {
+            state = .repeatingSectionAtEnd(current)
+            pendingSection = nil
+            return .enabledRepeatAtEnd
         }
 
         if let current = currentPlaybackSection() {
@@ -137,18 +148,33 @@ final class ArrangementPlaybackEngine {
         _ = triggerSection(section)
     }
 
+    /// Called when audio (not arrangement tick alone) reaches the section end during repeat-at-end.
+    func completeRepeatAtEndBoundary(for section: ArrangementSection) {
+        guard case .repeatingSectionAtEnd(let current) = state, current.id == section.id else { return }
+        currentTime = section.startTime
+        // One-shot wrap: consume repeat so the extra cycle plays as a normal section.
+        // A further tap while this cycle is playing can arm another wrap.
+        // Stale render clocks still at section end are ignored by `advance(to:)`
+        // while currentTime is at section start (see boundaryEpsilon guard).
+        state = .playingSection(section)
+        activeSection = section
+    }
+
     func tick(delta: TimeInterval, projectDuration: TimeInterval) {
         guard isPlaying else { return }
         let proposedTime = currentTime + delta
 
         switch state {
-        case .playingSection(let section), .repeatingSectionAtEnd(let section):
+        case .playingSection(let section):
             if proposedTime >= section.endTime {
                 currentTime = section.endTime
                 handleSectionPlayback(section, projectDuration: projectDuration)
             } else {
                 currentTime = proposedTime
             }
+        case .repeatingSectionAtEnd(let section):
+            // Repeat boundary is audio-driven; arrangement only advances up to section end.
+            currentTime = min(proposedTime, section.endTime)
         case .waitingToJump:
             if let current = activeSection {
                 if proposedTime >= current.endTime {
@@ -171,6 +197,88 @@ final class ArrangementPlaybackEngine {
                 stop()
             }
         }
+    }
+
+    enum AdvanceOutcome: Equatable {
+        case none
+        case sectionHandled(previousTime: TimeInterval, newTime: TimeInterval)
+        case reachedProjectEnd
+        case arrangementStopped
+    }
+
+    struct AdvanceResult: Equatable {
+        let outcome: AdvanceOutcome
+        let newTime: TimeInterval
+        let newState: PlaybackState
+    }
+
+    /// Advances transport to an absolute timeline position (audio render clock authority).
+    func advance(to time: TimeInterval, projectDuration: TimeInterval) -> AdvanceResult {
+        guard isPlaying else {
+            return AdvanceResult(outcome: .none, newTime: currentTime, newState: state)
+        }
+
+        let previousTime = currentTime
+        let previousState = state
+
+        switch state {
+        case .repeatingSectionAtEnd(let section):
+            currentTime = min(time, section.endTime)
+            return AdvanceResult(outcome: .none, newTime: currentTime, newState: state)
+
+        case .playingSection(let section):
+            if time >= section.endTime {
+                // Gapless repeat re-anchors arrangement to section start while the render
+                // clock can still report the previous pass at section end for a tick.
+                if currentTime <= section.startTime + SectionPlaybackCoordinator.boundaryEpsilon {
+                    currentTime = section.startTime
+                    return AdvanceResult(outcome: .none, newTime: currentTime, newState: state)
+                }
+                currentTime = section.endTime
+                handleSectionPlayback(section, projectDuration: projectDuration)
+                if currentTime != previousTime || state != previousState {
+                    return AdvanceResult(
+                        outcome: .sectionHandled(previousTime: previousTime, newTime: currentTime),
+                        newTime: currentTime,
+                        newState: state
+                    )
+                }
+            } else {
+                currentTime = time
+            }
+
+        case .waitingToJump:
+            if let current = activeSection {
+                if time >= current.endTime {
+                    currentTime = current.endTime
+                    handleSectionPlayback(current, projectDuration: projectDuration)
+                    if currentTime != previousTime || state != previousState {
+                        return AdvanceResult(
+                            outcome: .sectionHandled(previousTime: previousTime, newTime: currentTime),
+                            newTime: currentTime,
+                            newState: state
+                        )
+                    }
+                } else {
+                    currentTime = time
+                }
+            } else {
+                currentTime = time
+            }
+
+        case .continuingTimeline, .idle:
+            currentTime = time
+            if currentTime >= projectDuration, projectDuration > 0 {
+                stop()
+                return AdvanceResult(outcome: .reachedProjectEnd, newTime: currentTime, newState: state)
+            }
+        }
+
+        if !isPlaying {
+            return AdvanceResult(outcome: .arrangementStopped, newTime: currentTime, newState: state)
+        }
+
+        return AdvanceResult(outcome: .none, newTime: currentTime, newState: state)
     }
 
     func seek(to time: TimeInterval) {
@@ -224,18 +332,21 @@ final class ArrangementPlaybackEngine {
         }
     }
 
-    private func canRepeatSameSectionAtEnd(_ section: ArrangementSection) -> Bool {
-        guard let current = currentPlaybackSection() else { return false }
-        guard current.id == section.id, section.contains(time: currentTime) else { return false }
-
-        if let playheadSection = sectionContaining(time: currentTime), playheadSection.id != section.id {
+    private func isPlayingSameSection(_ section: ArrangementSection) -> Bool {
+        switch state {
+        case .playingSection(let current), .repeatingSectionAtEnd(let current):
+            return current.id == section.id
+        default:
             return false
         }
-
-        return true
     }
 
     private func syncActiveSectionToPlayhead(current: ArrangementSection, at time: TimeInterval) {
+        // Nested markers must not replace repeat-at-end on the parent section.
+        if case .repeatingSectionAtEnd = state {
+            return
+        }
+
         guard let playheadSection = sectionContaining(time: time) else {
             if !current.contains(time: time) {
                 activeSection = nil
@@ -282,8 +393,7 @@ final class ArrangementPlaybackEngine {
         }
 
         if case .repeatingSectionAtEnd = state {
-            currentTime = section.startTime
-            state = .playingSection(section)
+            // Wrap is triggered by audio reaching the section end (see completeRepeatAtEndBoundary).
             return
         }
 

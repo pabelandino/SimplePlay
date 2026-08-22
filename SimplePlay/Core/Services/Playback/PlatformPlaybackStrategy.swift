@@ -18,6 +18,8 @@ protocol PlatformPlaybackStrategy {
 
     func currentTimelineTime(in engine: AudioEngineService) -> TimeInterval?
     func resolvePlaybackStartAnchor(in engine: AudioEngineService) -> AVAudioTime
+    /// Host/sample anchor used when `startScheduledPlayers` begins a linear pass (Logic-style queue origin).
+    func capturePlaybackStartAnchor(in engine: AudioEngineService) -> AVAudioTime?
     func segmentScheduleTime(
         offsetSamplesFromPlayhead: AVAudioFramePosition,
         sampleRate: Double,
@@ -36,14 +38,24 @@ protocol PlatformPlaybackStrategy {
         anchor: AVAudioTime,
         in engine: AudioEngineService
     )
+    /// Host time when a cued standby must start so the cut has no extra lead-in.
+    func boundaryCueTime(remaining: TimeInterval, in engine: AudioEngineService) -> AVAudioTime?
     func scheduleFileSegment(
         player: AVAudioPlayerNode,
         file: AVAudioFile,
         startingFrame: AVAudioFramePosition,
         frameCount: AVAudioFrameCount,
         at: AVAudioTime?,
+        completionHandler: (@Sendable () -> Void)?,
         in engine: AudioEngineService
     )
+}
+
+extension PlatformPlaybackStrategy {
+    func boundaryCueTime(remaining: TimeInterval, in engine: AudioEngineService) -> AVAudioTime? {
+        guard let render = engine.playbackLastRenderTime() else { return nil }
+        return SectionCueClock.makeCueTime(remaining: remaining, renderTime: render)
+    }
 }
 
 enum PlatformPlaybackStrategyFactory {

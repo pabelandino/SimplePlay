@@ -8,6 +8,7 @@ import SwiftUI
 /// Compact MIDI mapping bar for iPhone. Assign mode opens a sheet instead of covering the timeline.
 struct iPhoneMIDIMappingBarView: View {
     @Bindable var viewModel: WorkspaceViewModel
+    @Bindable private var cueQueue = SectionCueQueueMonitor.shared
     @State private var showsDevicePicker = false
 
     var body: some View {
@@ -161,6 +162,14 @@ struct iPhoneMIDIMappingBarView: View {
             .clipShape(Capsule())
             .overlay {
                 Capsule().stroke(sectionQuickPadBorder(for: status), lineWidth: status == .playing ? 1.5 : 1)
+            }
+            .overlay(alignment: .bottom) {
+                SectionCueQueueBadge(
+                    color: section.color,
+                    progress: cueQueue.progress(for: section.id),
+                    isVisible: cueQueue.isQueuing(sectionID: section.id)
+                )
+                .allowsHitTesting(false)
             }
         }
         .buttonStyle(.plain)

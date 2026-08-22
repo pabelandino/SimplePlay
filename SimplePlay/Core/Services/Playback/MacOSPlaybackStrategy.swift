@@ -59,6 +59,10 @@ final class MacOSPlaybackStrategy: PlatformPlaybackStrategy {
         AVAudioTime(sampleTime: 0, atRate: engine.playbackPrimaryClipSampleRate ?? 48_000)
     }
 
+    func capturePlaybackStartAnchor(in engine: AudioEngineService) -> AVAudioTime? {
+        engine.playbackMakeMacPlayAnchor()
+    }
+
     func segmentScheduleTime(
         offsetSamplesFromPlayhead: AVAudioFramePosition,
         sampleRate: Double,
@@ -131,13 +135,19 @@ final class MacOSPlaybackStrategy: PlatformPlaybackStrategy {
         startingFrame: AVAudioFramePosition,
         frameCount: AVAudioFrameCount,
         at: AVAudioTime?,
+        completionHandler: (@Sendable () -> Void)?,
         in engine: AudioEngineService
     ) {
+        let wrappedCompletion: ((AVAudioPlayerNodeCompletionCallbackType) -> Void)? = completionHandler.map { handler in
+            { _ in handler() }
+        }
         player.scheduleSegment(
             file,
             startingFrame: startingFrame,
             frameCount: frameCount,
-            at: at
+            at: at,
+            completionCallbackType: .dataPlayedBack,
+            completionHandler: wrappedCompletion
         )
     }
 }

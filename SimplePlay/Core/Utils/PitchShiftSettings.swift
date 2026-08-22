@@ -20,16 +20,18 @@ enum PitchShiftSettings {
     }
 
     static func apply(semitones: Double, to unit: AVAudioUnitTimePitch) {
+        unit.bypass = false
         unit.rate = 1.0
         unit.pitch = cents(from: clampSemitones(semitones))
         unit.overlap = qualityOverlap
     }
 
-    /// Neutral TimePitch settings for graph latency matching when pitch is off.
+    /// Neutral TimePitch is bypassed so loop/section splices are not overlap-add faded.
     static func applyNeutral(to unit: AVAudioUnitTimePitch) {
         unit.rate = 1.0
         unit.pitch = 0
         unit.overlap = 8
+        unit.bypass = true
     }
 
     static func usesPitchProcessing(for track: AudioTrack) -> Bool {
