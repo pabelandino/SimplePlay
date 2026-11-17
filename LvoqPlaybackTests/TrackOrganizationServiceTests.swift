@@ -1,0 +1,114 @@
+//
+//  TrackOrganizationServiceTests.swift
+//  LvoqPlaybackTests
+//
+
+import Foundation
+import Testing
+@testable import LvoqPlayback
+
+struct TrackOrganizationServiceTests {
+    private let service = TrackOrganizationService()
+
+    @Test func ordersClickFirst() {
+        let stems = [
+            stem(name: "Bass", duration: 10),
+            stem(name: "Click", duration: 10),
+            stem(name: "Electric Guitar", duration: 10)
+        ]
+        let group = TrackGroup(name: "A")
+        let tracks = service.buildTracks(from: stems, group: group, groupIndex: 0)
+        let sorted = service.sortTracks(tracks)
+
+        #expect(sorted.first?.role == .click)
+        #expect(sorted.map(\.role) == [.click, .bass, .electricGuitar])
+    }
+
+    @Test func mergesMatchingTracksSideBySide() {
+        var project = DAWProject()
+        let first = [
+            stem(name: "Click", duration: 10),
+            stem(name: "Electric Guitar", duration: 10)
+        ]
+        project = service.importInitial(project: project, stems: first, groupName: "Take 1")
+
+        let second = [
+            stem(name: "Click", duration: 12),
+            stem(name: "Electric Guitar", duration: 12)
+        ]
+        project = service.merge(project: project, newStems: second, groupName: "Take 2")
+
+        #expect(project.tracks.count == 2)
+        #expect(project.tracks[0].clips.count == 2)
+        #expect(project.tracks[1].clips.count == 2)
+    }
+
+    @Test func addsUnknownTrackBelow() {
+        var project = DAWProject()
+        project = service.importInitial(
+            project: project,
+            stems: [stem(name: "Click", duration: 10)],
+            groupName: "Take 1"
+        )
+
+        project = service.merge(
+            project: project,
+            newStems: [stem(name: "Custom Ambience Layer", duration: 10)],
+            groupName: "Take 2"
+        )
+
+        #expect(project.tracks.count == 2)
+        #expect(project.tracks.last?.role == .unknown)
+    }
+
+    @Test func insertsIntoActiveGroupBelowExistingTracks() {
+        var project = DAWProject()
+        project = service.importInitial(
+            project: project,
+            stems: [
+                stem(name: "Click", duration: 10),
+                stem(name: "Electric Guitar", duration: 10)
+            ],
+            groupName: "Multitrack 1"
+        )
+        project = service.merge(
+            project: project,
+            newStems: [
+                stem(name: "Click", duration: 12),
+                stem(name: "Electric Guitar", duration: 12)
+            ],
+            groupName: "Multitrack 2"
+        )
+
+        let initialCount = project.tracks.count
+        project = service.importStems(
+            project: project,
+            newStems: [stem(name: "Custom Layer", duration: 8)],
+            groupName: "Multitrack 1",
+            placement: .insertIntoGroup(groupIndex: 0, startTime: 0)
+        )
+
+        #expect(project.tracks.count == initialCount + 1)
+        #expect(project.groups.count == 2)
+        #expect(project.tracks[2].role == .unknown)
+        #expect(project.tracks[2].clips.first?.groupIndex == 0)
+    }
+
+    @Test func assignsDistinctColorsForDuplicateRoles() {
+        let stems = [
+            stem(name: "Custom Layer A", duration: 10),
+            stem(name: "Custom Layer B", duration: 10),
+            stem(name: "Custom Layer C", duration: 10),
+        ]
+        var project = DAWProject()
+        project = service.importInitial(project: project, stems: stems, groupName: "Take 1")
+
+        let colors = Set(project.tracks.map(\.colorHex))
+        #expect(project.tracks.count == 3)
+        #expect(colors.count == 3)
+    }
+
+    private func stem(name: String, duration: TimeInterval) -> TrackOrganizationService.ImportedStem {
+        .init(url: URL(fileURLWithPath: "/tmp/\(name).wav"), name: name, duration: duration)
+    }
+}

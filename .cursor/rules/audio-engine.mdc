@@ -1,17 +1,17 @@
 ---
-description: Guardrails for SimplePlay audio engine — routing, playback sync, and session setup
+description: Guardrails for Lvoq Playback audio engine — routing, playback sync, and session setup
 globs:
-  - SimplePlay/Core/Services/AudioEngineService.swift
-  - SimplePlay/Core/Services/AudioEngineService*.swift
-  - SimplePlay/Core/Services/AudioEnginePlatformServices.swift
-  - SimplePlay/Core/Services/Playback/**
-  - SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift
+  - LvoqPlayback/Core/Services/AudioEngineService.swift
+  - LvoqPlayback/Core/Services/AudioEngineService*.swift
+  - LvoqPlayback/Core/Services/AudioEnginePlatformServices.swift
+  - LvoqPlayback/Core/Services/Playback/**
+  - LvoqPlayback/Features/Workspace/ViewModels/WorkspaceViewModel.swift
 alwaysApply: false
 ---
 
 # Audio engine guardrails
 
-**Mandatory:** read `SimplePlay/Core/Services/AUDIO_ENGINE_AGENT_GUIDE.md` before any edit in the globs above. For pads, section loop, queued jumps, or section-exit audio, also read `SECTION_PLAYBACK_AGENT_GUIDE.md` — that FIFO contract is core and must not be “simplified.”
+**Mandatory:** read `LvoqPlayback/Core/Services/AUDIO_ENGINE_AGENT_GUIDE.md` before any edit in the globs above. For pads, section loop, queued jumps, or section-exit audio, also read `SECTION_PLAYBACK_AGENT_GUIDE.md` — that FIFO contract is core and must not be “simplified.”
 
 ## Do not
 

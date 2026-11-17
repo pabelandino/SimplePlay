@@ -1,26 +1,26 @@
 ---
 description: Core section pad / loop / jump / exit FIFO — do not simplify or restart over live nodes
 globs:
-  - SimplePlay/Core/Services/AudioEngineService.swift
-  - SimplePlay/Core/Services/ArrangementPlaybackEngine.swift
-  - SimplePlay/Core/Services/PlaybackTransportController.swift
-  - SimplePlay/Core/Services/TransportClock.swift
-  - SimplePlay/Core/Services/SectionPlaybackCoordinator.swift
-  - SimplePlay/Core/Services/SectionAudioCache.swift
-  - SimplePlay/Core/Services/SectionStandbyCoordinator.swift
-  - SimplePlay/Core/Utils/SectionCueClock.swift
-  - SimplePlay/Core/Utils/PlaybackDeltaPolicy.swift
-  - SimplePlay/Features/Workspace/ViewModels/WorkspaceViewModel.swift
-  - SimplePlay/Core/Services/SECTION_PLAYBACK_AGENT_GUIDE.md
-  - SimplePlayTests/ArrangementPlaybackEngine*.swift
-  - SimplePlayTests/PlaybackTransportControllerTests.swift
-  - SimplePlayTests/SectionPlaybackCoordinatorTests.swift
+  - LvoqPlayback/Core/Services/AudioEngineService.swift
+  - LvoqPlayback/Core/Services/ArrangementPlaybackEngine.swift
+  - LvoqPlayback/Core/Services/PlaybackTransportController.swift
+  - LvoqPlayback/Core/Services/TransportClock.swift
+  - LvoqPlayback/Core/Services/SectionPlaybackCoordinator.swift
+  - LvoqPlayback/Core/Services/SectionAudioCache.swift
+  - LvoqPlayback/Core/Services/SectionStandbyCoordinator.swift
+  - LvoqPlayback/Core/Utils/SectionCueClock.swift
+  - LvoqPlayback/Core/Utils/PlaybackDeltaPolicy.swift
+  - LvoqPlayback/Features/Workspace/ViewModels/WorkspaceViewModel.swift
+  - LvoqPlayback/Core/Services/SECTION_PLAYBACK_AGENT_GUIDE.md
+  - LvoqPlaybackTests/ArrangementPlaybackEngine*.swift
+  - LvoqPlaybackTests/PlaybackTransportControllerTests.swift
+  - LvoqPlaybackTests/SectionPlaybackCoordinatorTests.swift
 alwaysApply: false
 ---
 
 # Section playback (core)
 
-**Mandatory:** read `SimplePlay/Core/Services/SECTION_PLAYBACK_AGENT_GUIDE.md` before any edit in the globs above. The loop, queued jump, and linear exit are correct.
+**Mandatory:** read `LvoqPlayback/Core/Services/SECTION_PLAYBACK_AGENT_GUIDE.md` before any edit in the globs above. The loop, queued jump, and linear exit are correct.
 
 ## Contract
 
